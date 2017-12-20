@@ -1,0 +1,22 @@
+
+
+
+//
+//	ziska z DB seznam soucastek a nahradi kategorii kategorii z DB
+//
+//
+
+db.getCollection('stock').aggregate([{
+    $unwind: "$category"
+},{
+  
+    $lookup:{
+        from: "category",
+        localField: "category",
+        foreignField: "name",
+        as: "category"
+    }
+},
+   {
+      $match: { "_id": { $ne: [] } }
+   }])

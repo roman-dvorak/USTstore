@@ -1,0 +1,17 @@
+{% extends "base.hbs" %}
+{% block title %}UST intranet | Home{%end%}
+{% block body %}
+Ahoj :)
+
+{{parent.settings['plugins']}}
+
+<ul>
+{% for plug in parent.settings['plugins'] %}
+<li>
+	<a href="/{{plug}}">{{plug}}</a>
+</li>
+{%end%}
+</ul>
+
+
+{% end %}

@@ -1,0 +1,374 @@
+{% extends "base.hbs" %}
+{% block title %}UST intranet | Home{%end%}
+{% block body %}
+
+<style type="text/css">
+
+	body{
+		overflow: auto;
+	}
+
+	.product_list_element {
+		margin: 0pt;
+		margin-top: 10pt;
+		padding: 5pt;
+	}
+
+	#wrapper{
+		height: 100%;
+	}
+
+
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+
+
+<script type="text/javascript">
+	var current_page = [];
+	var selected = [];
+
+
+</script>
+<div class="container-fluid row" id="wrapper">
+
+
+<!-- ___________ Levy sloupec ___________ -->
+<div class="col-lg-4 col-md-12 col-sm-12 col-12"><div class="card bg-light mb-3" style="padding-left: 15pt; padding-right: 15pt;">
+  <div class="card">
+    <h4 class="card-header">Filter</h4>
+  	<div class="card-body">
+
+  			<label>Vyhledávání:</label>
+  			<input type="text" class="form-control" id="filter-search" onchange="update_list()">
+  		    <label>Nastaveni filtru</label>
+
+  		    <ul>
+  		    	<!-- <li><input type="checkbox" name="uncat" id="uncat" class="filter_cat" onchange="update_list()">uncat</li> -->
+  		    	{%for cat in category %}
+  		    		<li><input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()">{{cat['path']}}{{cat['name']}}</li>
+  		    	{% end %}
+  		    </ul>
+  		    <div class="form-control">
+  		    	<button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+  		    	<button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+  		    </div>
+
+
+  	</div>
+  	<div class="card-footer">
+  			Multiply:
+  			<input type="number" name="" id="print_multiply" value="1" min="1", max="10">
+  			Label template:
+  			<select id="print_template">
+  				<option value="105x74_simple">105 x 74 mm</option>
+  				<option value="70x40_simple">70 x 40 mm</option>
+  			</select>
+  			<button class="btn btn-primary" onclick="preparePrint()">Tisk</button>
+  	</div>
+  </div>
+
+  <div class="card">
+    <h4 class="card-header">Produkt <i><span id="details-name-header" class="selected-name" id="selected-name-title"></span></i></h4>
+  	<form><div class="card-body row">
+  	<div style="height: 53pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%;
+height: 50pt;"></svg></div>
+  	<div class="col-sm-2"><img src="..." alt="..." class="img-thumbnail" style="width: 100%"></div>
+  	
+  	<div class="col-10">
+  		  
+
+		  <div class="form-group">
+		    <label>Název součástky</label>
+		    <input type="text" class="form-control selected-name" id="selected-name-name" value="">
+		  </div>
+
+		  <div class="form-group">
+		    <label for="exampleFormControlTextarea1">Popis</label>
+		    <textarea class="form-control" id="selected-description" rows="4"></textarea>
+		</div>
+
+		  <div class="form-group">
+		    <label for="exampleFormControlTextarea1">Cena <small class="distabled">(prodejní, CZK za kus)</small></label>
+		    <input type="number" class="form-control" name="selected-price" id="selected-price" value="" step="0.01">
+		</div>
+  </div>
+
+  <div class="col-12"><!-- Parametry -->
+
+  	<table class="table" id="data-param-table">
+  		<thead><tr><th>Parametr</th> <th>Hodnota</th></tr></thead>
+  		<tbody>
+
+  		</tbody>
+  		<tfoot>
+  		</tfoot>
+  	</table>
+
+  	<span class="category-component"></span>
+  	<button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-example-modal-lg"><i>ADD</i></button>
+
+	<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+	  <div class="modal-dialog modal-lg">
+	    <div class="modal-content">
+
+	    </div>
+	  </div>
+	</div>
+
+  </div>
+
+  <div class="col-12">
+  <div class="form-group">
+    <label for="exampleFormControlTextarea1">Kategorie</label>
+  	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple">
+		{% for cat in category %}
+			<option value="{{cat['_id']}}">{{cat['name_cs']}} - <small>{{cat['path']}}{{cat['name']}}</small></option>
+		{% end %}
+	</select></div>
+
+  </div>
+
+  <div class="col-12 row" style="margin: 0pt;">
+    <label class="col-12">Dodavatel</label>
+    <div id="supplier_list" style="width: 100%;">
+    </div>
+  </div>
+
+  <div class="col-12 row" style="margin: 0pt;">
+    <label class="col-12">Sklad</label>
+    <div id="stock_bilance" style="width: 100%;">
+    </div>
+  </div>
+
+  	</div></form>
+</div></div>
+
+</div><div class="col-lg-8 col-md-12 col-sm-12 col-12 card bg-light mb-3">
+	<div class="page_select_btn"> <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button> actual page <span class="actual_list_page"></span><button onclick="page(+1, true)" class="btn btn-primary"> +1 </button></div>
+	<div class="product_list_loading">  <div class="loader"></div> </div>
+	
+
+	<div id="product_list">
+
+		
+	</div>
+	<div class="page_select_btn"> <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button> actual page <span class="actual_list_page"></span><button onclick="page(+1, true)" class="btn btn-primary"> +1 </button></div>
+</div></div>
+
+
+
+		<template id="products-template">
+			<div class="card product_list_element">
+				<input type="checkbox" class="product_list-select form-check-input" name="selected" value="" onchange="update_selected(this)">
+				<span class="product_list-name" style="font-size: 1.2em"></span><small><span class="comment-category"></span></small>
+				<div class="comment-body"></div>
+			</div>
+		</template>
+
+
+    	<template id="supplier-template">
+    		<div class="col-12 card supplier_list_element">
+    			<b><span class="supplier_name"></span></b>
+    			<span class="supplier_product"></span>
+    		</div>
+    	</template>
+
+
+
+<script type="text/javascript">
+var list_page = 0;
+$(document).ready(function() {
+    $('.js-example-basic-multiple').select2();
+    update_list();
+});
+
+function page(value, relative=false){
+	if (relative=true){
+		list_page += value;
+	}else{
+		list_page = value;
+	}
+	if (list_page < 0){list_page = 0}
+	update_list();
+}
+
+function select_categories(what){
+	if (what == 'all') {
+		console.log('select all')
+		$(".filter_cat").prop("checked", true);
+	}
+	if (what == 'none') {
+		console.log('select none')
+		$(".filter_cat").prop("checked", false);
+	}
+	update_list();
+}
+
+function active_categories(name = false){
+	if (name != false){
+
+	}else{
+		var list = []
+		var selected=$(".filter_cat:checked")
+		for (var i = selected.length - 1; i >= 0; i--) {
+			list.push(selected[i].name)
+		}
+		console.log('selected', list)
+		return(list)
+	}
+
+}
+
+function update_list(){
+	$('.product_list_loading').show();
+	$('.page_select_btn').hide();
+	$('#product_list').empty();
+	$.ajax({
+	  type: "POST",
+	  url: "/store/api/products/",
+	  //contentType : 'application/json',
+	  data: {
+	  		'selected': active_categories(),
+	  		'search': $("#filter-search").val(),
+	  		'page': list_page
+	  },
+	  success: function( data, textStatus, jQxhr ){
+	      console.log( data, textStatus);
+	      current_page = data;
+	      update_view();
+	  },
+	  error: function( jqXhr, textStatus, errorThrown ){
+	      console.log( errorThrown );
+	  }
+	});
+}
+
+function update_view(){
+	$('.product_list_loading').show();
+	$('.page_select_btn').hide();
+	$('#product_list').empty();
+	for (var i = 0; i < current_page.length; i++) {
+		var element = current_page[i];
+		console.log(element)
+		active_categories()
+		var tmpl = document.getElementById('products-template').content.cloneNode(true);
+  		tmpl.querySelector('.product_list-name').innerText = element['_id'];
+  		tmpl.querySelector('.product_list-select').value = element['_id'];
+  		tmpl.querySelector('.comment-body').innerText = element['description'];
+  		if(selected.indexOf(element['_id']) >= 0){
+  			console.log('###############')
+  			tmpl.querySelector('.product_list-select').checked = true;
+  		}
+  		for (var cat in element['category']){
+  			console.log(element['category'][cat]);
+  			tmpl.querySelector('.comment-category').innerText = element['category'][cat]['name_cs'];
+  		}
+  		var name = ""+element['_id']+"";
+  		tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
+  		//console.log(tmpl);
+  		console.log(element['_id'])
+  		//tmpl.querySelector('.product_list_element').onclick = "load_product("+element['_id']+")";
+		document.getElementById('product_list').appendChild(tmpl);
+	}
+	console.log(selected);
+	$('.product_list_loading').hide();
+	$('.page_select_btn').show();
+	$('.actual_list_page').html(list_page);
+}
+
+
+function update_selected(cb){
+	var index = selected.indexOf(cb.value);
+	if (cb.checked){
+		if (index == -1){
+			selected.push(cb.value);
+		}
+	}else{
+		if (index > -1){
+			selected.splice(index, 1);		
+		}
+	}
+	console.log(selected);
+}
+
+function getUnitLabel(unit){
+	var table = {
+		"percent": ' %',
+		"volt": ' V',
+		"amper": 'A',
+	}
+
+	if (unit in table){
+		return table[unit]
+	}else{
+		return ""
+	}
+}
+
+
+function load_product(id){
+	console.log("měl bych nacit produkc s id", id);
+	try {
+		$.ajax({
+			type: "POST",
+			url: "/store/api/product/",
+			data: {'type':'filter', 'key':'_id' ,'value': id, 'selected': active_categories()},
+			success: function( data, textStatus, jQxhr ){
+				var element = data[0]
+				var stock = data[1]
+				console.log(data)
+
+				JsBarcode("#selected-barcode", element['_id'], {
+					format: "CODE128",
+					displayValue: false,
+					margin: 2
+				});
+
+				$('.selected-name').text(element['_id']);
+				$('.selected-name').val(element['_id']); 
+				$('#selected-description').val(element['description']); 
+				$('.category-component').val(element['category']); 
+				$('#selected-price').val(element['price']); 
+
+				$('#data-param-table > tbody').empty()
+				for (var i in element['parameters']) {
+					$('#data-param-table > tbody').append('<tr><td>'+i+'</td><td>'+element['parameters'][i]['value']+getUnitLabel(element['parameters'][i]['unit'])+'</td></tr>');
+				}
+
+				$('#supplier_list').empty();
+				for (var i in element['supplier']){
+					var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
+		  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['id'];
+		  			tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
+					document.getElementById('supplier_list').appendChild(tmpl);
+				}
+
+				$('#stock_bilance').empty();
+				for (var i in stock){
+					//var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
+		  			//tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['id'];
+		  			//tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
+					document.getElementById('stock_bilance').appendChild('<div>'+stock[i]+'</div>');
+				}
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				console.log( errorThrown );
+			}
+		});
+	}catch(err){
+		alert("načítání se nezdařilo. Pro více informací navštivte konzoli... :-( Omlouvám se...");
+	}
+
+}
+
+
+function preparePrint(){
+	var str = "/store/print/?"+jQuery.param({'multiply': $('#print_multiply').val(), 'template':$('#print_template').val(), 'action': selected});
+	window.open(str,'_blank');
+}
+
+
+</script>
+{% end %}
