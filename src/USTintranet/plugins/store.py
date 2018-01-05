@@ -66,11 +66,10 @@ class api(BaseHandler):
             print("SEARCH", search)
             dout = []
             dbout = self.mdb.stock.aggregate([{
-                    '$skip' : int(page_len)*int(page)
-                },{
-                    '$limit' : int(page_len)
-                },{
-                    '$match': {'_id': { '$regex': search, '$options': 'ix'}} 
+                    '$match': {'$or':[
+                                    {'_id': { '$regex': search, '$options': 'ix'}},
+                                    {'description': { '$regex': search, '$options': 'ix'}}
+                            ]}
                 },{
                     "$unwind": "$category"
                 },{
@@ -82,6 +81,10 @@ class api(BaseHandler):
                     }
                 },{
                     "$match": {"_id": {'$ne': []}}
+                },{
+                    '$skip' : int(page_len)*int(page)
+                },{
+                    '$limit' : int(page_len)
                 }], useCursor=True)
 
             dbout = list(dbout)
@@ -89,9 +92,6 @@ class api(BaseHandler):
             for x in dbout:
                 print("=================")
                 rm = True
-                #if not len(x['category']) and 'uncat' in  ascii_list_to_str(selected):
-                #if 1 > len(x['category']):
-                #        rm = False
                 for i, y in enumerate(x['category']):
                     #print(y)
                     
@@ -103,6 +103,13 @@ class api(BaseHandler):
                     #print("+")
                     #print(y)
                     dout.append(x)
+
+        elif data == 'update_product':
+            new_json = eval(self.request.arguments.get('json', [None])[0])
+            print(new_json)
+            print("<<< new_json")
+            self.mdb.stock.update({"_id": new_json['_id']},new_json)
+            dout = {'out': 'Hi!'}
 
         output = bson.json_util.dumps(dout)
         #print(output)
