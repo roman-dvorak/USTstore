@@ -25,6 +25,22 @@
 	<link href="/static/basic_style.css" rel="stylesheet" />
 	<script src="/static/js/JsBarcode.all.min.js" type="text/javascript"></script>
 
+	<link rel="stylesheet" href="/static/lobibox/dist/css/lobibox.min.css"/>
+	<script src="/static/lobibox/dist/js/lobibox.min.js"></script>
+<script type="text/javascript">
+	
+
+	Lobibox.base.DEFAULTS = $.extend({}, Lobibox.base.DEFAULTS, {
+		soundPath: '/static/lobibox/sounds/'
+	});
+
+	Lobibox.notify.DEFAULTS = $.extend({}, Lobibox.notify.DEFAULTS, {
+    //override any options from default options
+    	soundPath: '/static/lobibox/sounds/'
+	});
+
+
+</script>
 
 
 	<style type="text/css">

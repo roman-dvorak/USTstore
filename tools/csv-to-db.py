@@ -3,6 +3,7 @@ import pymongo
 import json
 import urllib.request
 import re
+import sys
 
 
 client = pymongo.MongoClient('localhost', 27017)
@@ -26,41 +27,41 @@ def match(name):
 
     return response
 
-
-with open('/home/roman/ownCloud/ust/c_0402.csv', 'rt', encoding='utf-8') as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=';')
+file = sys.argv[1]
+with open(file, 'rt', encoding='utf-8') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',')
     for row in spamreader:
         
-        #print(match(row[0]))
-        prefix = 'C0402-'
 
         print(row)
         part = {}
         operation = {}
-        part['_id'] = prefix+row[0]
-        part['name'] = prefix+row[0]
-        part['description'] = row[1]
-        part['category'] = ['C_0402']
-        part['price'] = float(row[3].replace(',', '.'))
+        part['_id'] = row[1]
+        part['name'] = row[0]
+        part['description'] = row[2]
+        part['category'] = [row[7]]
+        part['price'] = float(row[4].replace(',', '.'))
         part['parameters'] = {}
         part['supplier'] = []
+        part['stock'] = {'pha01':{}, 'sob01':{'count':0}}
+        part['stock']['pha01']['count'] = float(row[5].replace(',', '.'))
 
-        operation['product'] = prefix+row[0]
+        operation['product'] = row[1]
         operation['operation'] = 'buy'
-        operation['bilance'] = float(row[4].replace(',', '.'))
-        operation['price'] = float(row[3].replace(',', '.'))
-        operation['stock'] = 'PHA01'
+        operation['bilance'] = float(row[5].replace(',', '.'))
+        operation['price'] = float(row[4].replace(',', '.'))
+        operation['stock'] = 'pha01'
 
         print (part)
         #print (operation)
 
-
         db.stock.update_one(
-            {"_id": prefix+row[0]},
+            {"_id": row[1]},
             {'$set': part},
             upsert = True
         )
-
+        '''
         db.stock_movements.insert_one(
            operation
         )
+        '''
