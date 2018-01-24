@@ -48,6 +48,7 @@ class print_layout(BaseHandler):
             datum = self.get_argument('datum', ">>pro specifikovani pridejte parametr 'datum' do GET parametru<<")
             page = 1
             money_sum = 0
+            Err = []
 
             print ("pozadovany format je:", layout)
             pdf = FPDF('P', 'mm', format='A4')
@@ -78,51 +79,59 @@ class print_layout(BaseHandler):
             data = self.mdb.stock.find({})
             for i, component in enumerate(data):
 
-                if pdf.get_y() > pdf.h-20:
-                    pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
-                    pdf.add_page()
 
-                if page != pdf.page_no():
-                    pdf.set_font('pt_sans', '', 8)
-                    page = pdf.page_no()
-                    pdf.set_xy(120, 288)
-                    pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
+                try:
+                    if pdf.get_y() > pdf.h-20:
+                        pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
+                        pdf.add_page()
+
+                    if page != pdf.page_no():
+                        pdf.set_font('pt_sans', '', 8)
+                        page = pdf.page_no()
+                        pdf.set_xy(120, 288)
+                        pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
+                        
+                        pdf.set_font('pt_sans', '', 11)
+                        pdf.set_xy(10, 10)
+                        pdf.cell(100, 5, 'Skladová položka')
+                        pdf.set_x(95)
+                        pdf.cell(10, 5, "Počet kusů", align='R')
+                        pdf.set_x(120)
+                        pdf.cell(10, 5, "Cena za 1ks", align='R')
+                        pdf.set_x(180)
+                        pdf.cell(10, 5, "Cena položky (bez DPH)", align='R', ln=2)
+                        pdf.line(10, 15, pdf.w-10, 15)
+                        pdf.set_y(18)
+
+                    pdf.set_font('pt_sans', '', 10)
+
+                    count = 0
+                    price = 0
+                    for x in component['stock']:
+                        count += float(component['stock'][x]['count'])
+                    price = float(component['price'])
+                    money_sum += (price*count)
+                    if price == 0.0 and count > 0:
+                        Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
                     
-                    pdf.set_font('pt_sans', '', 11)
-                    pdf.set_xy(10, 10)
-                    pdf.cell(100, 5, 'Skladová položka')
+                    print(i, component)
+                    pdf.set_x(10)
+                    pdf.cell(100, 5, component['_id'])
+
                     pdf.set_x(95)
-                    pdf.cell(10, 5, "Počet kusů", align='R')
+                    pdf.cell(10, 5, "%5.d" %(count), align='R')
+
                     pdf.set_x(120)
-                    pdf.cell(10, 5, "Cena za 1ks", align='R')
+                    pdf.cell(10, 5, "%6.2f Kč" %(price), align='R')
+
+                    pdf.set_font('pt_sans-bold', '', 10)
                     pdf.set_x(180)
-                    pdf.cell(10, 5, "Cena položky (bez DPH)", align='R', ln=2)
-                    pdf.line(10, 15, pdf.w-10, 15)
-                    pdf.set_y(18)
+                    pdf.cell(10, 5, "%6.2f Kč" %(price*count), align='R', ln=2)
 
-                pdf.set_font('pt_sans', '', 10)
 
-                count = 0
-                price = component['price']
-
-                for x in component['stock']:
-                    count += component['stock'][x]['count']
-
-                print(i, component)
-                pdf.set_x(10)
-                pdf.cell(100, 5, component['_id'])
-
-                pdf.set_x(95)
-                pdf.cell(10, 5, "%5.d" %(count), align='R')
-
-                pdf.set_x(120)
-                pdf.cell(10, 5, "%6.2f Kč" %(price), align='R')
-
-                pdf.set_font('pt_sans-bold', '', 10)
-                pdf.set_x(180)
-                pdf.cell(10, 5, "%6.2f Kč" %(price*count), align='R', ln=2)
-
-                money_sum += (price*count)
+                except Exception as e:
+                    Err.append('Err' + repr(e) + component['_id'])
+                    print(e)
 
             pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
             pdf.set_font('pt_sans', '', 8)
@@ -132,7 +141,13 @@ class print_layout(BaseHandler):
             pdf.page = 1
             pdf.set_xy(20,175)
             pdf.set_font('pt_sans', '', 12)
-            pdf.cell(20,20, "Cena všech položek ve skladu je %s Kč (bez DPH)" %money_sum)
+            pdf.cell(20,20, "Cena všech položek ve skladu je %0.2f Kč (bez DPH)" %money_sum)
+            if len(Err) > 0:
+                pdf.set_xy(30,80)
+                pdf.cell(1,6,"Pozor, chyby ve skladu:", ln=2)
+                pdf.set_x(32)
+                for ch in Err:
+                    pdf.cell(1,5,ch,ln=2)
             pdf.page = page
 
             print(autori)
@@ -478,8 +493,8 @@ class api(BaseHandler):
             new_json = eval(self.request.arguments.get('json', [None])[0])
             print(new_json)
             print("<<< new_json")
+
             dout = (self.mdb.stock.update({"_id": new_json['_id']},new_json, upsert=True))
-            #dout = {'out': 'Hi!'}
 
         elif data == 'get_categories':
             dout = list(self.mdb.category.find({}))

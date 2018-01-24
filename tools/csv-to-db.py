@@ -36,17 +36,22 @@ with open(file, 'rt', encoding='utf-8') as csvfile:
         print(row)
         part = {}
         operation = {}
-        part['_id'] = row[1]
-        part['name'] = row[0]
-        part['description'] = row[2]
-        part['category'] = [row[7]]
+
+        if row[4] == '': row[4] = '0'
+        if row[5] == '': row[5] = '0'
+
+        part['_id'] = row[1].strip()
+        part['name'] = row[0].strip()
+        part['description'] = row[2].strip()
+        part['category'] = [row[7].strip()]
         part['price'] = float(row[4].replace(',', '.'))
         part['parameters'] = {}
         part['supplier'] = []
         part['stock'] = {'pha01':{}, 'sob01':{'count':0}}
         part['stock']['pha01']['count'] = float(row[5].replace(',', '.'))
+        part['tags'] = {'imported':{}}
 
-        operation['product'] = row[1]
+        operation['product'] = row[1].strip()
         operation['operation'] = 'buy'
         operation['bilance'] = float(row[5].replace(',', '.'))
         operation['price'] = float(row[4].replace(',', '.'))
@@ -56,7 +61,7 @@ with open(file, 'rt', encoding='utf-8') as csvfile:
         #print (operation)
 
         db.stock.update_one(
-            {"_id": row[1]},
+            {"_id": row[1].strip()},
             {'$set': part},
             upsert = True
         )

@@ -45,7 +45,6 @@
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
 
 
 <div class="container-fluid row" id="wrapper">
@@ -56,8 +55,9 @@
   
 
   <div class="card" style="min-height: min-content;"">
-  	<form><div class="card-body row">
+  	<!-- <form> --><div class="card-body row">
   	<div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
+  	<div style="width: 100%" id="selected-tags"></div>
   	{#<div class="col-sm-2"><img src="..." alt="..." class="img-thumbnail" style="width: 100%"></div>#}
   	
   	<div class="col-12">
@@ -109,7 +109,7 @@
   <div class="col-12">
   <div class="form-group">
     <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
-  	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category">
+  	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
 		{% for cat in category %}
 			<option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
 		{% end %}
@@ -131,11 +131,15 @@
     	<input type="number" onchange="update_product('stock_bilance', this, 'sob01')" class="stock_bilance_count col-4 form-control" id="bilance_count_sob01" value="0" step="1">
   </div>
 
-  	</div></form>
 	<div class="form-group">
-		<button class="btn btn-default" onclick="update_product('save')">Ulozit</button>
+		<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
+		<label>Pokrocile funkce</label>
+		<select id="selected_advance_function">
+			<option value="none">Žádná</option>
+			<option value="inventura">Inventura</option>
+		</select>
 	</div>
-
+  	</div><!-- </form> -->
 </div>
 
 <div class="card" style="">
@@ -314,12 +318,6 @@
 	}
 </script>
 
-
-
-
-
-
-
 		<template id="products-template_std">
 			<div class="card product_list_element">
 				<input type="checkbox" class="product_list-select form-check-input" name="selected" value="" onchange="update_selected(this)">
@@ -338,6 +336,7 @@
 					<span class="product_list-description" style=""></span>
 					<span style="" class="stock_holder"></span>
 				</span>
+				<span style="width: 2em;" class="stock_tag_validator">X</span>
 				<span style="width: 8.5em;"><input type="number" name="sklad_value" class="stock_count table_input""></span>
 			</div>
 		</template>
@@ -447,6 +446,7 @@ function update_view(){
 		console.log("ELEMENT>>", element);
 		active_categories()
 		var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
+		tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+, .]/g, ""));
   		tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
   		tmpl.querySelector('.product_list-select').value = element['_id'];
   		tmpl.querySelector('.product_list-description').innerText = element['description'];
@@ -458,9 +458,8 @@ function update_view(){
 		catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
 		console.log("aa>", element['category']);
 
-  		if(element.stock === undefined){}else{
-  			var i;
-  			tmpl.querySelector('.stock_holder').innerText += JSON.stringify(element.stock);
+  		if(element.stock){
+  			tmpl.querySelector('.stock_holder').innerHTML += '<small>'+JSON.stringify(element.stock)+'</small>';
   		}
   		var name = ""+element['_id']+"";
   		tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
@@ -475,6 +474,10 @@ function update_view(){
   				tmpl.querySelector('.stock_count').value = stock;
   			}
   			
+  			if (element.tags){if (element.tags.inventura2018){
+  				tmpl.querySelector('.stock_tag_validator').innerHTML = " ";
+  			}}
+
   			tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
   		}
 
@@ -549,6 +552,9 @@ function getUnitLabel(unit){
 
 
 function load_product(id){
+	$('.product_list_element').css('background-color', 'white');
+	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+, .]/g, "")).css("background-color", "yellow");
+
 	if (current_detail != id){
 		console.log("měl bych nacit produkc s id", id);
 		window.location.hash = '#'+id;
@@ -576,6 +582,14 @@ function load_product(id){
 							delay: 5000, 
 							icon: false
 						});
+						product_json = {
+							'_id': id,
+							'name': id,
+							'stock':{},
+							'price':0,
+							'description':'',
+							'category': [],
+						}
 						return 0;
 					}
 
@@ -620,6 +634,14 @@ function load_product(id){
 					
 					try{$('#bilance_count_pha01').val(element['stock']['pha01']['count']);}
 					catch(e){$('#bilance_count_pha01').val(null); }
+
+					$('#selected-tags').empty()
+					if(element.tags === undefined) element['tags']={};
+					for(var tag in element.tags){
+						console.log("TAG>>", tag);
+						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag+'</span>';
+					}
+
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
 					console.log( errorThrown );
@@ -653,9 +675,17 @@ function update_product(name, element = null, type = null){
 			data: {json: JSON.stringify(product_json)},
 			success: function( data, textStatus, jQxhr ){
 				console.log(textStatus);
+				Lobibox.notify('success', {
+					msg: 'Polozka uspesne ulozena: ' + textStatus,
+					icon: false,
+				});
 			},
 			error: function( jqXhr, textStatus, errorThrown ){
 				console.log( errorThrown );
+				Lobibox.notify('error', {
+					msg: 'Ukladani nove polozky nebylo uspesne: ' + errorThrown,
+					icon: false,
+				});
 			}
 		});
 	}
@@ -663,6 +693,11 @@ function update_product(name, element = null, type = null){
 	if (name == 'stock_bilance'){
 		if(product_json.stock === undefined) product_json['stock'] = {}
 		product_json['stock'][type] = {'count': element.value};
+		if ($('#selected_advance_function').val() == 'inventura'){
+			$('#selected-name-id').focus();
+			product_json['tags']['inventura2018']={}
+			update_product('save');
+		}
 	}
 
 	if (name=='description'){
@@ -677,9 +712,17 @@ function update_product(name, element = null, type = null){
 		load_product($('#selected-name-id').val());
 		$('#selected-name-id').attr("placeholder", $('#selected-name-id').val());
 		$('#selected-name-id').val('');
-
 		$('#selected-name-id').trigger(':reset');
+
+		if ($('#selected_advance_function').val() == 'inventura'){
+			$('#bilance_count_pha01').focus().select();
+		}
 	}
+
+	if (name=='category'){
+		product_json['category'] = [element.value];
+	}
+
 	console.log(product_json);
 }
 
