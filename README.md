@@ -49,7 +49,8 @@ Systém využívá NoSQL databázi MongoDB.
   },
   "name": "Název položky",                    // Název položky, může používat UTF-8 znaky
   "category": ["cat_id"],                     // Kategorie položky
-  "type": 0,                                  // typ položky
+  "type": 0,                                  // typ položky, 0: standartní položka skladu, 1: jednorázová položka,
+                                                  // 2: stará položka/odstranění, 3:
   "description": "Informace o položce",       // Delší popis položky
   "price": 000.00,                            // poslední nákupní cena
   "supplier": [                               // dodavatelé
@@ -58,6 +59,19 @@ Systém využívá NoSQL databázi MongoDB.
   "stock": {                                  // Skladové zásoby
       "PHA01":{"count": 353},
       "PHA02":{"count": 353}
+  },
+  "tags": {
+      "inventura":{
+          "display": None,
+          "date": ISODATE(xx-xx-xxxTyy:yy:yy),
+          "autor": None,
+          "type": "success",
+      },
+      "standard": {
+          "display": True,
+          "date": ISODATE(xx-xx-xxxTyy:yy:yy),
+          "autor": None,
+      }
   },
   "parameters":{                              // Parametry součástky, na základě nich bude doděláno filtrování
     "m_u":{
