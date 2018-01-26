@@ -34,12 +34,15 @@ def plug_info():
 class print_layout(BaseHandler):
     def get(self, data = None):
         out_type = self.get_argument('type', 'html')
-        components = self.get_arguments('action[]')
+        components = self.get_arguments('action[]', [])
         multiply = int(self.get_argument('multiply', 5))
         layout = self.get_argument('template', '70x40_simple')
         skip = int(self.get_argument('skip', 0))
         print(components)
-        comp = self.mdb.stock.find({'_id' : {'$in' : components}})
+        if len(components) > 0:
+            comp = self.mdb.stock.find({'_id' : {'$in' : components}})
+        else:
+            comp = self.mdb.stock.find().sort([("category", 1), ("_id",1)])
         page = 0
 
         if layout == 'souhrn_01':
@@ -65,7 +68,7 @@ class print_layout(BaseHandler):
             pdf.cell(pdf.w, 0, 'Universal Scientific Technologies s.r.o.', align='C', ln=2)
 
             pdf.set_xy(20, 200)
-            pdf.cell(1,0, 'Inventuru provedl %s:' %(datum), ln=2)
+            pdf.cell(1,0, 'Inventuru provedli:', ln=2)
             for x in autori:
                 pdf.cell(1,20, x, ln=2)
 
@@ -141,7 +144,7 @@ class print_layout(BaseHandler):
             pdf.page = 1
             pdf.set_xy(20,175)
             pdf.set_font('pt_sans', '', 12)
-            pdf.cell(20,20, "Cena všech položek ve skladu je %0.2f Kč (bez DPH)" %money_sum)
+            pdf.cell(20,20, "Cena skladových zásob k %s je %0.2f Kč (bez DPH)" %(datum, money_sum))
             if len(Err) > 0:
                 pdf.set_xy(30,80)
                 pdf.cell(1,6,"Pozor, chyby ve skladu:", ln=2)
@@ -241,7 +244,6 @@ class print_layout(BaseHandler):
                 cell_x = column*cell_w
                 cell_y = row*cell_h
 
-                print(component)
                 pdf.set_xy(cell_x+5, cell_y+6.75)
                 if len(component['name'])<23:
                     pdf.set_font('pt_sans-bold', '', 14)
@@ -264,6 +266,7 @@ class print_layout(BaseHandler):
                 pdf.set_font('pt_sans', '', 7.5)
                 pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| " + component['_id'])
         
+
 
         if layout == '105x48_simple':
             page = 0
@@ -392,6 +395,7 @@ class api(BaseHandler):
         print(self.request.arguments)
 
         ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]
+        ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
 
         if data == 'product':
             print(self.request.arguments.get('selected[]', None))
@@ -407,67 +411,39 @@ class api(BaseHandler):
 
         elif data == 'products':
             polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
-            print("polaritA", polarity)   
+            tag_polarity = True if (self.request.arguments.get('tag_polarity', ['true'])[0] == b'true') else False
             selected = (self.request.arguments.get('selected[]', []))
             page = self.get_argument('page', 0)
             page_len = 100
             search = self.get_argument('search')#.decode('ascii')
+            tag_search = self.get_argument('tag_search')#.decode('ascii')
             print("SEARCH", search)
             dout = []
-            '''
-            dbout = self.mdb.stock.aggregate([{
-                    '$match': {'$or':[
-                                    {'_id': { '$regex': search, '$options': 'ix'}},
-                                    {'name': { '$regex': search, '$options': 'ix'}},
-                                    {'description': { '$regex': search, '$options': 'ix'}}
-                            ]}
-                },{
-                    "$unwind": "$category"
-                },{
-                    "$lookup":{
-                        "from": "category",
-                        "localField": "category",
-                        "foreignField": "name",
-                        "as": "category"
-                    }
-                },{
-                    "$match": {"category": {'$in': ascii_list_to_str(selected)}}
-                },{
-                    "$match": {"_id": {'$ne': []}}
-                },{
-                    '$skip' : int(page_len)*int(page)
-                },{
-                    '$limit' : int(page_len)
-                }], useCursor=True)
-            '''
+
             dbcursor = self.mdb.stock.aggregate([
                 {"$unwind": "$_id"},
-                {
-                    '$match': {'$or':[
+                {"$sort" : {"category": 1,"_id": 1} },
+                {"$match": {'$or':[
                                     {'_id': { '$regex': search, '$options': 'ix'}},
                                     {'name': { '$regex': search, '$options': 'ix'}},
-                                    {'description': { '$regex': search, '$options': 'ix'}}
-                            ]}
+                                    {'description': { '$regex': search, '$options': 'ix'}} ]}
                 },{
                     "$match": {'category': {polarity: ascii_list_to_str(selected)}}
                 },{
+                    "$match": {'tags.'+tag_search : {"$exists" : tag_polarity}}
+                },{
                     "$lookup":{
                         "from": "category",
                         "localField": "category",
                         "foreignField": "name",
                         "as": "category"
                     }
-                },
-                #{
-                #    "$match": {"_id": {'$ne': []}}
-                #}#,
-                {
+                },{
                     '$skip' : int(page_len)*int(page)
                 },{
                     '$limit' : int(page_len)
                 }], useCursor=True)
-            print("SELECTED", ascii_list_to_str(selected))
-
+         
             dout = list(dbcursor)
             print(dout)
             print("POCET polozek je", len(dout))
@@ -483,31 +459,46 @@ class api(BaseHandler):
 
                 if component:
                     print("Pozadavek na upravu", component, "Ze skladu:", stock, "Na pocet", count)
-                    self.mdb.stock.update( { "_id": component },
-                                           {"$set": {"stock."+stock+".count": count}  },
-                                           upsert = False
-                                        )
+                    self.mdb.stock.update( 
+                        { "_id": component },
+                        {"$set": {"stock."+stock+".count": count}  },
+                        upsert = False
+                    )
                     dout = {'done': True}
 
         elif data == 'update_product':
             new_json = eval(self.request.arguments.get('json', [None])[0])
             print(new_json)
             print("<<< new_json")
-
             dout = (self.mdb.stock.update({"_id": new_json['_id']},new_json, upsert=True))
+       
+        elif data == 'update_tag':
+            component = self.get_argument('component')
+            tag  = self.get_argument('tag')
+            state = self.get_argument('state', 'true')  # True nebo False, nastavit nebo odstranit tag
+            state = True if state == 'true' else False
+            self.mdb.stock.update({
+                    "_id": component
+                },{
+                    ('$set' if state else '$unset'):{
+                        "tags."+tag: {'date': "2018-02-01" } 
+                    }
+                }
+            )
+            dout = {'done': True}
 
         elif data == 'get_categories':
             dout = list(self.mdb.category.find({}))
 
         elif data == 'update_category':
             self.mdb.category.update({"name": self.get_argument('name')}, 
-                                {
-                                    "name_cs": self.get_argument('name_cs'),
-                                    "description": self.get_argument('description'),
-                                    "path": self.get_argument('path'),
-                                    "name": self.get_argument('name')
-                                },
-                                upsert = True)
+            {
+                "name_cs": self.get_argument('name_cs'),
+                "description": self.get_argument('description'),
+                "path": self.get_argument('path'),
+                "name": self.get_argument('name')
+            },
+            upsert = True)
             dout = {}
             pass
 

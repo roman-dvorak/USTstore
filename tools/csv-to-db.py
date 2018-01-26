@@ -26,14 +26,14 @@ def match(name):
         response = url.read()
 
     return response
-
+i= 0
+suma = 0
 file = sys.argv[1]
 with open(file, 'rt', encoding='utf-8') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',')
     for row in spamreader:
-        
-
-        print(row)
+        i += 1
+        #print(row)
         part = {}
         operation = {}
 
@@ -51,22 +51,28 @@ with open(file, 'rt', encoding='utf-8') as csvfile:
         part['stock']['pha01']['count'] = float(row[5].replace(',', '.'))
         part['tags'] = {'imported':{}}
 
+        suma += part['price']*part['stock']['pha01']['count']
+
         operation['product'] = row[1].strip()
         operation['operation'] = 'buy'
         operation['bilance'] = float(row[5].replace(',', '.'))
         operation['price'] = float(row[4].replace(',', '.'))
         operation['stock'] = 'pha01'
 
-        print (part)
+        #print (part)
         #print (operation)
 
-        db.stock.update_one(
+        out= db.stock.update_one(
             {"_id": row[1].strip()},
             {'$set': part},
             upsert = True
         )
+        print(out)
         '''
         db.stock_movements.insert_one(
            operation
         )
         '''
+
+print('za ', suma)
+print('celkem bylo:', i)

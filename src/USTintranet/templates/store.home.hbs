@@ -62,30 +62,31 @@
   	
   	<div class="col-12">
 
-		  <div class="form-group">
-		    <label>ID soucastky <small>Unikatni nazev</small></label>
-		    <input type="text" class="form-control selected-name" id="selected-name-id" value="" onchange="update_product('id')">
+		  <div class="form-group form-inline">
+		    <label class="col-4">ID soucastky</label>
+		    <input type="text" class="form-control selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
 		  </div>
 
-		  <div class="form-group">
-		    <label>Název součástky</label>
-		    <input type="text" class="form-control selected-name" id="selected-name-name" value="" onchange="update_product('name')"></>
+		  <div class="form-group form-inline">
+		    <label class="col-4">Název součástky</label>
+		    <input type="text" class="form-control selected-name col-8" id="selected-name-name" value="" onchange="update_product('name')"></>
 		  </div>
+
+		<div class="form-group form-inline">
+		    <label class="col-4">Cena</label>
+		    <input type="number" class="form-control col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
+		</div>
 
 		  <div class="form-group">
 		    <label for="exampleFormControlTextarea1">Popis</label>
 		    <textarea class="form-control" id="selected-description" rows="4" onchange="update_product('description')"></textarea>
 		</div>
 
-		<div class="form-group">
-		    <label for="exampleFormControlTextarea1">Cena <small class="distabled">(nákupní, bez DPH)</small></label>
-		    <input type="number" class="form-control" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
-		</div>
   </div>
 
   <div class="col-12"><!-- Parametry -->
 
-  	<table class="table" id="data-param-table">
+  	{#<table class="table" id="data-param-table">
   		<thead><tr><th>Parametr</th> <th>Hodnota</th></tr></thead>
   		<tbody>
 
@@ -94,7 +95,7 @@
   		</tfoot>
   	</table>
 
-  	<button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-example-modal-lg"><i>ADD</i></button>
+  	<button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-example-modal-lg"><i>ADD</i></button>#}
 
 	<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
 	  <div class="modal-dialog modal-lg">
@@ -125,19 +126,21 @@
 
   <div class="col-12 row form-group" style="margin: 0pt;">
     <label class="col-12">Sklad</label>
-	    <label class="col-2">PHA01</label>
+	    <label class="col-2">PHA01 <small id="bilance_count_pha01_old"></small></label>
     	<input type="number" onchange="update_product('stock_bilance', this, 'pha01')" class="stock_bilance_count col-4 form-control" id="bilance_count_pha01" value="0" step="1">
-    	<label class="col-2">SOB01</label>
+    	<label class="col-2">SOB01 <small id="bilance_count_sob01_old"></small></label>
     	<input type="number" onchange="update_product('stock_bilance', this, 'sob01')" class="stock_bilance_count col-4 form-control" id="bilance_count_sob01" value="0" step="1">
-  </div>
 
-	<div class="form-group">
-		<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
-		<label>Pokrocile funkce</label>
-		<select id="selected_advance_function">
-			<option value="none">Žádná</option>
-			<option value="inventura">Inventura</option>
-		</select>
+  </div>
+    <div class="col-12 row form-group" style="margin: 0pt; margin-top: 10pt;">
+		<div class="form-group">
+			<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
+			<label>Pokrocile funkce</label>
+			<select id="selected_advance_function">
+				<option value="none">Žádná</option>
+				<option value="inventura">Inventura</option>
+			</select>
+		</div>
 	</div>
   	</div><!-- </form> -->
 </div>
@@ -148,7 +151,12 @@
 
   			<label>Vyhledávání:</label>
   			<input type="text" class="form-control" id="filter-search" onchange="update_list()">
-  		    <label>Nastaveni filtru<small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" checked="false", onchange="update_list()">)</small></label>
+
+
+  			<label>Filtrování TAGu: <small> (inverzní filtr <input type="checkbox" id="tag_polarity" onchange="update_list()">)</small></label>
+  			<input type="text" class="form-control" id="tag-search" onchange="update_list()">
+
+  		    <label>Nastaveni filtru<small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small></label>
 
   		    <ul>
   		    	<!-- <li><input type="checkbox" name="uncat" id="uncat" class="filter_cat" onchange="update_list()">uncat</li> -->
@@ -164,7 +172,7 @@
 
   		    <hr>
 
-  		    <select name="display" id="display_select" onchange="update_veiw_parameters(this)">
+  		    <select name="display" id="display_select" onchange="update_list()">
   		    	<option value="std">Standartní zobrazeni</option>
   		    	<option value="table">tabulka</option>
   		    </select>
@@ -202,7 +210,6 @@
   			</select>
   			<select id="print_type">
   				<option value="pdf">PDF</option>
-  				<option value="html">HTML</option>
   			</select>
   			<button class="btn btn-primary" onclick="preparePrint()">Tisk</button>
   			<hr>
@@ -220,7 +227,13 @@
 <!-- Pravy sloupec -->
 </div><div class="col-lg-8 col-md-12 col-sm-12 col-12 card bg-light mb-3">
 	
-	<div class="page_select_btn"> <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button> actual page <span class="actual_list_page"></span><button onclick="page(+1, true)" class="btn btn-primary"> +1 </button></div>
+	<div class="page_select_btn">
+		<button onclick="page(-1, true)" class="btn btn-primary"> -1 </button>
+		actual page <span class="actual_list_page"></span>
+		<button onclick="page(+1, true)" class="btn btn-primary"> +1 </button>
+		<button class="btn btn-default" onclick="update_list()">obnovit</button>
+
+	</div>
 	<!-- Točící se kolečko -->
 	<div class="product_list_loading">  <div class="loader"></div> </div>
 	
@@ -336,8 +349,8 @@
 					<span class="product_list-description" style=""></span>
 					<span style="" class="stock_holder"></span>
 				</span>
-				<span style="width: 2em;" class="stock_tag_validator">X</span>
-				<span style="width: 8.5em;"><input type="number" name="sklad_value" class="stock_count table_input""></span>
+				<input type="checkbox" class="stock_tag_selected">
+				<span style="width: 8.5em;"><input type="number" name="sklad_value" class="stock_count table_input"></span>
 			</div>
 		</template>
 
@@ -391,7 +404,6 @@ function select_categories(what){
 
 function active_categories(name = false){
 	if (name != false){
-
 	}else{
 		var list = []
 		var selected=$(".filter_cat:checked")
@@ -401,7 +413,6 @@ function active_categories(name = false){
 		console.log('selected', list)
 		return(list)
 	}
-
 }
 
 function update_list(){
@@ -416,6 +427,8 @@ function update_list(){
 	  		'selected': active_categories(),
 	  		'search': $("#filter-search").val(),
 	  		'polarity': $('#category_polarity').is( ":checked" ),
+	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),
+	  		'tag_search': $("#tag-search").val(),
 	  		'page': list_page
 	  },
 	  success: function( data, textStatus, jQxhr ){
@@ -446,7 +459,7 @@ function update_view(){
 		console.log("ELEMENT>>", element);
 		active_categories()
 		var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
-		tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+, .]/g, ""));
+		tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, ""));
   		tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
   		tmpl.querySelector('.product_list-select').value = element['_id'];
   		tmpl.querySelector('.product_list-description').innerText = element['description'];
@@ -456,7 +469,7 @@ function update_view(){
 
   		try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
 		catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
-		console.log("aa>", element['category']);
+		console.log("cat>", element['category']);
 
   		if(element.stock){
   			tmpl.querySelector('.stock_holder').innerHTML += '<small>'+JSON.stringify(element.stock)+'</small>';
@@ -474,11 +487,12 @@ function update_view(){
   				tmpl.querySelector('.stock_count').value = stock;
   			}
   			
-  			if (element.tags){if (element.tags.inventura2018){
-  				tmpl.querySelector('.stock_tag_validator').innerHTML = " ";
+  			if (element.tags){if (element.tags['inventura2018']){
+  				tmpl.querySelector('.stock_tag_selected').checked = true;
   			}}
 
   			tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
+  			tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
   		}
 
 
@@ -518,6 +532,33 @@ function update_product_from_line(type, product_name, value, add1=null, add2=nul
 				}
 			});
 	}
+
+	if(type=="tag"){
+		console.log("tag ma byt:", product_name, value);
+		$.ajax({
+				type: "POST",
+				url: "/store/api/update_tag/",
+				data: {'component':product_name,
+					   'tag': $('#displa_tag').val(),
+					   'state': value, 
+					},
+				success: function( data, textStatus, jQxhr ){
+					//alert('Data sucessfuly updated');
+					Lobibox.notify('success', {
+						title: 'Položka zaktualizována',
+						msg: 'Počet skladových zásob',
+						delay: 3000
+					});
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
+					Lobibox.notify('error', {
+						msg: 'Aktualizace neproběhla úspěšně: ' + errorThrown,
+						icon: false,
+					});
+				}
+			});
+	}
 }
 
 
@@ -553,7 +594,7 @@ function getUnitLabel(unit){
 
 function load_product(id){
 	$('.product_list_element').css('background-color', 'white');
-	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+, .]/g, "")).css("background-color", "yellow");
+	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, "")).css("background-color", "yellow");
 
 	if (current_detail != id){
 		console.log("měl bych nacit produkc s id", id);
@@ -598,16 +639,16 @@ function load_product(id){
 					$('#selected-name-id').attr("placeholder", element['_id']);
 					$('#selected-name-name').val(element['name']); 
 					$('#selected-description').val(element['description']); 
-					console.log(">>>", element['category']);
 
+					console.log("kategorie", element['category'][0]);
 					$('#selected-category-name').html("("+element['category']+")");
-					$('#selected-category').val(null).trigger('change');
-					for (var i = element['category'].length - 1; i >= 0; i--) {
-						console.log(element['category'][i]);
-						$('#selected-category').val(element['category'][i]).trigger('change');  
-						//$(".js-example-basic-multiple").append('<option value="'+element['category'][i]+'">'+element['category'][i]+'</option>').val(element['category'][i]).trigger('change'); 
-					}
 
+					$('#selected-category').val(element['category']).trigger('change');
+					//for (var i = element['category'].length - 1; i >= 0; i--) {
+					//	console.log("CAT>>", i, element['category'][i]);
+					//	$('#selected-category').val(element['category'][i]).trigger('change');  
+					//}
+					
 					if(element.price === undefined) element['price'] = null
 					$('#selected-price').val(element['price']); 
 
@@ -629,11 +670,23 @@ function load_product(id){
 						document.getElementById('stock_bilance').append('<div>'+stock[i]+'</div>');
 					}
 					
-					try{$('#bilance_count_sob01').val(element['stock']['sob01']['count']);}
-					catch(e){$('#bilance_count_sob01').val(null);}
+					try{
+						$('#bilance_count_sob01').val(element['stock']['sob01']['count']);
+						$('#bilance_count_sob01_old').text(element['stock']['sob01']['count']);
+					}
+					catch(e){
+						$('#bilance_count_sob01').val(null);
+						$('#bilance_count_sob01_old').text('');
+					}
 					
-					try{$('#bilance_count_pha01').val(element['stock']['pha01']['count']);}
-					catch(e){$('#bilance_count_pha01').val(null); }
+					try{
+						$('#bilance_count_pha01').val(element['stock']['pha01']['count']);
+						$('#bilance_count_pha01_old').text(element['stock']['pha01']['count']);
+					}
+					catch(e){
+						$('#bilance_count_pha01').val(null);
+						$('#bilance_count_pha01_old').text('');
+					}
 
 					$('#selected-tags').empty()
 					if(element.tags === undefined) element['tags']={};
