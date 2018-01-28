@@ -127,11 +127,11 @@
   <div class="col-12 row form-group" style="margin: 0pt;">
     <label class="col-12">Sklad</label>
 	    <label class="col-2">PHA01 <small id="bilance_count_pha01_old"></small></label>
-    	<input type="number" onchange="update_product('stock_bilance', this, 'pha01')" class="stock_bilance_count col-4 form-control" id="bilance_count_pha01" value="0" step="1">
+    	<input type="number" onchange="update_product('stock_bilance', this, 'pha01')" onkeypress="call_change(event, this)" class="stock_bilance_count col-4 form-control" id="bilance_count_pha01" value="0" step="1">
     	<label class="col-2">SOB01 <small id="bilance_count_sob01_old"></small></label>
     	<input type="number" onchange="update_product('stock_bilance', this, 'sob01')" class="stock_bilance_count col-4 form-control" id="bilance_count_sob01" value="0" step="1">
-
   </div>
+
     <div class="col-12 row form-group" style="margin: 0pt; margin-top: 10pt;">
 		<div class="form-group">
 			<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
@@ -495,7 +495,9 @@ function update_view(){
   			tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
   		}
 
-
+  		if(current_detail == element['_id']){
+  			tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
+  		}
 		document.getElementById('product_list').appendChild(tmpl);
 	}
 	console.log(selected);
@@ -695,6 +697,11 @@ function load_product(id){
 						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag+'</span>';
 					}
 
+
+					//if ($('#selected_advance_function').val() == 'inventura'){
+					//	$('#bilance_count_pha01').focus().select();
+					//}
+
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
 					console.log( errorThrown );
@@ -744,12 +751,21 @@ function update_product(name, element = null, type = null){
 	}
 
 	if (name == 'stock_bilance'){
-		if(product_json.stock === undefined) product_json['stock'] = {}
-		product_json['stock'][type] = {'count': element.value};
-		if ($('#selected_advance_function').val() == 'inventura'){
-			$('#selected-name-id').focus();
-			product_json['tags']['inventura2018']={}
-			update_product('save');
+		if(product_json.stock === undefined) {product_json['stock'] = {}}
+		console.log("JE to číslo?", !Number.isNaN(Number(element.value)))
+		if(!Number.isNaN(Number(element.value))){
+			product_json['stock'][type] = {'count': element.value};
+			if ($('#selected_advance_function').val() == 'inventura'){
+				$('#selected-name-id').focus();
+				product_json['tags']['inventura2018']={}
+				update_product('save');
+			}
+		}else{
+			Lobibox.notify('error', {
+				msg: 'Skladový počet není číslo!',
+				icon: false,
+			});
+			return(true);
 		}
 	}
 
@@ -791,6 +807,16 @@ function preparePrint(){
 	window.open(str,'_blank');
 }
 
+
+
+
+// Tahle funkce pri zmacknuti enteru spusti onchange spoustec
+function call_change(event, element) {
+	console.log(event);
+	if (event.keyCode == 13){
+		element.onchange();
+	}
+}
 
 </script>
 {% end %}

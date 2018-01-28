@@ -1,3 +1,9 @@
 [submodule "src/USTintranet/static/lobibox"]
 	path = src/USTintranet/static/lobibox
 	url = git@github.com:arboshiki/lobibox.git
+[submodule "src/USTintranet/static/jquery"]
+	path = src/USTintranet/static/jquery
+	url = git://github.com/jquery/jquery.git
+[submodule "src/USTintranet/static/select2"]
+	path = src/USTintranet/static/select2
+	url = git@github.com:select2/select2.git
