@@ -41,15 +41,19 @@ with open(file, 'rt', encoding='utf-8') as csvfile:
         if row[5] == '': row[5] = '0'
 
         part['_id'] = row[1].strip()
+        part['aid'] = []
+        part['type'] = 0
         part['name'] = row[0].strip()
         part['description'] = row[2].strip()
         part['category'] = [row[7].strip()]
         part['price'] = float(row[4].replace(',', '.'))
         part['parameters'] = {}
         part['supplier'] = []
+        if len(row[3].strip())>0:
+            part['supplier'] = [{'supplier':row[3], 'id':''}]
         part['stock'] = {'pha01':{}, 'sob01':{'count':0}}
         part['stock']['pha01']['count'] = float(row[5].replace(',', '.'))
-        part['tags'] = {'imported':{}}
+        part['tags'] = {'imported':{}, 'standard_item':{}}
 
         suma += part['price']*part['stock']['pha01']['count']
 

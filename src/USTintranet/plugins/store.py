@@ -256,7 +256,7 @@ class print_layout(BaseHandler):
                 pdf.set_font('pt_sans', '', 11)
                 pdf.set_xy(cell_x+4, cell_y+20)
                 try:
-                    pdf.multi_cell(cell_w-8, 4, component['description'][:125])
+                    pdf.multi_cell(cell_w-8, 4, component['description'][:185])
                 except Exception as e:
                     pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
