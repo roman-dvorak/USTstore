@@ -1,0 +1,18 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Adresář{%end%}
+{% block body %}
+
+{{parent.__dict__}}
+
+<table>
+<tr>
+	<th>Login</th>
+	<th>Name</th>
+	<th>Zbytek</th>
+</tr>
+{% for user in users%}
+	<tr><td>{{user['user']}}</td><td>{{user['name']}}</td><td>{{user}}</td></tr>
+{% end %}
+</table>
+
+{% end %}{# block body#}

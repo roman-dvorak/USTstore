@@ -26,8 +26,9 @@ def make_handlers(module, plugin):
 
 def plug_info():
     return{
-        "module": "plug_info",
-        "name": "plug_info"
+        "module": "store",
+        "name": "Správce skladu",
+        "icon": 'icon_sklad.svg'
     }
 
 
@@ -93,7 +94,7 @@ class print_layout(BaseHandler):
                         page = pdf.page_no()
                         pdf.set_xy(120, 288)
                         pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
-                        
+
                         pdf.set_font('pt_sans', '', 11)
                         pdf.set_xy(10, 10)
                         pdf.cell(100, 5, 'Skladová položka')
@@ -116,7 +117,7 @@ class print_layout(BaseHandler):
                     money_sum += (price*count)
                     if price == 0.0 and count > 0:
                         Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
-                    
+
                     print(i, component)
                     pdf.set_x(10)
                     pdf.cell(100, 5, component['_id'])
@@ -196,7 +197,7 @@ class print_layout(BaseHandler):
                 pdf.cell(cell_w-10, 0, component['_id'])
                 pdf.set_xy(cell_x, cell_y+10)
                 pdf.image('static/barcode/%s.png'%(id), w = cell_w, h=10)
-                
+
                 pdf.set_font('pt_sans', '', 11)
                 pdf.set_xy(cell_x+5, cell_y+23)
                 try:
@@ -208,7 +209,7 @@ class print_layout(BaseHandler):
                 pdf.set_xy(cell_x+5, cell_y+cell_h-15)
                 pdf.set_font('pt_sans', '', 8)
                 pdf.cell(cell_w-10, 10, ', '.join(component['category']) + "  |  " + str(datetime.datetime.now()) + "  |  " + "UST")
-        
+
 
         if layout == '70x42-3_simple':
             page = 0
@@ -252,7 +253,7 @@ class print_layout(BaseHandler):
                 pdf.cell(cell_w-10, 0, component['name'][:35])
                 pdf.set_xy(cell_x+2.5, cell_y+9)
                 pdf.image('static/barcode/%s.png'%(id), w = cell_w-5, h=7)
-                
+
                 pdf.set_font('pt_sans', '', 11)
                 pdf.set_xy(cell_x+4, cell_y+20)
                 try:
@@ -265,7 +266,7 @@ class print_layout(BaseHandler):
                 pdf.set_xy(cell_x+5, cell_y+13)
                 pdf.set_font('pt_sans', '', 7.5)
                 pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| " + component['_id'])
-        
+
 
 
         if layout == '105x48_simple':
@@ -309,7 +310,7 @@ class print_layout(BaseHandler):
                 pdf.cell(cell_w-10, 0, component['_id'])
                 pdf.set_xy(cell_x, cell_y+10)
                 pdf.image('static/barcode/%s.png'%(id), w = cell_w, h=10)
-                
+
                 pdf.set_font('pt_sans', '', 10)
                 pdf.set_xy(cell_x+5, cell_y+20)
                 try:
@@ -321,7 +322,7 @@ class print_layout(BaseHandler):
                 pdf.set_xy(cell_x+5, cell_y+cell_h-10)
                 pdf.set_font('pt_sans', '', 8)
                 pdf.cell(cell_w-10, 10, ', '.join(component['category']) + "  |  " + str(datetime.datetime.now()) + "  |  " + "UST")
-        
+
 
         elif layout == '105x48_panorama':
             page = 0
@@ -364,7 +365,7 @@ class print_layout(BaseHandler):
                 pdf.rotate(90)
                 pdf.image('static/barcode/%s.png'%(id), w = cell_h-5, h=10)
                 pdf.rotate(0)
-                
+
                 pdf.set_font('pt_sans', '', 11)
                 pdf.set_xy(cell_x+8, cell_y+20)
                 try:
@@ -377,15 +378,15 @@ class print_layout(BaseHandler):
                 pdf.set_font('pt_sans', '', 8)
                 pdf.cell(cell_w-10, 10, ', '.join(component['category']) + "  |  " + str(datetime.datetime.now()) + "  |  " + "UST")
 
-       
+
 
         pdf.output("static/sestava.pdf")
-        with open('static/sestava.pdf', 'rb') as f:  
+        with open('static/sestava.pdf', 'rb') as f:
             self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
-            self.set_header("Content-Disposition", "inline; filename=UST_tiskova_sestava.pdf")                  
+            self.set_header("Content-Disposition", "inline; filename=UST_tiskova_sestava.pdf")
             self.write(f.read())
         f.close()
-        
+
 
 
 class api(BaseHandler):
@@ -443,7 +444,7 @@ class api(BaseHandler):
                 },{
                     '$limit' : int(page_len)
                 }], useCursor=True)
-         
+
             dout = list(dbcursor)
             print(dout)
             print("POCET polozek je", len(dout))
@@ -459,7 +460,7 @@ class api(BaseHandler):
 
                 if component:
                     print("Pozadavek na upravu", component, "Ze skladu:", stock, "Na pocet", count)
-                    self.mdb.stock.update( 
+                    self.mdb.stock.update(
                         { "_id": component },
                         {"$set": {"stock."+stock+".count": count}  },
                         upsert = False
@@ -471,7 +472,7 @@ class api(BaseHandler):
             print(new_json)
             print("<<< new_json")
             dout = (self.mdb.stock.update({"_id": new_json['_id']},new_json, upsert=True))
-       
+
         elif data == 'update_tag':
             component = self.get_argument('component')
             tag  = self.get_argument('tag')
@@ -481,7 +482,7 @@ class api(BaseHandler):
                     "_id": component
                 },{
                     ('$set' if state else '$unset'):{
-                        "tags."+tag: {'date': "2018-02-01" } 
+                        "tags."+tag: {'date': "2018-02-01" }
                     }
                 }
             )
@@ -491,7 +492,7 @@ class api(BaseHandler):
             dout = list(self.mdb.category.find({}))
 
         elif data == 'update_category':
-            self.mdb.category.update({"name": self.get_argument('name')}, 
+            self.mdb.category.update({"name": self.get_argument('name')},
             {
                 "name_cs": self.get_argument('name_cs'),
                 "description": self.get_argument('description'),
@@ -509,8 +510,7 @@ class api(BaseHandler):
 
 class hand_bi_home(BaseHandler):
     def get(self, data=None):
-        print("Store")
-        #cat = {}
+        roles = self.authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
         cat = list(self.mdb.category.find({}))
         #cat = []
         self.render("store.home.hbs", title="UST intranet", parent=self, category = cat)

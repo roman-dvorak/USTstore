@@ -1,17 +1,37 @@
 {% extends "base.hbs" %}
 {% block title %}UST intranet | Home{%end%}
 {% block body %}
-Ahoj :)
+{% set plugins = parent.settings['plugins']%}
 
-{{parent.settings['plugins']}}
 
-<ul>
-{% for plug in parent.settings['plugins'] %}
+<style type="text/css">
+	
+	.plugin_tab{
+		float: left;
+	}
+
+</style>
+
+{# {{parent.settings['plugins']}} #}
+{% for e in err %}
+<p> CHYBA>>> {{e}} </p>
+{% end %}
+
+{#<ul>
+{% for plug in plugins %}
 <li>
-	<a href="/{{plug}}">{{plug}}</a>
+	<a href="/{{plugins[plug]['module']}}">{{plugins[plug]['name']}}</a>
 </li>
 {%end%}
-</ul>
+
+</ul>#}
+
+
+{% for plug in plugins %}
+	
+	<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}">{{plugins[plug]['name']}}</label></div>
+	
+{% end %}
 
 
 {% end %}

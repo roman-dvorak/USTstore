@@ -26,11 +26,11 @@ tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
 #tornado.options.define("mlab_repos", default=None, help="Where is MLAB repository stored")
 
 
-class home(tornado.web.RequestHandler):
+class home(BaseHandler):
     def get(self, arg=None):
         print("GET home")
-        #self.write("ACK")
-        self.render("intranet.home.hbs", title="UST intranet", parent=self)
+        err = self.get_arguments('err', [])
+        self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err)
 
     def post(self, arg=None):
         self.write("ACK")
@@ -43,7 +43,7 @@ class user(BaseHandler):
 class login(BaseHandler):
     def get(self):
         pass
-        
+
 
 
 class WebApp(tornado.web.Application):
@@ -56,7 +56,7 @@ class WebApp(tornado.web.Application):
         handlers = []
         plugins = {}
 
-        # 
+        #
         # tohle najde vsechny python kody ve slozce 'plugins', ktere obsahuji fci make_handlers
         #
         for name in os.listdir("plugins"):
