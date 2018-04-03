@@ -2,6 +2,7 @@
 {% block title %}UST intranet | Home{%end%}
 {% block body %}
 
+<script type="text/javascript"  src="/static/store.js" charset="utf-8"></script>
 
 <script type="text/javascript">
 	var product_json;		// promena, ktera slouzi pro upravu JSONu polozky... Pozor! je globalni.
@@ -10,11 +11,8 @@
 	var current_detail = 0 // aktualne zobrazeny produkt
 </script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 <style type="text/css">
-
-	body{
-		overflow: auto;
-	}
 
 	.product_list_element {
 		margin: 0pt;
@@ -22,9 +20,6 @@
 		padding: 5pt;
 	}
 
-	#wrapper{
-		height: 100%;
-	}
 
 	.product_list_element_table{
 		width: 100%;
@@ -39,26 +34,57 @@
 		width: 8em;
 		border: #ccc solid thin;
 		background: #fafafa;
-	}
+	}``
 
+.sidebar {
+  position: relative;
+
+  /* bottom: 0; */
+  /* left: 0; */
+  /* z-index: 1000; */
+  overflow-x: hidden;
+  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+  padding-left: 10pt;
+  padding-right: 10pt;
+}
+@media (min-width:768px) {
+  .sidebar {
+    position: fixed;
+    overflow-y: scroll;
+	max-height: calc(100% - 80px);
+  }
+}
+
+.cat_top{
+  flex: 0 0 auto;
+  width: 150pt;
+}
+
+#filter_block{
+  /* display: flex; */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0pt;
+}
+
+.form-tab-td{
+  padding: 0px;
+}
 
 </style>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 
-
-<div class="container-fluid row" id="wrapper">
+<div class="container-fluid" id="wrapper"><div class="row">
 
 
 <!-- ___________ Levy sloupec ___________ -->
-<div class="col-lg-4 col-md-12 col-sm-12 col-12"><div class="card bg-light mb-3" style="padding-left: 15pt; padding-right: 15pt; overflow: auto; height: 25cm; position: fixed; width: calc(33% - 30px); height: calc(100% - 60px);">
+<div class="col-md-4 col-sm-12 col-12 bg-faded sidebar">
+  <div>
 
-
-  <div class="card" style="min-height: min-content;"">
-  	<!-- <form> --><div class="card-body row">
+  <div class="card" style="min-height: min-content;">
+     <div class="card-body row">
   	<div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
   	<div style="width: 100%" id="selected-tags"></div>
-  	{#<div class="col-sm-2"><img src="..." alt="..." class="img-thumbnail" style="width: 100%"></div>#}
 
   	<div class="col-12">
 
@@ -146,6 +172,7 @@
 		<div class="form-group">
 			<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
 			<label>Pokrocile funkce</label>
+      <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-edit-component">OtevritEditor</button>
 			<select id="selected_advance_function">
 				<option value="none">Žádná</option>
 				<option value="inventura">Inventura</option>
@@ -156,31 +183,9 @@
 </div>
 
 <div class="card" style="">
-    <h4 class="card-header">Filter</h4>
+    <h4 class="card-header">Možnosti</h4>
   	<div class="card-body">
 
-  			<label>Vyhledávání:</label>
-  			<input type="text" class="form-control" id="filter-search" onchange="update_list()">
-
-
-  			<label>Filtrování TAGu: <small> (inverzní filtr <input type="checkbox" id="tag_polarity" onchange="update_list()">)</small></label>
-  			<input type="text" class="form-control" id="tag-search" onchange="update_list()">
-
-  		    <label>Nastaveni filtru<small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small></label>
-
-  		    <ul>
-  		    	<!-- <li><input type="checkbox" name="uncat" id="uncat" class="filter_cat" onchange="update_list()">uncat</li> -->
-  		    	{%for cat in category %}
-  		    		<li><input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()">{{cat['path']}}{{cat['name']}}</li>
-  		    	{% end %}
-  		    </ul>
-
-  		    <div class="form-control">
-  		    	<button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
-  		    	<button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
-  		    </div>
-
-  		    <hr>
 
   		    <select name="display" id="display_select" onchange="update_list()">
   		    	<option value="table">tabulka</option>
@@ -234,29 +239,64 @@
 
   </div></div>
 
-<!-- Pravy sloupec -->
-</div><div class="col-lg-8 col-md-12 col-sm-12 col-12 card bg-light mb-3">
 
-	<div class="page_select_btn">
+</div> <!-- Konec levého sloupce, Pravy sloupec -->
+<div class="col-md-8 offset-md-4 col-sm-12 offset-sm-0 pt-3">
+
+<div class="card">
+  <div class="form-inline p-3">
+    <button type="button" class="btn" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
+    <input type="text" class="form-control" id="filter-search" onchange="update_list()" placeholder="Vyhledavani">
+    <label>Filtrování TAGu: <small> inverzní filtr <input type="checkbox" id="tag_polarity" onchange="update_list()"></small></label>
+    <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
+
+
+
+  </div>
+  <div id="filter-collapse" class="collapse">
+    <div class="pl-3 pb-3">
+      <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+      <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+      <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+    </div>
+
+  <div id="filter_block" class="row">
+    {% set last = {'path': "/", 'name':""} %}
+    <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
+    {% for cat in category %}
+      {% if (cat['path']+cat['name']).split('/')[1] != (last['path']+last['name']).split('/')[1]%}
+        </div>
+        <div class="col cat_top">
+      {% end %}
+      {# {{cat['path'].split('/')}}{{cat}}<br> #}
+       <a onclick="console.log('{{cat['path']}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
+         <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
+         {{cat['name_cs']}}
+       </a>
+      {% set last = cat%}
+    {% end %}
+    </div>
+
+  </div>
+  </div>
+</div>
+<div class="card">
+
+	<div class="page_select_btn p-3">
 		<button onclick="page(-1, true)" class="btn btn-primary"> -1 </button>
-		actual page <span class="actual_list_page"></span>
+		page <span class="actual_list_page"></span>
 		<button onclick="page(+1, true)" class="btn btn-primary"> +1 </button>
 		<button class="btn btn-default" onclick="update_list()">obnovit</button>
 
 	</div>
-	<!-- Točící se kolečko -->
-	<div class="product_list_loading">  <div class="loader"></div> </div>
+	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
+	<div id="product_list"> </div>                                                <!--  TABULKA S PRODUKTY -->
 
-
-	<div id="product_list">
-	<!--
-	!!
-	!! TABULKA S PRODUKTY
-	!!
-	-->
-	</div>
-
-	<div class="page_select_btn"> <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button> actual page <span class="actual_list_page"></span><button onclick="page(+1, true)" class="btn btn-primary"> +1 </button></div>
+  <div class="page_select_btn p-3">
+    <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button>
+    page <span class="actual_list_page"></span>
+    <button onclick="page(+1, true)" class="btn btn-primary"> +1 </button>
+  </div>
 </div></div>
 
 
@@ -296,9 +336,206 @@
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
       </div>
     </div>
+  </div>
+  </div>                                                                        <!-- konec leveho sloupce -->
 
+</div></div>                                                                    <!-- Konec divu WRPPPER a ROW -->
+
+
+
+
+<div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" id="modal-edit-component">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editace součástky</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body bg-warning">
+     		Barva v levém sloupci značí v jakém stavu vývoje položka je
+     		<ul>
+     			<li>zelená dokončeno.
+     			<li>Oranžová - mělo by být funkční, ale ještě je potřeba něco dodělat.
+     			<li>Červená - pouze textové pole. data se neukládají. Nepoužívat.
+     		</ul>
+     		Ukládání pomocí tlačítka dole by mělo fungovat.<br>
+     		Barvy a toto pole budou odstaněny...
+      </div>
+      <div class="modal-body">
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success">ID</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky">
+                <div style="height: 43pt; padding: 0pt; margin-top: 1rem;" class="col-12"><svg id="edit_barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success">Name</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací)</label>
+              <div class="input-group col-sm-9">
+                <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value="0" min="0" step="0.001">
+                <div class="input-group-append">
+                  <div class="input-group-text">Czk</div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success" data-toggle="tooltip" title="Tato cena je určena jako základní pro samostatný prodej. Zaškrtávátko určuje, jestli tato položka je samostatně prodejná.">Cena (prodejní)</label>
+              <div class="input-group col-sm-9">
+              	<div class="input-group-prepend">
+				    <div class="input-group-text">
+				      <input id="inputSELLABLE_edit" type="checkbox" aria-label="Checkbox for following text input">
+				    </div>
+				  </div>
+                <input type="number" class="form-control" id="inputPRICEp_edit" placeholder="Cena (prodejní)" value="0" min="0" step="0.001">
+                <div class="input-group-append">
+                  <div class="input-group-text">Czk</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success">Skladové zásoby</label>
+              <div class="col-sm-9">
+                  <div class="d-flex flex-row" id="inputSTOCK_list">
+
+                  </div>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success">Popis</label>
+              <div class="input-group col-sm-9">
+                <textarea class="form-control" aria-label="With textarea" rows="5" id="inputDESCRIPTION_edit"></textarea>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-success">Kategorie</label>
+              <div class="input-group col-sm-9">
+                <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
+                {% for cat in category %}
+                    <option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
+                {% end %}
+                </select>
+
+              </div>
+            </div>
+            
+
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-danger">Tagy</label>
+              <div class="input-group col-sm-9">
+              	<select id="inputTAG_edit" class="form-control" multiple="multiple"></select>
+              </div>
+            </div>
+
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-danger">Operace</label>
+              <div class="input-group col-sm-9">
+                <p>Tady budou operace jako pro pridani do kosiku, do jineho kosiku, presun mezi sklady, a co dále????</p>
+              </div>
+            </div>
+
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-warning">Parametry</label>
+              <div class="col-sm-9">
+                  <div class="card">
+                    <table id="inputPARAM_edit" class="table" style="width:100%;">
+                      <thead>
+                        <tr>
+                            <td>#</td>
+                            <td>Jméno</td>
+                            <td>Hodnota</td>
+                            <td>Operace</td>
+                        </tr><tr>
+                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_id" type="number" class="form-control form-tab"style="width: 4em;" min=1 step=1 value=1> </td>
+                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_name" type="text" class="form-control form-tab" value=""> </td>
+                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_value" type="text" class="form-control form-tab" value=""> </td>
+                          <td class="form-tab-td" style="padding: 0pt;">
+                            <button class="form-control" onclick="add_parameter()" style="width: 100%;"><i class="fa fa-plus" aria-hidden="true">+</i></button></td>
+                        </tr>
+                      </thead>
+                      <tbody id="param_table_body">
+
+                      </tbody>
+                    </table>
+
+                  </div>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-danger">Dodavatelé</label>
+              <div class="col-sm-9">
+              	  <div class="card">
+              	  	<div class="card-header" id="headingOne" style="padding: 0pt;">
+				      <h5 class="mb-0">
+				        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+				          Nový dodavatel
+				        </button>
+				      </h5>
+				    </div>
+				    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+     					<div class="card-body">
+     						#<input id="new_supplier_id" type="number" name="" min=1 value=1>
+		          	  		<select id="new_supplier_name">
+		              	  		<option value="tme">TME</option>
+		              	  		<option value="sos">SoS</option>
+		              	  		<OPTION value="mouser">Mouser</OPTION>
+		              	  		<option value="ecom">ECOM</option>
+		              	  	</select>
+		              	  	SKU:<input id="new_supplier_sku" type="text" name="">
+		              	  	code:<input id="new_supplier_code" type="text" name="">
+		              	  	BarcodeType:<select id="new_supplier_bartype">
+		              	  		<option value="CODE128">Code 128</option>
+		              	  		<option value="CODE39">Code 39</option>
+		              	  		<option value="EAN-13">EAN 13</option>
+		              	  		<option value="EAN-8">EAN 8</option>
+		              	  		<option value="EAN-5">EAN 5</option>
+		              	  		<option value="EAN-2">EAN 2</option>
+		              	  		<option value="UPC-A">UPC A</option>
+		              	  		<option value="UPC-E">UPC E</option>
+		              	  	</select>
+		              	  	URL:<input id="new_supplier_url" type="text" name="">
+		              	  	<button onclick="add_supplier()">Save</button>
+		              	</div>
+		              </div>
+              	  </div>
+                  <div class="" id="inputSUPPLIER_list">
+
+                  </div>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label class="col-sm-3 col-form-label bg-danger">Historie operací</label>
+              <div class="col-sm-9">
+                  <div class="card">
+                  	<p>Na zacatku bude filter operaci - tim se mysli, jestli bude zobrazen jen prijem, vydej, presun mezi sklady, ...</p>
+                  	<p>Podtím tabulka s posledními operacemi. V budoucnu snad i historie úprav atd...</p>
+                  </div>
+              </div>
+            </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="WriteToDb()">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
 </div>
+
+
 
 <script type="text/javascript">
 	function mcat_update_cat(){
@@ -461,59 +698,55 @@ function update_veiw_parameters(selector){
 }
 
 function update_view(){
-	$('.product_list_loading').show();
-	$('.page_select_btn').hide();
-	$('#product_list').empty();
-	for (var i = 0; i < current_page.length; i++) {
-		var element = current_page[i];
-		console.log("ELEMENT>>", element);
-		active_categories()
-		var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
-		tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, ""));
-  		tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
-  		tmpl.querySelector('.product_list-select').value = element['_id'];
-  		tmpl.querySelector('.product_list-description').innerText = element['description'];
-  		if(selected.indexOf(element['_id']) >= 0){
-  			tmpl.querySelector('.product_list-select').checked = true;
-  		}
+    $('.product_list_loading').show();
+    $('.page_select_btn').hide();
+    $('#product_list').empty();
+    for (var i = 0; i < current_page.length; i++) {
+        var element = current_page[i];
+        active_categories()
+        var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
+        tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, ""));
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
+        tmpl.querySelector('.product_list-select').value = element['_id'];
+        tmpl.querySelector('.product_list-description').innerText = element['description'];
+        if(selected.indexOf(element['_id']) >= 0){
+            tmpl.querySelector('.product_list-select').checked = true;
+        }
 
-  		try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
-		catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
-		console.log("cat>", element['category']);
+        try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
+        catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
 
-  		if(element.stock){
-  			tmpl.querySelector('.stock_holder').innerHTML += '<small>'+JSON.stringify(element.stock)+'</small>';
-  		}
-  		var name = ""+element['_id']+"";
-  		tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
-  		//console.log(element['_id'])
+        //if(element.stock){
+        //    tmpl.querySelector('.stock_holder').innerHTML += '<small>'+JSON.stringify(element.stock)+'</small>';
+        //}
+        var name = ""+element['_id']+"";
+        tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
+        tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id']+'");');
 
-  		if ($('#display_select').val() == 'table'){
-  			console.log(element['stock'], $('#display_sklad').val());
-  			tmpl.querySelector('.stock_count').value = 0;
-  			if (element['stock'] && element['stock'][$('#display_sklad').val()]['count']){
-  				var stock = element['stock'][$('#display_sklad').val()]['count'];
-  				console.log("pocet", element['stock'], stock);
-  				tmpl.querySelector('.stock_count').value = stock;
-  			}
+        if ($('#display_select').val() == 'table'){
+            tmpl.querySelector('.stock_count').value = 0;
+            if (element['stock'] && element['stock'][$('#display_sklad').val()]['count']){
+                var stock = element['stock'][$('#display_sklad').val()]['count'];
+                tmpl.querySelector('.stock_count').value = stock;
+            }
 
-  			if (element.tags){if (element.tags['inventura2018']){
-  				tmpl.querySelector('.stock_tag_selected').checked = true;
-  			}}
+            if (element.tags){if (element.tags['inventura2018']){
+                tmpl.querySelector('.stock_tag_selected').checked = true;
+            }}
 
-  			tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
-  			tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
-  		}
+            tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
+            tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
+        }
 
-  		if(current_detail == element['_id']){
-  			tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
-  		}
-		document.getElementById('product_list').appendChild(tmpl);
-	}
-	console.log(selected);
-	$('.product_list_loading').hide();
-	$('.page_select_btn').show();
-	$('.actual_list_page').html(list_page);
+        if(current_detail == element['_id']){
+            tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
+        }
+        document.getElementById('product_list').appendChild(tmpl);
+    }
+    console.log(selected);
+    $('.product_list_loading').hide();
+    $('.page_select_btn').show();
+    $('.actual_list_page').html(list_page);
 }
 
 
@@ -656,10 +889,7 @@ function load_product(id){
 					$('#selected-category-name').html("("+element['category']+")");
 
 					$('#selected-category').val(element['category']).trigger('change');
-					//for (var i = element['category'].length - 1; i >= 0; i--) {
-					//	console.log("CAT>>", i, element['category'][i]);
-					//	$('#selected-category').val(element['category'][i]).trigger('change');
-					//}
+				
 
 					if(element.price === undefined) element['price'] = null
 					$('#selected-price').val(element['price']);
@@ -816,8 +1046,6 @@ function preparePrint(){
 		});
 	window.open(str,'_blank');
 }
-
-
 
 
 // Tahle funkce pri zmacknuti enteru spusti onchange spoustec

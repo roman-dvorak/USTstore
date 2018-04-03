@@ -17,9 +17,9 @@
     <script src="/static/select2/dist/js/select2.min.js"></script>
 
     <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons">
-    <link rel="stylesheet" href="https://unpkg.com/bootstrap-material-design@4.0.0-beta.4/dist/css/bootstrap-material-design.min.css" integrity="sha384-R80DC0KVBO4GSTw+wZ5x2zn2pu4POSErBkf8/fSFhPXHxvHJydT0CSgAP2Yo2r4I" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons"> -->
+    <!-- <link rel="stylesheet" href="https://unpkg.com/bootstrap-material-design@4.0.0-beta.4/dist/css/bootstrap-material-design.min.css" integrity="sha384-R80DC0KVBO4GSTw+wZ5x2zn2pu4POSErBkf8/fSFhPXHxvHJydT0CSgAP2Yo2r4I" crossorigin="anonymous"> -->
+    <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> -->
 
     <!-- http://google.github.io/material-design-icons/#icon-font-for-the-web  -->
 
@@ -40,7 +40,7 @@
       </script>
 
 	<style type="text/css">
-		body{
+		/* body{
 			height: 100%;
 			background: #999;
 			padding: 0px;
@@ -49,15 +49,15 @@
 			bottom: 0px
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-		}
+		} */
 
-		#body{
+		/* #body{
 			width: 100%;
       min-height: 100%;
       min-height: calc(100% - 5em);
 			top: 0pt;
 			background: white;
-		}
+		} */
 
 		.card{
 			margin-top: 15pt;
@@ -75,12 +75,12 @@
 	{%block head %}{%end%}
 
 </head>
-<body>
-{% block top-nav %}<div class="top_nav_base">
-<a href="/"><img src="https://www.ust.cz/include/Logo_UST.png" alt="Logo" style="height:100%;"></a>
+<body data-gr-c-s-loaded="true">
+{% block top-nav %}<nav class="top_nav_base navbar navbar-toggleable-md navbar-inverse fixed-top bg-inverse">
+<a href="/"><img src="https://www.ust.cz/include/Logo_UST.png" alt="Logo" style="height:4em;"></a>
 {%if current_user %} {{current_user['user']}} <a href="/logout">Odhlásit</a> {%else%} <a href="/login">přihlásit se</a>{%end%}
 
-</div>{% end %}
+</nav>{% end %}
 
 <div id="body">
 {% block body %} No content {%end%}

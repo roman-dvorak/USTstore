@@ -16,6 +16,9 @@ import code128
 import codecs
 import datetime
 
+false = False
+true = True
+
 def make_handlers(module, plugin):
         return [
              (r'/%s' %module, plugin.hand_bi_home),
@@ -469,10 +472,10 @@ class api(BaseHandler):
 
         elif data == 'update_product':
             print(self.get_argument('json', [None]))
-            false = False
-            true = True
-            new_json = eval(self.request.arguments.get('json', [None])[0])
-            dout = (self.mdb.stock.update({"_id": new_json['_id']},new_json, upsert=True))
+            new_json = json.dumps(self.request.arguments.get('json', [None])[0])
+            print(new_json)
+            print("<<< new_json")
+            dout = (self.mdb.stock.update({"_id": new_json['_id']}, new_json, upsert=True))
 
         elif data == 'update_tag':
             component = self.get_argument('component')
