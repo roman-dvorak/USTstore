@@ -21,15 +21,13 @@ true = True
 
 def make_handlers(module, plugin):
         return [
-             (r'/%s' %module, plugin.hand_bi_home),
-             (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
              (r'/%s/api/(.*)/' %module, plugin.api)
         ]
 
 def plug_info():
     return{
-        "module": "store",
+        "module": "print",
         "name": "Správce skladu",
         "icon": 'icon_sklad.svg'
     }

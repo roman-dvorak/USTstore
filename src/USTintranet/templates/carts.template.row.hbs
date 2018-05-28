@@ -1,7 +1,8 @@
-<div class="chart-row">
-  <div class="chart-row-header">
+<div class="cart-row">
+  <div class="cart-row-header {% if current and data.get('_id', '') == current.get('_id', ' ')%}row-selected{%end%}">
     <div class="chr-header-cell">
       <span class="header-cell">
+        <button class="btn btn-sm" onclick="select_cart('{{data['_id']}}')">Vybrat</button>
         <span class="header-tag">ID:</span>
         <span class="header-value">{{data.get('_id', 'Err')}}</span>
       </span>
@@ -20,15 +21,32 @@
         <span class="header-value">{{data.get('created', 'Err')}}</span>
       </span>
     </div>
+    <div class="chr-header-cell">
+      
+      <span class="header-cell">
+        <span class="header-tag">Typ:</span>
+        <span class="header-value">{{data.get('type', 'Nenastaven')}}</span>
+      </span>
+
+      <span class="header-cell">
+        <span class="header-tag">Stav:</span>
+        <span class="header-value">{{data.get('status', 'Neznámý stav')}}</span>
+      </span>
+
+      <span class="header-cell">
+        <span class="header-tag">Čas založení:</span>
+        <span class="header-value">{{data.get('created', 'Err')}}</span>
+      </span>
+    </div>
   </div>
-  <div class="chart-row-properties">
+  <div class="cart-row-properties">
     <div class="roll">
 
     </div>
   </div>
-  <div class="chart-row-list">
-    <div class="chart-row">
-      {% for row in data.get('chart')%}
+  <div class="cart-row-list">
+    <div class="cart-row">
+      {% for row in data.get('cart', {})%}
         <a href="/store#{{row.get('id', '')}}">#</a> {{row.get('id', 'Err')}}{{row}}<br>
       {% end %}
     </div>

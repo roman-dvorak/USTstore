@@ -24,7 +24,8 @@ def make_handlers(module, plugin):
 def plug_info():
     return{
         "module": "android_barcode",
-        "name": "Android čtečka"
+        "name": "Android čtečka",
+        "icon": 'icon_android.svg'
     }
 
 

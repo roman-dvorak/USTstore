@@ -14,7 +14,6 @@ function OpenArticleEdit(name){
     element = undefined;
     $('#modal-edit-component').modal('show');
     $('#inputCATEGORY_edit').select2({ width: '100%' });
-    $('#new_supplier_name').select2({ multiple: true, tags: true, width: '100%', maximumSelectionLength: 1 });
 
     try {
         $.ajax({
@@ -29,7 +28,6 @@ function OpenArticleEdit(name){
             },
             success: function( data, textStatus, jQxhr ){
                 element = data[0]
-                element_stock = data[1]
                 console.log(element);
 
                 JsBarcode("#edit_barcode",element['_id'], {
@@ -65,19 +63,14 @@ function OpenArticleEdit(name){
                 $('#inputDESCRIPTION_edit').val(element.description || "");
                 $('#inputCATEGORY_edit').val(element['category']).trigger('change');
 
-                $('#new_param_name')[0].value = "";
-                $('#new_param_value')[0].value = "";
-
-                $('#new_supplier_code')[0].value = "";
-                $('#new_supplier_symbol')[0].value = "";
-                $('#new_supplier_url')[0].value = "";
+                $('#new_param_name')[0].value = ""
+                $('#new_param_value')[0].value = ""
 
                 draw_parameters();
                 draw_supplier();
-                draw_stock(element_stock);
+                draw_stock();
                 draw_tags();
 
-                //draw_stock(element['id']);
                 draw_history(element['_id']);
 
             },
@@ -120,7 +113,6 @@ function WriteToDb(){
                 msg: 'Polozka uspesne ulozena: ' + textStatus,
                 icon: false,
             });
-            $('#modal-edit-component').modal('hide');
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -154,17 +146,6 @@ function add_parameter(){
   draw_parameters();
 }
 
-function rm_parameter(id){
-    element.parameters.splice(id, 1);
-    draw_parameters();
-}
-
-function move_param(id, dir){
-    var move = element.parameters[id];
-    element.parameters.splice(id, 1);
-    element.parameters.splice(id+dir, 0, move);
-    draw_parameters();
-}
 
 function draw_parameters(){
   var parameters = element.parameters;
@@ -180,13 +161,7 @@ function draw_parameters(){
     var p = parameters[param];
 
     var html = "<tr><td>" + (Number(param)+1).toString() + "</td><td>" + p.name + "</td><td>"+ p.value +
-      "</td><td style='padding: 0pt;'>"+
-      "<div class='btn-group' role='group'>"+
-      "<button class='btn btn-sm btn-outline-primary' onclick='edit_param("+param+")'><i class='material-icons'>edit</i></button>" +
-      "<button class='btn btn-sm btn-outline-success' onclick='move_param("+param+", -1)'><i class='material-icons'>keyboard_arrow_up</i></button>" +
-      "<button class='btn btn-sm btn-outline-success' onclick='move_param("+param+", +1)'><i class='material-icons'>keyboard_arrow_down</i></button>" +
-      "<button class='btn btn-sm btn-outline-danger'  onclick='rm_parameter("+param+")'><i class='material-icons'>delete_forever</i></button></td></tr>"+
-      "</div>";
+      "</td><td style='padding: 0pt;'><button class='btn btn-sm'>E</button><button class='btn btn-sm'>X</button><button class='btn btn-sm'>U</button><button class='btn btn-sm'>D</button></td></tr>";
     console.log(html);
     $("#param_table_body").append(html);
   }
@@ -194,15 +169,10 @@ function draw_parameters(){
 }
 
 
-
-
-
-
-
 function add_supplier(){
   var data = {
         "supplier":$('#new_supplier_name')[0].value,
-        "symbol": $('#new_supplier_symbol')[0].value,
+        "sku":$('#new_supplier_sku')[0].value,
         "barcode":$('#new_supplier_code')[0].value,
         "bartype":$('#new_supplier_bartype')[0].value,
         "url":$('#new_supplier_url')[0].value
@@ -219,11 +189,6 @@ function add_supplier(){
   $("#new_supplier_id")[0].value = (element.supplier || []).length+1;
   draw_supplier();
 }
-function rm_supplier(id){
-    element.supplier.splice(id, 1);
-    draw_supplier();
-}
-
 
 function draw_supplier(){
   var parameters = element.supplier || [];
@@ -232,37 +197,23 @@ function draw_supplier(){
 
   for (param in parameters){
     var p = parameters[param];
-    console.log(p);
 
-    var html = "<div class='card' style='display: flex; width: 100%; justify-content: space-between;' >"+
-                "<span>"+ "#"+(Number(param)+1).toString()+ "  "+
-                p.supplier + "</span>"+
-                "<span>"+ p.symbol + "</span>"+
-                "<a href='" + p.url + "' target='_blank' class='btn btn-outline-primary'><i class='material-icons'>link</i></a>"+
-                "<button class='btn btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons'>delete_forever</i></button>"+
-                "</div>";
-    
+    var html = "<div class='card'> <small>#"+ (Number(param)+1).toString()+"</small>" + p.supplier +"</div>";
     console.log(html);
     $("#inputSUPPLIER_list").append(html);
 
   }
 }
 
-
-
-
-
-
-
-function draw_stock(count){
-  //var parameters = element.stock || {};
+function draw_stock(){
+  var parameters = element.stock || {};
   $("#inputSTOCK_list").empty();
-  //console.log("STOCK", parameters);
+  console.log("STOCK", parameters);
 
-  for (param in count){
-    var c = count[param];
-    console.log(c);
-    var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + c.bilance || Ndef +" units </div>";
+  for (param in parameters){
+    var p = parameters[param];
+    console.log(p);
+    var html = "<div class='card m-0 p-2 mr-2'>"+ param + "<br>" + p.count || Ndef +"</div>";
     console.log(html);
     $("#inputSTOCK_list").append(html);
 
@@ -286,46 +237,25 @@ function draw_tags(){
 
 
 function draw_history(id){
-    $('#inputHISTORY_edit').empty();
-    $.ajax({
-        type: "POST",
-        url: "/store/api/get_history/",
-        data: {
-            'key':id,
-        },
-        success: function( data, textStatus, jQxhr ){
-            console.log(data);
-            for(operation in data){
-                var action = data[operation];
-                console.log(action);
-                var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
-                $("#inputHISTORY_edit").prepend(txt);
+$('#inputHISTORY_edit').empty();
+$.ajax({
+    type: "POST",
+    url: "/store/api/get_history/",
+    data: {
+        'key':id,
+    },
+    success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        for(operation in data){
+            var action = data[operation];
+            console.log(action);
+            var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
+            $("#inputHISTORY_edit").prepend(txt);
 
-            }
         }
-    });
-}
+    }
+});
 
-
-function draw_stock_counts(id){
-    $('#inputSTOCK_list').empty();
-    $.ajax({
-        type: "POST",
-        url: "/store/api/get_stock_count/",
-        data: {
-            'key':id,
-        },
-        success: function( data, textStatus, jQxhr ){
-            console.log(data);
-            for(operation in data){
-                var action = data[operation];
-                console.log(action);
-                var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
-                $("#inputSTOCK_list").prepend(txt);
-
-            }
-        }
-    });
 }
 
 
@@ -349,7 +279,4 @@ function new_component(){
     $('#new_param_name')[0].value = "";
     $('#new_param_value')[0].value = "";
 
-    $('#new_supplier_code')[0].value = "";
-    $('#new_supplier_symbol')[0].value = "";
-    $('#new_supplier_url')[0].value = "";
 }

@@ -2,17 +2,56 @@
 {% block title %} UST intranet | Adresář{%end%}
 {% block body %}
 
-{{parent.__dict__}}
+<style type="text/css">
+	
+	td{
+		padding: 2pt;
+		padding-right: 5pt;
+	}
+	th{
+		padding: 7pt;
+		padding-bottom: 2pt;
+		border-bottom: black solid 2pt;
+		margin-bottom: 7pt;
+		background-color: lightgrey;
+	}
+	table{
+		width: 100%;
+	}
 
+</style>
+
+{#{{parent.__dict__}}#}
+{% if users %}
+	<h2>Uživatelské účty</h2>
+	<table>
+	<tr>
+		<th>Login</th>
+		<th>Name</th>
+		<th>Zbytek</th>
+	</tr>
+	{% for user in users%}
+		<tr><td>{{user['user']}}</td><td>{{user['name']}}</td><td>{{user}}</td></tr>
+	{% end %}
+	</table>
+{%end%}
+
+<hr>
+<h2>Nastavení mého účtu</h2>
+{{me}}
+<hr>
+<h2>Záznam mých operací</h2>
 <table>
-<tr>
-	<th>Login</th>
-	<th>Name</th>
-	<th>Zbytek</th>
-</tr>
-{% for user in users%}
-	<tr><td>{{user['user']}}</td><td>{{user['name']}}</td><td>{{user}}</td></tr>
-{% end %}
+	<tr><th>Datetime</th><th>Uživatel</th><th>Modul</th><th>Operace</th><th>Data</th></tr>
+	{% for activity in my_activity %}
+	<tr>
+		<td>{{activity['_id'].generation_time}}</td>
+		<td>{{activity['user']}}</td>
+		<td>{{activity['module']}}</td>
+		<td>{{activity['operation']}}</td>
+		<td>{{activity['data']}}</td>
+	</tr>
+	{% end %}
 </table>
 
 {% end %}{# block body#}

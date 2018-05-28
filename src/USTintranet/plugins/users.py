@@ -30,8 +30,10 @@ def plug_info():
 #@perm_validator(permissions=['sudo'])
 class home(BaseHandler):
     def get(self, data=None):
-        self.roles = self.authorized(['users', 'sudo-users'])
-
-        users = self.mdb.users.find()
-
-        self.render('users.home.hbs', title = "TITLE", parent = self, users = users)
+        me = self.actual_user
+        my_activity = list(self.mdb.operation_log.find({'user': me['user']}))
+        if self.is_authorized(['users-editor', 'sudo-users']):
+            users = self.mdb.users.find()
+            self.render('users.home.hbs', title = "TITLE", parent = self, users = users, me=me, my_activity=my_activity)
+        else:
+            self.render('users.home.hbs', title = "Nastavení účtu", parent = self, users = None, me = me, my_activity = my_activity)

@@ -44,14 +44,17 @@ class login(BaseHandler):
     def get(self):
         pass
 
-
+class registration(BaseHandler):
+    def get(self):
+        pass
 
 class WebApp(tornado.web.Application):
     def __init__(self, config={}):
 
         name = 'UST inntranet'
-        server = 'intranet.ust.cz'
+        server = 'sklad.zvpp.ionozor.cz'
         server_url = '{}:{}'.format(server, tornado.options.options.port)
+        server_url = '{}:{}'.format(server, 88)
 
         handlers = []
         plugins = {}
@@ -80,6 +83,7 @@ class WebApp(tornado.web.Application):
             (r'/user/(.*)/', user),
             (r'/user/(.*)', user),
             (r'/login/', login),
+            (r'/registration/', registration),
             (r'(.*)', home),
             (r'/(.*)', home)
         ]
@@ -89,7 +93,7 @@ class WebApp(tornado.web.Application):
             print("", plugin)
         print ("handlers:")
         for handler in handlers:
-            print("", server_url+handler[0])
+            print("", server_url+handler[0], handler[1])
 
         settings = dict(
             plugins = plugins,

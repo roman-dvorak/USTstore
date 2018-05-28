@@ -1,0 +1,29 @@
+<div class="card">
+<div class="card-header">
+	Karta prodeje
+</div>
+<table class="table">
+	<thead>
+		<tr>
+			<th>Položka</th>
+			<th>Počet</th>
+			<th>Cena prodejní zákl</th>
+			<th>Offset</th>
+			<th>Cena za položku</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for row in data['cart']%}
+		<tr>
+			<td>{{row.get('id', '--id--')}}</td>
+			<td>{{row.get('count', '--id--')}} Pcs</td>
+			<td>{{row.get('price', '--id--')}} Czk</td>
+			<td>{{row.get('price_offset', '--id--')}}</td>
+			<td>{{ float(row.get('count', 0)) * float(row.get('price_offset', 0) + row.get('price', 0))}} Czk</td>
+		</tr>
+		{% end %}
+	</tbody>
+
+
+</table>
+</div>

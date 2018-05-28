@@ -9,12 +9,15 @@ import tornado.web
 import pymongo
 import hashlib, uuid
 import functools
+import bson
 
 
 def make_handlers(module, plugin):
         return [
             (r'/login', plugin.loginHandler),
-            (r'/logout', plugin.logoutHandler)]
+            (r'/logout', plugin.logoutHandler),
+            (r'/registration', plugin.regHandler)]
+            
 def plug_info():
     return {
         "module": "__init__",
@@ -145,11 +148,18 @@ class BaseHandler(tornado.web.RequestHandler):
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
             self.role = set(user_db['role'])
+            cart = self.get_cookie('cart', None)
+            print("Nakupni kosik", bson.ObjectId(cart))
+            if cart:
+                self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
+            else:
+                self.cart = None
+            print(self.cart)
 
             print("prava uzivatele \t", self.role)
-
             print ("Uzivatel je prihlasen", login)
-            self.logged = True
+
+            self.logged = login
             return None
         else:
             print ("uzivatel neni korektne prihlasen")
@@ -185,6 +195,32 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self.redirect('/login')
 
+    def is_authorized(self, required = [], sudo = True):
+        print("AUTHORIZATION.....")
+        if self.get_current_user():
+            if sudo:
+                required = required + ['sudo']
+            req = set(required)
+            intersection = list(self.role&req)
+            if  bool(intersection):
+                return intersection
+            else:
+                return False
+        else:
+            self.redirect('/login')
+
+    def getComponentById(self, id):
+        return (self.mdb.stock.find_one({'_id': id}))
+
+    def LogActivity(self, module = None, operation = None, data = {}, user = None):
+        if not user: user = self.logged
+        if not module: module = self.__class__.__name__
+        print("Activity logger:")
+        print(">> activity from {} in {} module".format(user, module))
+        print(">> operation: {}".format(operation))
+
+        self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
+
 
 class home(BaseHandler):
     def get(self, param=None):
@@ -198,9 +234,11 @@ class loginHandler(BaseHandler):
     def post(self):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
-        hash = hashlib.sha384((passw+user).encode('utf-8')).hexdigest()
-        print("login", user, hash)
-        userdb = self.mdb.users.find_one({"user": user, 'pass': hash})
+        
+        username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})['user']
+        hash = hashlib.sha384((passw+username).encode('utf-8')).hexdigest()
+        print("login", username, hash)
+        userdb = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}], 'pass': hash})
         if userdb:
             self.set_secure_cookie('user', userdb['user'])
             self.redirect('/')
@@ -214,3 +252,39 @@ class logoutHandler(BaseHandler):
 
     def post(self):
         self.clear_cookie('user')
+
+class regHandler(BaseHandler):
+    def get(self):
+        self.render('_registration.hbs', msg = None)
+
+    def post(self):
+        user = self.get_argument('user')
+        email = self.get_argument('email')
+        psw = self.get_argument('pass')
+        pswc = self.get_argument('pass_check')
+        agree = self.get_argument('agree')
+
+        if agree != 'agree':
+            self.render('_registration.hbs', msg = 'Musíte souhlasit s ...')
+
+        if psw != pswc:
+            self.render('_registration.hbs', msg = 'Hesla se neshodují')
+        hash = hashlib.sha384((psw+user).encode('utf-8')).hexdigest()
+
+        data = list(self.mdb.users.find({'$or': [{'user':user}, {'email':email}] }))
+        print(data)
+        print(len(data))
+
+        if len(data) == 0:
+            self.mdb.users.insert({
+                    'user': user,
+                    'pass': hash,
+                    'name': user,
+                    'email': email,
+                    'email_validate': False,
+                    'role': [],
+                })
+        else:
+            self.render('_registration.hbs', msg = 'Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
+
+        print(user, email, psw, pswc, agree)

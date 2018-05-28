@@ -19,6 +19,20 @@ import datetime
 import collections, urllib, base64, hmac, hashlib, json
 
 
+def make_handlers(module, plugin):
+        return [
+             (r'/%s' %module, plugin.hand_bi_home),
+             (r'/%s/' %module, plugin.hand_bi_home),
+             #(r'/%s/print/' %module, plugin.print_layout),
+             #(r'/%s/api/(.*)/' %module, plugin.api)
+        ]
+
+def plug_info():
+    return{
+        "module": "tme_load",
+        "name": "tme_load"
+    }
+
 
 def api_call(action, params, token, app_secret, show_header=False):
     api_url = 'https://api.tme.eu/' + action + '.json';
@@ -59,20 +73,6 @@ def api_call(action, params, token, app_secret, show_header=False):
     return html;
 
 
-def make_handlers(module, plugin):
-        return [
-             (r'/%s' %module, plugin.hand_bi_home),
-             (r'/%s/' %module, plugin.hand_bi_home),
-             #(r'/%s/print/' %module, plugin.print_layout),
-             #(r'/%s/api/(.*)/' %module, plugin.api)
-        ]
-
-def plug_info():
-    return{
-        "module": "tme_load",
-        "name": "tme_load"
-    }
-
 
 
 
@@ -84,7 +84,9 @@ class hand_bi_home(BaseHandler):
         app_secret = b'5fcc038203350d8e60ef'
 
         params = {
-            'SearchPlain' : 'NE555D',
+            'SearchPlain' : self.get_argument('component', 'NE555'),
+            'Phrase' : self.get_argument('component', 'NE555'),
+            #'SymbolList' : [self.get_argument('component', 'NE555')],
             'Country': 'CZ',
             'Currency': 'CZK',
             'Language': 'CZ',
@@ -93,7 +95,7 @@ class hand_bi_home(BaseHandler):
         #response = api_call('Products/GetPrices', params, token, app_secret, True)
         #response = api_call('Utils/Ping', {}, token, app_secret, True)
         #response = api_call('Auth/GetNonce', {}, token, app_secret, True)
-        response = api_call('Products/SearchParameters', params, token, app_secret, True).decode('utf-8')
+        response = api_call(self.get_argument('operation', 'Products/SearchParameters'), params, token, app_secret, True).decode('utf-8')
         #response = json.loads(response);
         print(response);
 
@@ -102,6 +104,25 @@ class hand_bi_home(BaseHandler):
 
 
         #self.render("tme.home.hbs", title="UST intranet", parent=self)
+
+    def post(self):
+        operation = self.get_argument('operation', None)
+
+        token = b'963ac3230b4d77de3df46444a154c0d1052eb5b17a74159503'
+        app_secret = b'5fcc038203350d8e60ef'
+
+        params = {
+            'SearchPlain' : self.get_argument('coponent'),
+            'Country': 'CZ',
+            'Currency': 'CZK',
+            'Language': 'CZ',
+        }
+
+        response = api_call(operation, params, token, app_secret, True).decode('utf-8')
+        print(response);
+
+
+        self.write(json.loads(response))
 
 
 

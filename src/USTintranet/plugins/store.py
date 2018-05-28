@@ -21,7 +21,8 @@ def make_handlers(module, plugin):
              (r'/%s' %module, plugin.hand_bi_home),
              (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
-             (r'/%s/api/(.*)/' %module, plugin.api)
+             (r'/%s/api/(.*)/' %module, plugin.api),
+             (r'/{}/operation/(.*)/'.format(module), plugin.operation)
         ]
 
 def plug_info():
@@ -479,6 +480,7 @@ class api(BaseHandler):
             tag  = self.get_argument('tag')
             state = self.get_argument('state', 'true')  # True nebo False, nastavit nebo odstranit tag
             state = True if state == 'true' else False
+            self.LogActivity()
             self.mdb.stock.update({
                     "_id": component
                 },{
@@ -487,12 +489,28 @@ class api(BaseHandler):
                     }
                 }
             )
+            self.LogActivity(module = 'store', operation = 'update_tag', data={'tag': tag, 'state': state, 'component': component})
             dout = {'done': True}
 
         elif data == 'get_categories':
             dout = list(self.mdb.category.find({}))
 
+        elif data == 'get_history':
+            dbcursor = self.mdb.stock_movements.aggregate([
+                    {
+                        "$match": {"product": self.get_argument('key')}
+                    },{
+                        "$sort" : {"_id": 1} 
+                    },{
+                        "$limit": 500
+                    }
+                ], useCursor = True)
+            dout = list(dbcursor)
+            print(dout)
+
+
         elif data == 'update_category':
+            self.LogActivity(module = 'store', operation = 'update_category', data={'category': self.get_argument('name')})
             self.mdb.category.update({"name": self.get_argument('name')},
             {
                 "name_cs": self.get_argument('name_cs'),
@@ -513,8 +531,43 @@ class hand_bi_home(BaseHandler):
     def get(self, data=None):
         roles = self.authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
         cat = list(self.mdb.category.find({}))
-        #for c in cat:
-        #    c['full_path'] = c['path']+c['name']
+
         cat = sorted(cat, key = lambda x: x['path']+x['name'])
         #cat = []
-        self.render("store.home.hbs", title="UST intranet", parent=self, category = cat)
+        self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+
+
+class operation(BaseHandler):
+    def post(self, data=None):
+        if data == 'service':
+            comp = self.get_argument('component')
+            operations = self.mdb.stock_movements.find({'product': comp})
+            counts = list(self.mdb.stock_movements.aggregate([
+                    {'$match':{
+                        "product": comp
+                        }
+                    },
+                    {'$group':{
+                        '_id': '$stock',
+                        'count': {"$sum": '$bilance'}
+                        }
+                    }]))
+            self.render("store.comp_operation.{}.hbs".format(data), last = operations, counts = counts)
+        elif data == 'service_push':
+            comp = self.get_argument('component')
+            stock = self.get_argument('stock')
+            description = self.get_argument('description', '')
+            bilance = self.get_argument('offset')
+
+            print("service_push >>", comp, stock, description, bilance)
+            self.mdb.stock_movements.insert({'stock': stock, 'product': comp, 'bilance': float(bilance), 'description':description, 'user':self.logged})
+            self.LogActivity('store', 'operation_service')
+            self.write("ACK");
+
+        else: 
+            self.write('''
+
+                <h2>AAA {} {}</h2>
+
+
+            '''.format(data, self.get_argument('component')))
