@@ -1,11 +1,13 @@
 {% extends "base.hbs" %}
 {% block title %}UST intranet | Home{%end%}
 {% block body %}
+{% set permis = parent.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']) %}
 
 <script type="text/javascript"  src="/static/store.js" charset="utf-8"></script>
 
 <script type="text/javascript">
 	var product_json;		// promena, ktera slouzi pro upravu JSONu polozky... Pozor! je globalni.
+  {% if permis %} var permis = 1; {%else%} var permis = 0; {%end%}
 	var current_page = [];
 	var selected = [];
 	var current_detail = 0 // aktualne zobrazeny produkt
@@ -20,7 +22,6 @@
 		padding: 5pt;
 	}
 
-
 	.product_list_element_table{
 		width: 100%;
 		background: white;
@@ -34,38 +35,34 @@
 		width: 8em;
 		border: #ccc solid thin;
 		background: #fafafa;
-	}``
+	}
 
-.sidebar {
-  position: relative;
-
-  /* bottom: 0; */
-  /* left: 0; */
-  /* z-index: 1000; */
-  overflow-x: hidden;
-  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
-  padding-left: 10pt;
-  padding-right: 10pt;
-}
-@media (min-width:768px) {
   .sidebar {
-    position: fixed;
-    overflow-y: scroll;
-	max-height: calc(100% - 80px);
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+    padding-left: 10pt;
+    padding-right: 10pt;
   }
-}
+  @media (min-width:768px) {
+    .sidebar {
+      position: fixed;
+      overflow-y: scroll;
+  	max-height: calc(100% - 80px);
+    }
+  }
 
-.cat_top{
-  flex: 0 0 auto;
-  width: 150pt;
-}
+  .cat_top{
+    flex: 0 0 auto;
+    width: 150pt;
+  }
 
-#filter_block{
-  /* display: flex; */
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  margin: 0pt;
-}
+  #filter_block{
+    /* display: flex; */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0pt;
+  }
 
 .form-tab-td{
   padding: 0px;
@@ -77,7 +74,6 @@
 <div class="container-fluid" id="wrapper"><div class="row">
 
 
-<!-- ___________ Levy sloupec ___________ -->
 <div class="col-md-4 col-sm-12 col-12 bg-faded sidebar">
   <div>
 
@@ -89,12 +85,12 @@
   	<div class="col-12">
 
 		  <div class="form-group form-inline">
-		    <label class="col-4">ID soucastky</label>
-		    <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
+		    <label class="col-4">{{_('Component ID')}}</label>
+		    <input type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
 		  </div>
 
 		  <div class="form-group form-inline">
-		    <label class="col-4">Název součástky</label>
+		    <label class="col-4">{{_('Component name')}}</label>
 		    <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" onchange="update_product('name')"></>
 		  </div>
 
@@ -120,20 +116,6 @@
 
   </div>
 
-  <div class="col-12"><!-- Parametry -->
-
-  	{#<table class="table" id="data-param-table">
-  		<thead><tr><th>Parametr</th> <th>Hodnota</th></tr></thead>
-  		<tbody>
-
-  		</tbody>
-  		<tfoot>
-  		</tfoot>
-  	</table>
-
-  	<button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-example-modal-lg"><i>ADD</i></button>#}
-
-  </div>
 
   <div class="col-12">
   <div class="form-group">
@@ -147,7 +129,7 @@
   </div>
 
 
-
+{% if permis %}
   <div class="col-12">
 	  <div class="form-group">
 	      <label for="exampleFormControlTextarea1">Operace</label>
@@ -167,8 +149,7 @@
 	  	  </div>
 	  </div>
   </div>
-
-
+{% end %}
 
   <div class="col-12 row" style="margin: 0pt;">
     <label class="col-12">Dodavatel</label>
@@ -232,7 +213,8 @@
   		    </div>
 
   	</div>
-  	<div class="card-footer">
+
+    {% if permis %}<div class="card-footer">
   			<label>Multiply:</label>
   			<input type="number" name="" id="print_multiply" value="1" min="1", max="10" step="1">
   			<label>Skip:</label>
@@ -252,12 +234,12 @@
   			<hr>
   			<button onclick="select_all_products(1)">Vybrat cely list</button>
   			<button onclick="select_all_products(0)">Odznacit cely list</button>
-  	</div>
+  	</div>{%end%}
 
 
-	<!-- Trigger the modal with a button -->
+	{% if permis %}<!-- Trigger the modal with a button -->
 	<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#modal_cat"  onclick="mcat_update()">Nastaveni kategorii</button>
-
+  {% end %}
 
   </div></div>
 
@@ -347,7 +329,7 @@
             <small>Na konci i zacatku lomeno</small>
             <input type="text" name="" id="mcat_cat_path"> <br>
             <br>
-            <button onclick="mcat_update_cat()">update</button>
+            <button onclick="mcat_update_push()">update</button>
           </div>
           <div class="col-8" id="mcat_param_list" style="overflow-y: scroll; height: 70vh;">
 
@@ -422,8 +404,9 @@
 	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 	          <span aria-hidden="true">&times;</span>
 	        </button>
-	        <button type="button mr-0" class="close" onclick="WriteToDb()">
+	        {% if permis %}<button type="button mr-0" class="close" onclick="WriteToDb()">{%end%}
 	          <span aria-hidden="true"><i class="material-icons">save</i></span>
+          
 	        </button>
 	    </span>
       </div>
@@ -455,7 +438,7 @@
                 <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
               </div>
             </div>
-            <div class="form-group row">
+            {% if permis %}<div class="form-group row">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
                 <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value="0" min="0" step="0.001">
@@ -463,7 +446,7 @@
                   <div class="input-group-text">Czk</div>
                 </div>
               </div>
-            </div>
+            </div>{%end%}
             <div class="form-group row">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena je určena jako základní pro samostatný prodej. Zaškrtávátko určuje, jestli tato položka je samostatně prodejná.">Cena (prodejní) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
@@ -496,7 +479,7 @@
             </div>
 
             <div class="form-group row">
-              <label class="col-sm-3 col-form-label">Kategorie</label>
+               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Pokud nebude kategorie zadána, položka bude zařazena do 'Nezařazeno'.">Kategorie<i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
                 <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
                 {% for cat in category %}
@@ -600,7 +583,7 @@
                   </div>
               </div>
             </div>
-            <div class="form-group row">
+            {% if permis %}<div class="form-group row">
               <label class="col-sm-3 col-form-label bg-warning">Historie operací</label>
               <div class="col-sm-9">
                   <div class="card">
@@ -609,11 +592,11 @@
                   </div>
                   <div class="card" id="inputHISTORY_edit" style="max-height: 60vh;overflow-y: scroll;"></div>
               </div>
-            </div>
+            </div>{%end%}
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="WriteToDb()">Save changes</button>
+        {% if permis %}<button type="button" class="btn btn-primary" onclick="WriteToDb()">Save changes</button>{%end%}
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
       </div>
     </div>
@@ -623,24 +606,43 @@
 
 
 <script type="text/javascript">
-	function mcat_update_cat(){
-		$.ajax({
-			type: "POST",
-			url: "/store/api/update_category/",
-			data: {
-				'name': $('#mcat_cat_name').val(),
-				'name_cs': $('#mcat_cat_name_cs').val(),
-				'path': $('#mcat_cat_path').val(),
-				'description': $('#mcat_cat_desc').val(),
-			},
-			success: function( data, textStatus, jQxhr ){
-				mcat_update();
-			},
-			error: function( jqXhr, textStatus, errorThrown ){
-				console.log( errorThrown );
-			}
-		});
+	
+  <!-- Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna -->
+  {% if permis %}function mcat_update_push(){
+    if ( $('#mcat_cat_name').val() && $('#mcat_cat_name_cs').val() && $('#mcat_cat_path').val() ){
+  		$.ajax({
+  			type: "POST",
+  			url: "/store/api/update_category/",
+  			data: {
+  				'name': $('#mcat_cat_name').val(),
+  				'name_cs': $('#mcat_cat_name_cs').val(),
+  				'path': $('#mcat_cat_path').val(),
+  				'description': $('#mcat_cat_desc').val(),
+  			},
+  			success: function( data, textStatus, jQxhr ){
+  				mcat_update();
+  			},
+  			error: function( jqXhr, textStatus, errorThrown ){
+  				console.log( errorThrown );
+  			}
+  		});
+    }else{
+      Lobibox.notify('error', {
+        msg: 'Vyplňte všechna pole..',
+        icon: false,
+      });
+    }
 	}
+
+  function mcat_load_existing(id, cs, ds, path){
+    $('#mcat_cat_name').val(id);
+    $('#mcat_cat_name_cs').val(cs);
+    $('#mcat_cat_desc').val(ds);
+    $('#mcat_cat_path').val(path);
+  }
+
+
+  {%end%}
 
 	function mcat_update(){
 		$.ajax({
@@ -653,7 +655,9 @@
 				$('#mcat_param_list').empty();
 				for (var i = data.length - 1; i >= 0; i--) {
 					console.log(data[i]);
-					document.getElementById('mcat_param_list').innerHTML +=  data[i]['path'] +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name_cs'] + "</small><br>";
+          document.getElementById('mcat_param_list').innerHTML += "<span onclick=\"mcat_load_existing('"+data[i]['name']+
+                                    "', '"+data[i]['name_cs']+"', '"+data[i]['description']+"', '"+data[i]['path']+"')\">" + "<i class='material-icons'>edit</i>" + "</span>"
+          document.getElementById('mcat_param_list').innerHTML +=  data[i]['path'] +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name_cs'] + "</small><br>";
 				}
 			},
 			error: function( jqXhr, textStatus, errorThrown ){

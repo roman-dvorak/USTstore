@@ -447,7 +447,7 @@ class api(BaseHandler):
                 }], useCursor=True)
 
             dout = list(dbcursor)
-            print(dout)
+            #print(dout)
             print("POCET polozek je", len(dout))
 
         elif data == 'update_parameter':
@@ -473,6 +473,13 @@ class api(BaseHandler):
             false = False
             true = True
             new_json = eval(self.request.arguments.get('json', [None])[0])
+            print("Update product with parameters:")
+            print(new_json)
+
+            ## Pokud neni zarazen do zadne kategorie dat ho do Nezarazeno
+            if len(new_json['category']) == 0:
+                new_json['category'] += ['Nezařazeno']
+
             dout = (self.mdb.stock.update({"_id": new_json['_id']},new_json, upsert=True))
 
         elif data == 'update_tag':
@@ -529,13 +536,14 @@ class api(BaseHandler):
 
 class hand_bi_home(BaseHandler):
     def get(self, data=None):
-        roles = self.authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
         cat = list(self.mdb.category.find({}))
-
         cat = sorted(cat, key = lambda x: x['path']+x['name'])
-        #cat = []
-        self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-
+        permis = self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
+        if permis:
+            self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+        else:
+            self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+            
 
 class operation(BaseHandler):
     def post(self, data=None):

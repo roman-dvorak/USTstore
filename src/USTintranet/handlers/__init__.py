@@ -166,6 +166,12 @@ class BaseHandler(tornado.web.RequestHandler):
             self.logged = False
             return None
 
+    #def get_user_locale(self):
+    #    return 'cs_CZ'
+        #if "locale" not in self.current_user.prefs:
+        #    # Use the Accept-Language header
+        ##    return 'cs_CZ'
+        #return self.current_user.prefs["locale"]
 
     def get_current_user(self):
         login = self.get_secure_cookie("user", None)

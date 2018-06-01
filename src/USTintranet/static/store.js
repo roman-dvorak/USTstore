@@ -262,7 +262,17 @@ function draw_stock(count){
   for (param in count){
     var c = count[param];
     console.log(c);
-    var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + c.bilance || Ndef +" units </div>";
+    var num = c.bilance || 'Ndef';
+    if (permis == 0){
+        if(num > 100){
+            num = '100+';
+        } else if(num > 10){
+            num = '10+';
+        } else {
+            num = num;
+        }
+    }
+    var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
     console.log(html);
     $("#inputSTOCK_list").append(html);
 
@@ -300,28 +310,6 @@ function draw_history(id){
                 console.log(action);
                 var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
                 $("#inputHISTORY_edit").prepend(txt);
-
-            }
-        }
-    });
-}
-
-
-function draw_stock_counts(id){
-    $('#inputSTOCK_list').empty();
-    $.ajax({
-        type: "POST",
-        url: "/store/api/get_stock_count/",
-        data: {
-            'key':id,
-        },
-        success: function( data, textStatus, jQxhr ){
-            console.log(data);
-            for(operation in data){
-                var action = data[operation];
-                console.log(action);
-                var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
-                $("#inputSTOCK_list").prepend(txt);
 
             }
         }
