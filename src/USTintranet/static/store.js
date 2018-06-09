@@ -14,7 +14,7 @@ function OpenArticleEdit(name){
     element = undefined;
     $('#modal-edit-component').modal('show');
     $('#inputCATEGORY_edit').select2({ width: '100%' });
-    $('#new_supplier_name').select2({ multiple: true, tags: true, width: '100%', maximumSelectionLength: 1 });
+    $('#new_supplier_name').select2({multiple: true, tags: true, width: '100%', maximumSelectionLength:1});
 
     try {
         $.ajax({
@@ -104,6 +104,11 @@ function UpdateFromForm(){
     element.price = Number($('#inputPRICE_edit')[0].value);
     element.price_sell = Number($('#inputPRICEp_edit')[0].value);
     element.category = $('#inputCATEGORY_edit').val();
+
+    element['tags'] = [];
+    for (tag in $('#inputTAG_edit').val()){
+        element.tags[$('#inputTAG_edit').val()[tag]] = {};
+    }
 
     console.log(element);
 }
@@ -196,12 +201,9 @@ function draw_parameters(){
 
 
 
-
-
-
 function add_supplier(){
   var data = {
-        "supplier":$('#new_supplier_name')[0].value,
+        "supplier":$('#new_supplier_name').val()[0],
         "symbol": $('#new_supplier_symbol')[0].value,
         "barcode":$('#new_supplier_code')[0].value,
         "bartype":$('#new_supplier_bartype')[0].value,
@@ -218,12 +220,32 @@ function add_supplier(){
   }
   $("#new_supplier_id")[0].value = (element.supplier || []).length+1;
   draw_supplier();
+  $('#collapseOne').collapse('hide');
+
+    $('#new_supplier_name').val(null).trigger('change');
+    $('#new_supplier_id')[0].value = id+1
+    $('#new_supplier_symbol')[0].value = '';
+    $('#new_supplier_code')[0].value = '';
+    $('#new_supplier_bartype')[0].value = '';
+    $('#new_supplier_url')[0].value = '';
 }
+
 function rm_supplier(id){
     element.supplier.splice(id, 1);
     draw_supplier();
 }
 
+function ed_supplier(id){
+    //$('#new_supplier_name').val(null).trigger('change');
+    $('#new_supplier_name').val(null).append(new Option(element.supplier[id].supplier, element.supplier[id].supplier, true, true)).trigger('change');
+    $('#new_supplier_id')[0].value = id+1
+    $('#new_supplier_symbol')[0].value = (element.supplier[id].symbol) || '';
+    $('#new_supplier_code')[0].value = (element.supplier[id].barcode) || '';
+    $('#new_supplier_bartype')[0].value = (element.supplier[id].bartype) || '';
+    $('#new_supplier_url')[0].value = (element.supplier[id].url) || '';
+    $('#collapseOne').collapse('show');
+
+}
 
 function draw_supplier(){
   var parameters = element.supplier || [];
@@ -238,8 +260,10 @@ function draw_supplier(){
                 "<span>"+ "#"+(Number(param)+1).toString()+ "  "+
                 p.supplier + "</span>"+
                 "<span>"+ p.symbol + "</span>"+
-                "<a href='" + p.url + "' target='_blank' class='btn btn-outline-primary'><i class='material-icons'>link</i></a>"+
-                "<button class='btn btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons'>delete_forever</i></button>"+
+                "<div class='btn-group btn-group-justified'>"+
+                "<a class='btn btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
+                "<a class='btn btn-outline-primary' href='" + p.url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
+                "<a class='btn btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons'>delete_forever</i></a></div>"+
                 "</div>";
     
     console.log(html);
@@ -247,12 +271,6 @@ function draw_supplier(){
 
   }
 }
-
-
-
-
-
-
 
 function draw_stock(count){
   //var parameters = element.stock || {};
@@ -280,18 +298,17 @@ function draw_stock(count){
 }
 
 function draw_tags(){
-    $('#inputTAG_edit').val(null);
     $("#inputTAG_edit").select2({
         tags: true,
         width: '100%',
-        tokenSeparators: [',', ' '],
-        data: element.tags,
-        insertTag: function (data, tag) {
-            // Insert the tag at the end of the results
-            console.log(tag);
-            data.push(tag);
-        }
-        });
+        //tokenSeparators: [',', ' '],
+    });
+    $('#inputTAG_edit').val(null)
+    for (tag in element.tags || {}){
+        console.log(tag);
+        $('#inputTAG_edit').append(new Option(tag, tag, true, true));
+    }
+    $('#inputTAG_edit').trigger('change');
 }
 
 

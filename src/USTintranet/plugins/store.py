@@ -547,6 +547,8 @@ class hand_bi_home(BaseHandler):
 
 class operation(BaseHandler):
     def post(self, data=None):
+
+        # emtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
         if data == 'service':
             comp = self.get_argument('component')
             operations = self.mdb.stock_movements.find({'product': comp})
@@ -561,7 +563,7 @@ class operation(BaseHandler):
                         }
                     }]))
             self.render("store.comp_operation.{}.hbs".format(data), last = operations, counts = counts)
-        elif data == 'service_push':
+        elif data == 'service_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
             stock = self.get_argument('stock')
             description = self.get_argument('description', '')
@@ -572,6 +574,36 @@ class operation(BaseHandler):
             self.LogActivity('store', 'operation_service')
             self.write("ACK");
 
+
+        #nakup jedne polozky do skladu. Musi obsahovat: cena za ks, pocet ks, obchod, faktura, ...
+        elif data == 'buy':
+            comp = self.get_argument('component')
+            operations = self.mdb.stock_movements.find({'product': comp})
+            counts = list(self.mdb.stock_movements.aggregate([
+                    {'$match':{
+                        "product": comp
+                        }
+                    },
+                    {'$group':{
+                        '_id': '$stock',
+                        'count': {"$sum": '$bilance'}
+                        }
+                    }]))
+            
+            self.render("store.comp_operation.{}.hbs".format(data), last = operations, counts = counts)
+
+        elif data == 'buy_push': # vlozeni 'service do skladu'
+            comp = self.get_argument('component');
+            stock = self.get_argument('stock');
+            description = self.get_argument('description', '');
+            bilance = self.get_argument('count');
+            invoice = self.get_argument('invoice', '');
+            price = self.get_argument('price');
+
+            print("buy_push >>", comp, stock, description, bilance, invoice, price)
+            self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'bilance': float(bilance), 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
+            self.LogActivity('store', 'operation_service')
+            self.write("ACK");
         else: 
             self.write('''
 

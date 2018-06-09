@@ -1,25 +1,33 @@
 
-
-{%for oper in last %}
->>{{oper}}<br>
-
-{%end%}
-<hr>
-
 {%for count in counts%}
 {{count}}<br>
 {%end%}
 <hr>
-<select id="compo_stock">
-   <option value="pha01">Praha ... (pha01)</option>
-   <option value="sob01">Soběslav .. (sob01)</option>
-</select>
-<input type="number" name="offset" id="compo_offset" value="0"><br>
-Komentář: <input type="text" name="" id="compo_description"><br>
-Nový počet ve skladě je <b><span id="compo_new_count"></span></b>.
-<button onclick="compo_update_push()">Použít</button>
+<div class="container">
+	<div class="form-group row">
+		<div class="col-sm-3">Počet <small>(relativní)</small></div>
+		<input class="col-sm-9 table_style" type="number" name="offset" id="compo_offset" value="0">
+	</div>
+	<div class="form-group row">
+		<div class="col-sm-3">Sklad</div>
+		<select class="col-sm-9 table_style" id="compo_stock">
+		   <option value="pha01">Praha (pha01)</option>
+		   <option value="sob01">Soběslav (sob01)</option>
+		</select>
+	</div>
+	<div class="form-group row">
+		<div class="col-sm-3">Poznámka</div>
+		<input class="col-sm-9 table_style" type="text" name="" id="compo_description">
+	</div>
+	<div class="form-group row">
+		Nový počet ve skladě je  <b><span id="compo_new_count"></span></b>.
+	</div>
+	<div class="form-group row">
+		<button class="form-control btn btn-primary" onclick="compo_update_push()">Použít</button>
+	</div>
+</div>
 <hr>
-<small class="distabled">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
 	var compo_counts = {% raw counts %};
@@ -48,6 +56,7 @@ Nový počet ve skladě je <b><span id="compo_new_count"></span></b>.
 	      success: function( data, textStatus, jQxhr ){
 	      	console.log(data);
 	      	$('#modal_operation').modal('hide');
+            Lobibox.notify('success', {msg: 'Polozka ulozena'});
 
 	      },
 	      error: function( jqXhr, textStatus, errorThrown ){
