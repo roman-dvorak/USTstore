@@ -393,8 +393,8 @@ class print_layout(BaseHandler):
 class api(BaseHandler):
     def post(self, data=None):
         self.set_header('Content-Type', 'application/json')
-        print(">>", data)
-        print(self.request.arguments)
+        #print(">>", data)
+        #print(self.request.arguments)
 
         ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]
         ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
@@ -503,18 +503,23 @@ class api(BaseHandler):
             dout = list(self.mdb.category.find({}))
 
         elif data == 'get_history':
+            output_type = self.get_argument('output', 'json')
             dbcursor = self.mdb.stock_movements.aggregate([
                     {
                         "$match": {"product": self.get_argument('key')}
                     },{
-                        "$sort" : {"_id": 1} 
+                        "$sort" : {"_id": -1} 
                     },{
                         "$limit": 500
                     }
                 ], useCursor = True)
             dout = list(dbcursor)
-            print(dout)
 
+            print("Output type", output_type)
+            if output_type == "html_tab":
+                self.set_header('Content-Type', 'text/html; charset=UTF-8')
+                self.render('store.api.history_tab_view.hbs', dout = dout)
+                return None
 
         elif data == 'update_category':
             self.LogActivity(module = 'store', operation = 'update_category', data={'category': self.get_argument('name')})

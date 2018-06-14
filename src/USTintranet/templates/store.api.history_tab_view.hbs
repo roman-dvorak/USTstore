@@ -1,0 +1,29 @@
+<style type="text/css">
+	.hist_element_row{
+		width: 100%;
+		background-color: lightgray;
+	}
+
+	.hist_line{
+		width: 100%;
+
+	}
+
+</style>
+
+{% for row in dout%}
+ <div class="hist_element_row mb-2">
+ 	<div class="hist_line">
+ 		<b><span class="" style="width: 20em;">{{row.get('operation', 'Err')}}</span></b>
+ 		{{row.get('user', 'Err')}}
+ 		{{row.get('stock', 'Err')}}
+ 		{{row.get('_id', 'Err').generation_time}}
+ 	</div>
+ 	<div class="hist_line">
+ 		{{row.get('bilance', '-0-')}}ks 
+ 		{{row.get('price', '-0-')}} Czk
+  	</div>
+ 	<div class="hist_line">{{row.get('description', 'Err')}}</div>
+
+ </div>
+{% end %}

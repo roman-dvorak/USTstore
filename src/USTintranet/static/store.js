@@ -9,6 +9,22 @@ function update_barcode(element, value){
     });
 }
 
+function get_supplier_url(element_supplier){
+	if (element_supplier.url && element_supplier.url.length > 3){
+		return element_supplier.url
+	}
+	switch(element_supplier.supplier){
+		case 'tme':
+		case 'TME':
+			return "https://www.tme.eu/cz/details/"+(element_supplier.symbol.replace('/', '_') || "Err");
+			break;
+		default:
+			return null;
+			break;
+	}
+
+}
+
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
 function OpenArticleEdit(name){
     element = undefined;
@@ -105,7 +121,7 @@ function UpdateFromForm(){
     element.price_sell = Number($('#inputPRICEp_edit')[0].value);
     element.category = $('#inputCATEGORY_edit').val();
 
-    element['tags'] = [];
+    element['tags'] = {};
     for (tag in $('#inputTAG_edit').val()){
         element.tags[$('#inputTAG_edit').val()[tag]] = {};
     }
@@ -319,16 +335,19 @@ function draw_history(id){
         url: "/store/api/get_history/",
         data: {
             'key':id,
+            'output': 'html_tab'
         },
         success: function( data, textStatus, jQxhr ){
             console.log(data);
+            $("#inputHISTORY_edit").html(data);
+            /*
             for(operation in data){
                 var action = data[operation];
                 console.log(action);
                 var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
                 $("#inputHISTORY_edit").prepend(txt);
 
-            }
+            }*/
         }
     });
 }

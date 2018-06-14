@@ -153,6 +153,7 @@
 
   <div class="col-12 row" style="margin: 0pt;">
     <label class="col-12">Dodavatel</label>
+    <div id="stock_bilance"></div>
     <div id="supplier_list" style="width: 100%;">
     </div>
   </div>
@@ -727,7 +728,7 @@
 
     	<template id="supplier-template">
     		<div class="col-12 card supplier_list_element">
-    			<b><span class="supplier_name"></span></b>
+    			<b><a class="supplier_name" target="_blank"></a></b>
     			<span class="supplier_product"></span>
     		</div>
     	</template>
@@ -1024,11 +1025,14 @@ function load_product(id){
 
 					$('#supplier_list').empty();
 					for (var i in element['supplier']){
-						var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
+              var url = get_supplier_url(element['supplier'][i]);
+						  var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
+              if(url != null) tmpl.querySelector('.supplier_name').href = url;
 			  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['id'];
 			  			tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
 						document.getElementById('supplier_list').append(tmpl);
 					}
+
 
 					$('#stock_bilance').empty();
 					for (var i in stock){
