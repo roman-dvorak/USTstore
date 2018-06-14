@@ -89,13 +89,21 @@
 		    <input type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
 		  </div>
 
-		  <div class="form-group form-inline">
-		    <label class="col-4">{{_('Component name')}}</label>
-		    <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" onchange="update_product('name')"></>
-		  </div>
+      <div class="form-group form-inline">
+        <label class="col-4">{{_('Component name')}}</label>
+        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" ></>
+      </div>
+      <div class="form-group form-inline">
+        <label class="col-4 bg-warning">Cena posl. nákupu</label>
+        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value=""></>
+      </div>
+      <div class="form-group form-inline">
+        <label class="col-4 bg-warning">Cena nákupu prům.</label>
+        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value=""></>
+      </div>
 
 		<div class="form-group form-inline">
-		    <label class="col-4">Cena</label>
+		    <label class="col-4 bg-danger">Cena</label>
 		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
 		</div>
 
@@ -113,7 +121,6 @@
 		    <label for="exampleFormControlTextarea1">Popis</label>
 		    <textarea readonly class="form-control" id="selected-description" rows="4" onchange="update_product('description')"></textarea>
 		</div>
-
   </div>
 
 
@@ -125,7 +132,6 @@
 			<option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
 		{% end %}
 	</select></div>
-
   </div>
 
 
@@ -152,11 +158,15 @@
 {% end %}
 
   <div class="col-12 row" style="margin: 0pt;">
-    <label class="col-12">Dodavatel</label>
+    <label class="col-12 bg-danger">Skladové zásoby:</label>
     <div id="stock_bilance"></div>
+  </div>
+  <div class="col-12 row" style="margin: 0pt;">
+    <label class="col-12">Dodavatel</label>
     <div id="supplier_list" style="width: 100%;">
     </div>
   </div>
+</div>
 {#
   <div class="col-12 row form-group" style="margin: 0pt;">
     <label class="col-12">Sklad</label>
@@ -366,7 +376,7 @@
 	        </button>
 	    </span>
       </div>
-      <div class="modal-body bg-warning">
+      <!-- <div class="modal-body bg-warning">
      		Barva v levém sloupci značí v jakém stavu vývoje položka je
      		<ul>
      			<li>zelená dokončeno (nebo bez barvy - první část).
@@ -375,7 +385,7 @@
      		</ul>
      		Ukládání pomocí tlačítka dole by mělo fungovat.<br>
      		Barvy a toto pole budou odstaněny...
-      </div>
+      </div> -->
       <div class="modal-body">
 
             <div class="form-group row">
@@ -395,7 +405,7 @@
               </div>
             </div>
             {% if permis %}<div class="form-group row">
-              <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
+              <label class="col-sm-3 col-form-label bg-danger" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
                 <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value="0" min="0" step="0.001">
                 <div class="input-group-append">
@@ -447,7 +457,7 @@
             </div>
 
             <div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-danger">Tagy</label>
+              <label class="col-sm-3 col-form-label bg-warning">Tagy</label>
               <div class="input-group col-sm-9">
               	<select id="inputTAG_edit" class="form-control" multiple="multiple"></select>
               </div>
@@ -455,7 +465,7 @@
 
 
             <div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-danger">Operace</label>
+              <label class="col-sm-3 col-form-label bg-warning">Operace</label>
               <div class="input-group col-sm-9">
                 
                 <div id="selected_operations">
@@ -484,7 +494,7 @@
             <div class="form-group row">
               <label class="col-sm-3 col-form-label ">Parametry</label>
               <div class="col-sm-9">
-                  <div class="card">
+                  <div class="card m-0">
                     <table id="inputPARAM_edit" class="table table-sm mb-0" style="width:100%;">
                       <thead>
                         <tr>
@@ -512,8 +522,8 @@
             <div class="form-group row">
               <label class="col-sm-3 col-form-label bg-warning">Dodavatelé</label>
               <div class="col-sm-9">
-              	  <div class="card">
-              	  	<div class="card-header" id="headingOne" style="padding: 0pt;">
+              	  <div class="card m-0">
+              	  	<div class="card-header" id="headingOne" style="padding: 0pt; background-color: white;">
 				      <h5 class="mb-0">
 				        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
 				          Nový dodavatel
@@ -561,13 +571,9 @@
               </div>
             </div>
             {% if permis %}<div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-warning">Historie operací</label>
+              <label class="col-sm-3 col-form-label">Historie operací</label>
               <div class="col-sm-9">
-                  <div class="card">
-                  	<p>Na zacatku bude filter operaci - tim se mysli, jestli bude zobrazen jen prijem, vydej, presun mezi sklady, ...</p>
-                  	<p>Podtím tabulka s posledními operacemi. V budoucnu snad i historie úprav atd...</p>
-                  </div>
-                  <div class="card" id="inputHISTORY_edit" style="max-height: 60vh;overflow-y: scroll;"></div>
+                  <div class="" id="inputHISTORY_edit" style="max-height: 60vh; overflow-y: auto;"></div>
               </div>
             </div>{%end%}
 
@@ -727,7 +733,7 @@
 
 
     	<template id="supplier-template">
-    		<div class="col-12 card supplier_list_element">
+    		<div class="col-12 card supplier_list_element m-0 mb-1">
     			<b><a class="supplier_name" target="_blank"></a></b>
     			<span class="supplier_product"></span>
     		</div>
@@ -1028,9 +1034,9 @@ function load_product(id){
               var url = get_supplier_url(element['supplier'][i]);
 						  var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
               if(url != null) tmpl.querySelector('.supplier_name').href = url;
-			  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['id'];
+			  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['symbol'];
 			  			tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
-						document.getElementById('supplier_list').append(tmpl);
+						  document.getElementById('supplier_list').append(tmpl);
 					}
 
 

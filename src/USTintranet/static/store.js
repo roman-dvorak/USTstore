@@ -272,7 +272,7 @@ function draw_supplier(){
     var p = parameters[param];
     console.log(p);
 
-    var html = "<div class='card' style='display: flex; width: 100%; justify-content: space-between;' >"+
+    var html = "<div class='card p-2 m-0 mt-1' >"+
                 "<span>"+ "#"+(Number(param)+1).toString()+ "  "+
                 p.supplier + "</span>"+
                 "<span>"+ p.symbol + "</span>"+

@@ -1,29 +1,27 @@
 <style type="text/css">
-	.hist_element_row{
-		width: 100%;
-		background-color: lightgray;
-	}
+    .hist_element_row{
+        width: 100%;
+    }
 
-	.hist_line{
-		width: 100%;
+    .hist_line{
+        width: 100%;
 
-	}
+    }
+    .hist_element{
+        display: inline-block;
+    }
 
 </style>
 
 {% for row in dout%}
- <div class="hist_element_row mb-2">
- 	<div class="hist_line">
- 		<b><span class="" style="width: 20em;">{{row.get('operation', 'Err')}}</span></b>
- 		{{row.get('user', 'Err')}}
- 		{{row.get('stock', 'Err')}}
- 		{{row.get('_id', 'Err').generation_time}}
- 	</div>
- 	<div class="hist_line">
- 		{{row.get('bilance', '-0-')}}ks 
- 		{{row.get('price', '-0-')}} Czk
-  	</div>
- 	<div class="hist_line">{{row.get('description', 'Err')}}</div>
+ <div class="hist_element_row card mt-1 mb-0 p-2 pt-1">
+    <div class="hist_line">
+        <b><span class="hist_element" style="width: 30%;">{{row.get('operation', 'Err')}}</span></b><span class="hist_element" style="width: 39%;"></span><span class="hist_element" style="width: 15%;">{{row.get('user', 'Err')}}</span><span class="hist_element" style="width: 15%;">{{row.get('stock', 'Err')}}</span>
+    </div>
+    <div class="hist_line">
+        <span class="hist_element" style="width: 70%;">{{row.get('_id', 'Err').generation_time}}</span><span class="hist_element" style="width: 15%;">{{row.get('bilance', '-0-')}} ks</span><span class="hist_element" style="width: 15%;">{{row.get('price', '-0-')}} Czk</span>
+    </div>
+    <div class="hist_line text-muted font-weight-light">{{row.get('description', 'Err')}}</div>
 
  </div>
 {% end %}
