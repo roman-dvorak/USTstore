@@ -411,15 +411,20 @@ class api(BaseHandler):
                     }
                 }]))]
 
+        elif data == "get_tags":
+            dout = (self.mdb.stock.distinct('tags.id'))
+
+
         elif data == 'products':
             polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
             tag_polarity = True if (self.request.arguments.get('tag_polarity', ['true'])[0] == b'true') else False
             selected = (self.request.arguments.get('selected[]', []))
             page = self.get_argument('page', 0)
-            page_len = 100
+            page_len = self.get_argument('page_len', 100)
             search = self.get_argument('search')#.decode('ascii')
             tag_search = self.get_argument('tag_search')#.decode('ascii')
             print("SEARCH", search)
+            print("tag polarity", tag_polarity)
             dout = []
 
             dbcursor = self.mdb.stock.aggregate([
@@ -431,8 +436,8 @@ class api(BaseHandler):
                                     {'description': { '$regex': search, '$options': 'ix'}} ]}
                 },{
                     "$match": {'category': {polarity: ascii_list_to_str(selected)}}
-                },{
-                    "$match": {'tags.'+tag_search : {"$exists" : tag_polarity}}
+                #},{
+                #    "$match": {'$not': {'tags.id' : 'inventura2018'}}
                 },{
                     "$lookup":{
                         "from": "category",
@@ -534,8 +539,31 @@ class api(BaseHandler):
             dout = {}
             pass
 
+        elif data == 'search':
+            search = self.get_argument('q', '')
+            page = self.get_argument('page', '0')
+            dbcursor = self.mdb.stock.aggregate([
+                {"$unwind": "$_id"},
+                {"$sort" : {"category": 1,"_id": 1} },
+                {"$match": {'$or':[
+                                    {'_id': { '$regex': search, '$options': 'ix'}},
+                                    {'name': { '$regex': search, '$options': 'ix'}},
+                                    {'description': { '$regex': search, '$options': 'ix'}} ]}
+                },{
+                    "$lookup":{
+                        "from": "category",
+                        "localField": "category",
+                        "foreignField": "name",
+                        "as": "category"
+                    }
+                },{
+                    '$skip' : int(50)*int(page)
+                },{
+                    '$limit' : int(50)
+                }], useCursor=True)
+            dout = list(dbcursor)
+
         output = bson.json_util.dumps(dout)
-#        print(output)
         self.write(output)
 
 

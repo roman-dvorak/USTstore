@@ -121,11 +121,13 @@ function UpdateFromForm(){
     element.price_sell = Number($('#inputPRICEp_edit')[0].value);
     element.category = $('#inputCATEGORY_edit').val();
 
-    element['tags'] = {};
+    tags = [];
     for (tag in $('#inputTAG_edit').val()){
-        element.tags[$('#inputTAG_edit').val()[tag]] = {};
+        tags = tags.concat( {'id': $('#inputTAG_edit').val()[tag]} );
+        console.log([{'id': $('#inputTAG_edit').val()[tag]}]);
     }
-
+    console.log(tags);
+    element['tags'] = tags;
     console.log(element);
 }
 
@@ -317,12 +319,30 @@ function draw_tags(){
     $("#inputTAG_edit").select2({
         tags: true,
         width: '100%',
+        ajax: {
+          url: '/store/api/get_tags/',
+          type: "POST",
+          dataType: 'json',
+          processResults: function (data) {
+              console.log(data)
+              return {
+                  results: $.map(data, function (item) {
+                      console.log(item);
+                      return {
+                          text: item,
+                          id: item
+                      }
+                  })
+              };
+          }
+        }
         //tokenSeparators: [',', ' '],
     });
     $('#inputTAG_edit').val(null)
-    for (tag in element.tags || {}){
+    for (i in element.tags || []){
+        tag = element.tags[i];
         console.log(tag);
-        $('#inputTAG_edit').append(new Option(tag, tag, true, true));
+        $('#inputTAG_edit').append(new Option(tag.id, tag.id, true, true));
     }
     $('#inputTAG_edit').trigger('change');
 }

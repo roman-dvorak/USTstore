@@ -102,8 +102,8 @@
         <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value=""></>
       </div>
 
-		<div class="form-group form-inline">
-		    <label class="col-4 bg-danger">Cena</label>
+		<div class="form-group form-inline bg-danger">
+		    <label class="col-4">Cena</label>
 		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
 		</div>
 
@@ -404,8 +404,8 @@
                 <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
               </div>
             </div>
-            {% if permis %}<div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-danger" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
+            {% if permis %}<div class="form-group row bg-danger">
+              <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
                 <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value="0" min="0" step="0.001">
                 <div class="input-group-append">
@@ -1065,9 +1065,10 @@ function load_product(id){
 
 					$('#selected-tags').empty()
 					if(element.tags === undefined) element['tags']={};
-					for(var tag in element.tags){
-						console.log("TAG>>", tag);
-						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag+'</span>';
+					for(var i in element.tags){
+            var tag = element.tags[i];
+						console.log("TAG>>", tag.id || 'err');
+						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag.id || 'err'+'</span>';
 					}
 
 
