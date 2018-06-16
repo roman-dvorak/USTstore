@@ -412,8 +412,34 @@ class api(BaseHandler):
                 }]))]
 
         elif data == "get_tags":
-            dout = (self.mdb.stock.distinct('tags.id'))
+            dout = list(self.mdb.stock.distinct('tags.id'))
 
+        elif data == 'get_suppliers':
+            cid = self.get_argument('id', None)
+            sup = self.get_argument('supplier', None)
+            if not cid:
+                q = self.get_argument('q', '')
+                dbcursor = self.mdb.stock.distinct('supplier.supplier',{'supplier.supplier': {'$regex': q, '$options': 'ix'}})
+            else:
+                dbcursor = self.mdb.stock.aggregate([
+                    {'$match': {'_id': cid, 'supplier.supplier': sup}},
+                    {'$unwind': '$supplier'},
+                ])
+            dout = list(dbcursor)
+
+        elif data == 'add_supplier':
+            id = self.get_argument('id')
+
+            out = self.mdb.update({'_id': id},{
+                '$push':{'supplier':{
+                        'supplier': self.get_argument('supplier'),
+                        'id': self.get_argument('symbol'),
+                        'barcode': self.get_argument('barcode', None),
+                        'bartype': self.get_argument('bartype', None),
+                        'url': self.get_argument('url', None)
+                    }}
+                })
+            print(">>>>>>>>>>>", out)
 
         elif data == 'products':
             polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
@@ -510,13 +536,9 @@ class api(BaseHandler):
         elif data == 'get_history':
             output_type = self.get_argument('output', 'json')
             dbcursor = self.mdb.stock_movements.aggregate([
-                    {
-                        "$match": {"product": self.get_argument('key')}
-                    },{
-                        "$sort" : {"_id": -1} 
-                    },{
-                        "$limit": 500
-                    }
+                    {"$match": {"product": self.get_argument('key')}},
+                    {"$sort" : {"_id": -1}},
+                    {"$limit": 500}
                 ], useCursor = True)
             dout = list(dbcursor)
 
@@ -596,6 +618,7 @@ class operation(BaseHandler):
                         }
                     }]))
             self.render("store.comp_operation.{}.hbs".format(data), last = operations, counts = counts)
+        
         elif data == 'service_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
             stock = self.get_argument('stock')
@@ -626,21 +649,23 @@ class operation(BaseHandler):
             self.render("store.comp_operation.{}.hbs".format(data), last = operations, counts = counts)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
-            comp = self.get_argument('component');
-            stock = self.get_argument('stock');
+            comp = self.get_argument('component')
+            ctype = self.get_argument('type', None)
+            supplier = self.get_argument('supplier', None)
+            stock = self.get_argument('stock')
             description = self.get_argument('description', '');
-            bilance = self.get_argument('count');
+            bilance = self.get_argument('count', 0);
+            bilance_plan = self.get_argument('count_planned', None);
             invoice = self.get_argument('invoice', '');
             price = self.get_argument('price');
 
             print("buy_push >>", comp, stock, description, bilance, invoice, price)
-            self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'bilance': float(bilance), 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
+            out = self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': bson.ObjectId(invoice),  'description':description, 'user':self.logged})
             self.LogActivity('store', 'operation_service')
-            self.write("ACK");
+            self.write(out);
+        
+
         else: 
             self.write('''
-
                 <h2>AAA {} {}</h2>
-
-
             '''.format(data, self.get_argument('component')))

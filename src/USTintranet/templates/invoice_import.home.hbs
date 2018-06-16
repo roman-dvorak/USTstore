@@ -15,6 +15,7 @@
 
 
   <div class="col-md-3 col-sm-12 col-12 bg-faded sidebar">
+    <button class="btn btn-warning" onclick="load_invoice(null)">Nová faktura</button>
     <div id="invoice_list">
       
     </div>
@@ -26,7 +27,7 @@
       ID
       <input type="text" name="" id="invoice_id" disabled>
       Typ
-      <select class="select2" id="invoice_direction">
+      <select class="select2" id="invoice_direction" disabled>
         <option value="1" selected>Příchozí</option>
         <option value="0">Odchozí</option>
       </select>
@@ -38,22 +39,19 @@
       <input type="date" name="" id="invoice_duedate">
       Zaplaceno
       <input type="checkbox" id="invoice_payed">
-      Prodejce/zákazník
-      <select class="select2" id="invoice_partner">
-          <option>TME</option>
-          <option>SOS</option>
-          <option>Mouser</option>
-          <option>Farnell</option>
-          <option>GME</option>
-          <option>GES</option>
-          <option>ebay</option>
-          <option>ECOM</option>
-          <option>SUNNY</option>
-          <option>VPCentrum</option>
+      Prodejce
+      <select class="select2" id="invoice_partner"></select>
+      Stav
+      <select class="select2" id="invoice_state">
+        <option value="0">Vyřízeno</option>
+        <option value="1">Čeká na potvrzení</option>
+        <option value="2">V přípravě</option>
+        <option value="3">Návrh</option>
       </select>
+      <button class="btn btn-sm" onclick="save_invoice()">Uložit</button>
     </div>
 
-    <div class="card">
+    <div class="card" id="part_list" style="display: none;">
       <div>
         <table class="table ">
           <thead>
@@ -68,14 +66,14 @@
               <th>Operace</th>
             </tr>
             <tr>
-              <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_current_row" disabled style="width: 4em;"></th>
+              <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_current_row" disabled style="width: 4em;" value=0></th>
               <th class="p-0"><select class="select2 form-control form-control-sm" id="new_type"><option selected value="stock">Sklad</option><option value="service">Služba</option></select></th>
               <th class="p-0" style="min-width: 10em;"><select class="select2 form-control form-control-sm" id="new_id"></select></th>
               <th class="p-0" style="min-width: 10em;"><select class="select2 form-control form-control-sm" id="new_external_id"></select></th>
               <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_unitprice" name=""></th>
               <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_count" name=""></th>
-              <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_price" name=""></th>
-              <th class="p-0"><button>+</button></th>
+              <th class="p-0"><input class="form-control form-control-sm" type="number" id="new_price" name="" disabled></th>
+              <th class="p-0"><button class="btn btn-sm btn-success" onclick="create_operation()"><i class="material-icons">add_circle_outline</i></button></th>
             </tr>
           </thead>
           <tbody id="new_table_placement"></tbody>
@@ -92,6 +90,29 @@
   $(document).ready(function(){
     load_invoices_list();
     prepare_invoice_new_form();
+  
+    $("#invoice_partner").select2({
+          width: '100%',
+          ajax: {
+          url: '/store/api/get_suppliers/',
+          type: "POST",
+          dataType: 'json',
+          processResults: function (data) {
+              console.log(data)
+              return {
+                  results: $.map(data, function (item) {
+                      console.log(item);
+                      return {
+                          text: item,
+                          id: item
+                      }
+                  })
+              };
+          }
+        }
+      });
+
+
   })
 
 
@@ -114,48 +135,76 @@
 
 
   function prepare_invoice_new_form(){
-    $(".select2").select2(
-    {
-      width: '100%',
-    });
-
-    $('#new_id').select2({
+      $(".select2").select2(
+      {
         width: '100%',
-        ajax: {
-          url: '/store/api/search/',
-          type: "POST",
-          dataType: 'json',
-          processResults: function (data) {
-              console.log(data)
-              return {
-                  results: $.map(data, function (item) {
-                      console.log(item);
-                      return {
-                          text: item['name']+" ("+item['_id']+")",
-                          id: item['_id']
-                      }
-                  })
-              };
+      });
+
+      $('#new_id').select2({
+          width: '100%',
+          ajax: {
+            url: '/store/api/search/',
+            type: "POST",
+            dataType: 'json',
+            processResults: function (data) {
+                //console.log(data)
+                return {
+                    results: $.map(data, function (item) {
+                        //console.log(item);
+                        return {
+                            text: item['name']+" ("+item['_id']+")",
+                            id: item['_id']
+                        }
+                    })
+                };
+            }
           }
         }
-      }
-    )
+      )
+
+    $('#new_id').on('select2:select', function (e) {
+      var data = e.params.data;
+      console.log(data);
+      $.ajax({
+          type: "POST",
+          url: "/store/api/get_suppliers/",
+          data: {
+              'supplier': $('#invoice_partner').val(),
+              'id': data.id
+          },
+          success: function(data, textStatus, jQxhr){
+            console.log(data);
+            $('#new_external_id').empty().trigger('change');
+            for (i in data){
+              console.log(data[i]);
+              var newOption = new Option( i + " "+ data[i].supplier.supplier + ' - ' + data[i].supplier.symbol, i, false, false);
+              $('#new_external_id').append(newOption).trigger('change');
+            }
+          },
+          error: function(jqXhr, textStatus, errorThrown){
+            console.log(errorThrown);
+          }
+      });
+    });
   }
+
+
 
   function draw_invoice_table(){
     $('#new_table_placement').empty()
     for (i in elements){
-      var element = elements[i];
+      console.log(elements[i]);
+      var element = elements[i].elements[0];
       console.log(element);
 
       var data = "<tr>"
       data += "<td>" + i +"</td>"
       data += "<td>"+''+"</td>"
-      data += "<td>"+ element['_id'] +"</td>"
+      data += "<td>"+ element['product'] +"</td>"
       data += "<td></td>"
-      data += "<td></td>"
-      data += "<td></td>"
-      data += "<td></td>"
+      data += "<td>"+ element['price']+" Czk</td>"
+      data += "<td>"+ element['bilance']+" Unt</td>"
+      data += "<td>"+ element['price']*element['bilance']+"</td>"
       data += "<td><button>edit</button><button>del</button><button>up</button><button>down</button></td>"
       data += "</tr>"
 
@@ -174,19 +223,89 @@
             'id': id
         },
         success: function(data, textStatus, jQxhr){
-            data = JSON.parse(data);
-            $("#invoice_id").val(id);
-            $("#invoice_direction").val(data['direction'] || 1);
-            $("#invoice_number").val(data['invoice_id'] || '');
-            $("#invoice_created").value = data['created'] || '2018-00-00';
+            console.log(data)
+            if ('new' in data){
+              window.location.hash = '#'+data['_id'];
+              $('#invoice_id').val(data['_id']);
+              $('#invoice_state').val(3).trigger('change');
+              $('#invoice_number').val(null);
+              $('#invoice_created').val(null);
+              $('#invoice_duedate').val(null);
+              $('#part_list').hide();
 
-            elements = data.elements;
-            draw_invoice_table();
+            }else{
+              $("#invoice_id").val(id);
+              $("#invoice_direction").val(data['direction']);
+              $("#invoice_number").val(data['invoice_id']);
+              $("#invoice_created").value = data['created'];
+              $("#invoice_duedate").value = data['created'];
+              $('#invoice_partner').empty().append('<option value="'+data['partner']+'">'+data['partner']+'</option>').val(data['partner']).trigger('change');
+              $('#part_list').show();
+
+              elements = data.elements;
+              draw_invoice_table();
+            }
         },
         error: function(jqXhr, textStatus, errorThrown){
           console.log(errorThrown);
         }
     });
+  }
+
+
+  function save_invoice(){
+    $.ajax({
+        type: "POST",
+        url: "/invoice_import/save_invoice/",
+        data: {
+            'id': $('#invoice_id').val(),
+            'invoice_number': $('#invoice_number').val(),
+            'created': $('#invoice_created').val(),
+            'duedate': $('#invoice_duedate').val(),
+            'partner': $('#invoice_partner').val(),
+            'state': $('#invoice_state').val(),
+            'elements': []
+        },
+        success: function(data, textStatus, jQxhr){
+            
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+          console.log(errorThrown);
+        }
+    });
+    load_invoice($('#invoice_id').val());
+  }
+
+  function create_operation() {
+      $.ajax({
+          type: "POST",
+          url: "/invoice_import/invoice/prepare_invoice_row/",
+          data: {
+            'component': $('#new_id').val(),
+            'type': $('#new_external_id').val(),
+            'supplier': $('#invoice_partner').val(),
+            'stock': 'pha01',
+            'count': 0,
+            'count_planned': $("#new_count").val(),
+            'price': $("#new_unitprice").val(),
+            'description': $('#invoice_number').val(),
+            'invoice': $('#invoice_id').val()
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            $('#modal_operation').modal('hide');
+              Lobibox.notify('success', {msg: 'Polozka byla připravena'});
+
+            //$("#modal-operation-content").modal('hide');
+            //$("#modal_oper_place").hide();
+
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+        Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+          }
+      }); 
+      load_invoice($('#invoice_id').val());
   }
 
 

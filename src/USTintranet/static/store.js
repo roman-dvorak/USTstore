@@ -14,7 +14,6 @@ function get_supplier_url(element_supplier){
 		return element_supplier.url
 	}
 	switch(element_supplier.supplier){
-		case 'tme':
 		case 'TME':
 			return "https://www.tme.eu/cz/details/"+(element_supplier.symbol.replace('/', '_') || "Err");
 			break;
@@ -30,7 +29,29 @@ function OpenArticleEdit(name){
     element = undefined;
     $('#modal-edit-component').modal('show');
     $('#inputCATEGORY_edit').select2({ width: '100%' });
-    $('#new_supplier_name').select2({multiple: true, tags: true, width: '100%', maximumSelectionLength:1});
+    $('#new_supplier_name').select2({
+        width: '100%',
+        tags: true,
+        multiple: true,
+        maximumSelectionLength: 1,
+        ajax: {
+          url: '/store/api/get_suppliers/',
+          type: "POST",
+          dataType: 'json',
+          processResults: function (data) {
+              console.log(data)
+              return {
+                  results: $.map(data, function (item) {
+                      console.log(item);
+                      return {
+                          text: item,
+                          id: item
+                      }
+                  })
+              };
+          }
+        }
+    })
 
     try {
         $.ajax({
@@ -236,9 +257,9 @@ function add_supplier(){
   } else {
       element.supplier[Number($('#new_supplier_id')[0].value)-1] = data;
   }
-  $("#new_supplier_id")[0].value = (element.supplier || []).length+1;
-  draw_supplier();
-  $('#collapseOne').collapse('hide');
+    $("#new_supplier_id")[0].value = (element.supplier).length+1;
+    draw_supplier();
+    $('#collapseOne').collapse('hide');
 
     $('#new_supplier_name').val(null).trigger('change');
     $('#new_supplier_id')[0].value = id+1
@@ -249,43 +270,54 @@ function add_supplier(){
 }
 
 function rm_supplier(id){
-    element.supplier.splice(id, 1);
+    //element.supplier.splice(id, 1);
+    if(!!element.supplier[id].disabled && element.supplier[id].disabled == 1){
+        element.supplier[id]['disabled'] = 0;
+    }else{
+        element.supplier[id]['disabled'] = 1;
+    }
     draw_supplier();
 }
 
 function ed_supplier(id){
     //$('#new_supplier_name').val(null).trigger('change');
     $('#new_supplier_name').val(null).append(new Option(element.supplier[id].supplier, element.supplier[id].supplier, true, true)).trigger('change');
-    $('#new_supplier_id')[0].value = id+1
+    $('#new_supplier_id')[0].value = id+1;
     $('#new_supplier_symbol')[0].value = (element.supplier[id].symbol) || '';
     $('#new_supplier_code')[0].value = (element.supplier[id].barcode) || '';
     $('#new_supplier_bartype')[0].value = (element.supplier[id].bartype) || '';
     $('#new_supplier_url')[0].value = (element.supplier[id].url) || '';
     $('#collapseOne').collapse('show');
-
 }
 
 function draw_supplier(){
   var parameters = element.supplier || [];
   $("#inputSUPPLIER_list").empty();
-  console.log("SUPPLIER", parameters);
-
+  $("#new_supplier_id")[0].value = (element.supplier).length+1;
   for (param in parameters){
     var p = parameters[param];
-    console.log(p);
 
-    var html = "<div class='card p-2 m-0 mt-1' >"+
-                "<span>"+ "#"+(Number(param)+1).toString()+ "  "+
-                p.supplier + "</span>"+
-                "<span>"+ p.symbol + "</span>"+
-                "<div class='btn-group btn-group-justified'>"+
-                "<a class='btn btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
-                "<a class='btn btn-outline-primary' href='" + p.url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
-                "<a class='btn btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons'>delete_forever</i></a></div>"+
+    var html = "<div class='card p-2 m-0 mt-1 row' >"+
+                "<div class='col-auto mr-auto'><span>"+ "#"+(Number(param)+1).toString()+ "  "+
+                p.supplier + "</span> - "+
+                "<span>"+ p.symbol + "</span></div>"+
+                "<div class='btn-group btn-group-justified col-auto'>"+
+                "<a class='btn btn-sm btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
+                "<a class='btn btn-sm btn-outline-primary' href='" + p.url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
+                "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
                 "</div>";
+    var $html = $('<div />',{html:html});
     
-    console.log(html);
-    $("#inputSUPPLIER_list").append(html);
+    if((p.disabled || 0) == 1){
+        $html.find('.card').addClass('text-muted');
+        $html.find('.card').addClass('bg-light');
+        $html.find('.isrm').html('check_circle_outline');
+    }else{
+        $html.find('.card').addClass('bg-light');
+        $html.find('.isrm').html('highlight_off');
+    }
+
+    $("#inputSUPPLIER_list").append($html.html());
 
   }
 }
@@ -358,16 +390,8 @@ function draw_history(id){
             'output': 'html_tab'
         },
         success: function( data, textStatus, jQxhr ){
-            console.log(data);
             $("#inputHISTORY_edit").html(data);
-            /*
-            for(operation in data){
-                var action = data[operation];
-                console.log(action);
-                var txt = '<div>'+ JSON.stringify(action) +'</div><hr>';
-                $("#inputHISTORY_edit").prepend(txt);
 
-            }*/
         }
     });
 }

@@ -20,6 +20,8 @@ def make_handlers(module, plugin):
         return [
              (r'/{}/get_invoices/'.format(module), plugin.get_invoices),
              (r'/{}/get_invoice/'.format(module), plugin.get_invoice),
+             (r'/{}/save_invoice/'.format(module), plugin.save_invoice),
+             (r'/{}/invoice/prepare_invoice_row/'.format(module), plugin.prepare_invoice_row),
              (r'/{}/invoice/(.*)/'.format(module), plugin.invoice),
              (r'/{}'.format(module), plugin.hand_bi_home),
              (r'/{}/'.format(module), plugin.hand_bi_home),
@@ -37,11 +39,7 @@ def plug_info():
 
 class hand_bi_home(BaseHandler):
     def get(self, data=None):
-        
         self.render("invoice_import.home.hbs", parent = self)
-
-
-
 
 class get_invoices(BaseHandler):
     def post(self):
@@ -58,25 +56,76 @@ class get_invoices(BaseHandler):
 
 class get_invoice(BaseHandler):
     def post(self):
+        self.set_header('Content-Type', 'application/json')
         id = self.get_argument('id', None)
-        out= self.get_argument('out', 'json')
+        if not id: id = None
+        out = self.get_argument('out', 'json')
         oid = bson.ObjectId(id)
+
+        if not id:
+            self.write(bson.json_util.dumps({
+                    'new': True,
+                    '_id': str(oid)
+                }))
+            return None
+
+        invoice = self.mdb.invoice.aggregate([
+            {'$match':{'_id': oid}}
+        ])
 
         data = self.mdb.invoice.aggregate([
                 {'$match':{'_id': oid}},
+                {'$unwind': '$elements'},
+                {'$project': {'elements': 1, '_id': 0}},
                 {'$lookup':{
                         'from': 'stock_movements',
                         'localField': 'elements._id',
                         'foreignField': '_id',
-                        'as':'element_list'
+                        'as':'elements'
                     }
                 }
             ])
-
-        output = bson.json_util.dumps(list(data)[0])
+        jout = list(invoice)[0]
+        print(oid)
+        print(">>>", jout)
+        jout['elements'] = list(data)
+        #output = bson.json_util.dumps(jout, indent=4, sort_keys=True)
+        output = bson.json_util.dumps(jout)
         self.write(output)
 
 
 class invoice(BaseHandler):
     def get(self, i_id):
         self.write("INVOICE" + str(i_id))
+
+
+class save_invoice(BaseHandler):
+    def post(self):
+        self.mdb.invoice.update({'_id': bson.ObjectId(self.get_argument('id'))},{
+            '$set':{
+                'invoice': self.get_argument('invoice_number'),
+                'due_date': self.get_argument('duedate'),
+                'partner': self.get_argument('partner'),
+                'type': self.get_argument('type', 1),
+                'state': self.get_argument('state')
+            }
+        }, True)
+
+class prepare_invoice_row(BaseHandler):
+    def post(self):
+        comp = self.get_argument('component')
+        ctype = self.get_argument('type', None)
+        supplier = self.get_argument('supplier', None)
+        stock = self.get_argument('stock')
+        description = self.get_argument('description', '');
+        bilance = 0
+        bilance_plan = self.get_argument('count_planned', None);
+        invoice = self.get_argument('invoice', None);
+        price = self.get_argument('price');
+
+        out = self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
+        self.mdb.invoice.update({'_id': bson.ObjectId(invoice)}, {'$push':{ 'elements':{'_id': bson.ObjectId(out)}} })
+        
+        print('invoice', invoice)
+        self.LogActivity('store', 'prepare_invoice_row')
+        self.write('ACK-prepare_invoice_row');
