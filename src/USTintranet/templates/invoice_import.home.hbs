@@ -22,33 +22,92 @@
   </div> <!-- Konec levého sloupce, Pravy sloupec -->
   <div class="col-md-9 col-sm-12 offset-sm-0 pt-3">
 
-
     <div class="card">
-      ID
-      <input type="text" name="" id="invoice_id" disabled>
-      Typ
-      <select class="select2" id="invoice_direction" disabled>
-        <option value="1" selected>Příchozí</option>
-        <option value="0">Odchozí</option>
-      </select>
-      Číslo faktury
-      <input type="text" name="" id="invoice_number">
-      Datum vytvoření
-      <input type="date" name="" id="invoice_created">
-      Datum splatnosti
-      <input type="date" name="" id="invoice_duedate">
-      Zaplaceno
-      <input type="checkbox" id="invoice_payed">
-      Prodejce
-      <select class="select2" id="invoice_partner"></select>
-      Stav
-      <select class="select2" id="invoice_state">
-        <option value="0">Vyřízeno</option>
-        <option value="1">Čeká na potvrzení</option>
-        <option value="2">V přípravě</option>
-        <option value="3">Návrh</option>
-      </select>
-      <button class="btn btn-sm" onclick="save_invoice()">Uložit</button>
+      
+      <div class="card-body">
+        <h3>Stage 1: Příprava faktury</h3>
+        <p>V prvním kroku tvorby faktury je potřeba kliknout na tlačítko <span class="btn btn-warning btn-sm">Nová faktura</span>, kterým se vytvoří unikátní ID pro novou objednávku/fakturu.</p>
+        <h3>Stage 2: Zadání dodavatele</h3>
+        <p>Nyní je potřeba zadat dodavatele a kliknout na <span class="btn btn-success btn-sm">Uložit</span>. Tím se otevře pole pro zadávání položek. V tomto kroku jsou ostatní pole volitelná.</p>
+      </div>
+
+
+    </div>
+
+    <div class="card card-body">
+      <div class="form-row">
+        <div class="form-group col">
+          <label>ID</label>
+          <input class="form-control" type="text" name="" id="invoice_id" disabled>
+        </div>
+        <div class="form-group col">
+          <label>Číslo faktury dodavatele</label>
+          <input class="form-control" type="text" name="" id="invoice_number">
+        </div>
+        <div class="form-group col">
+          <label>Dodavatel</label>
+          <select class="select2" id="invoice_partner"></select>
+        </div>
+        <div class="form-group col">
+          <label>Kontakt</label>
+          <select class="select2" id="" disabled></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col">
+          <label>Typ</label>
+          <select  class="form-control" class="select2" id="invoice_direction">
+            <option value="1" selected>Příchozí objednávka</option>
+            <option value="0" disabled>Odchozí</option>
+          </select>
+        </div>
+
+        <div class="form-group col">
+        <label>Datum vytvoření</label>
+        <input class="form-control" type="date" name="" id="invoice_created" disabled>
+        </div>
+        
+        <div class="form-group col">
+          <label>Datum splatnosti</label>
+          <input class="form-control" type="date" name="" id="invoice_duedate">
+        </div>
+        <div class="form-group col">
+          <label>Zapalaceno</label>
+          <input class="form-control" type="checkbox" id="invoice_payed">
+        </div>
+        <div class="form-group col">
+          <label>Stav</label>
+          <select class="form-control select2" id="invoice_state" disabled>
+            <option value="-1">Zrušeno</option>
+            <option value="0">Dokončeno</option>
+            <option value="1">Čekání na kompletní doručení</option>
+            <option value="2">Objednat</option>
+            <option value="3">Validace</option>
+            <option value="4">V přípravě</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col">
+          <label>Popis, poznámky</label>
+          <input class="form-control" type="text" name="">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col">
+          <label>Přiložit soubor</label>
+          <div class="custom-file">
+            <label class="custom-file-label" for="customFile">Choose file</label>
+            <input type="file" class="custom-file-input" id="customFile">
+
+          </div>
+        </div>
+      </div>
+      
+      <button class="form-control btn btn-success" onclick="save_invoice()">Uložit</button>
+      <button class="form-control btn btn-warning" onclick="next_stage_invoice()">Další krok: <span class="invoice_next_stage_name">Odeslat k validaci</span></button>
     </div>
 
     <div class="card" id="part_list" style="display: none;">
@@ -227,9 +286,9 @@
             if ('new' in data){
               window.location.hash = '#'+data['_id'];
               $('#invoice_id').val(data['_id']);
-              $('#invoice_state').val(3).trigger('change');
+              $('#invoice_state').val(4).trigger('change');
               $('#invoice_number').val(null);
-              $('#invoice_created').val(null);
+              $('#invoice_created').val(new Date().toISOString().substr(0, 10));
               $('#invoice_duedate').val(null);
               $('#part_list').hide();
 
@@ -239,6 +298,7 @@
               $("#invoice_number").val(data['invoice_id']);
               $("#invoice_created").value = data['created'];
               $("#invoice_duedate").value = data['created'];
+              $("#invoice_description").value = data['description'];
               $('#invoice_partner').empty().append('<option value="'+data['partner']+'">'+data['partner']+'</option>').val(data['partner']).trigger('change');
               $('#part_list').show();
 
@@ -263,8 +323,9 @@
             'created': $('#invoice_created').val(),
             'duedate': $('#invoice_duedate').val(),
             'partner': $('#invoice_partner').val(),
-            'state': $('#invoice_state').val(),
-            'elements': []
+            'description': $('#invoice_description').val(),
+            //'state': $('#invoice_state').val(),
+            //'elements': []
         },
         success: function(data, textStatus, jQxhr){
             
@@ -274,6 +335,18 @@
         }
     });
     load_invoice($('#invoice_id').val());
+  }
+
+  function next_stage_invoice(){
+    $.ajax({
+      type: "POST",
+      url: '/invoice_import/next_stage',
+      data: {
+        'id': $('#invoice_id').val(),
+      },
+      success
+    });
+
   }
 
   function create_operation() {

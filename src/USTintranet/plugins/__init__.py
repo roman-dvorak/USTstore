@@ -10,6 +10,7 @@ import pymongo
 import hashlib, uuid
 import functools
 import bson
+import datetime
 
 
 def make_handlers(module, plugin):
@@ -137,7 +138,6 @@ class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pr
 
 class BaseHandler(tornado.web.RequestHandler):
     def prepare(self):
-
         login = self.get_secure_cookie("user")
         if login:
             login = str(login, encoding="utf-8")
@@ -166,12 +166,6 @@ class BaseHandler(tornado.web.RequestHandler):
             self.logged = False
             return None
 
-    #def get_user_locale(self):
-    #    return 'cs_CZ'
-        #if "locale" not in self.current_user.prefs:
-        #    # Use the Accept-Language header
-        ##    return 'cs_CZ'
-        #return self.current_user.prefs["locale"]
 
     def get_current_user(self):
         login = self.get_secure_cookie("user", None)
@@ -226,6 +220,11 @@ class BaseHandler(tornado.web.RequestHandler):
         print(">> operation: {}".format(operation))
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
+
+class BaseHandlerJson(BaseHandler):
+    def prepare(self):
+        self.set_header('Content-Type', 'application/json')
+        super(BaseHandlerJson, self).prepare()
 
 
 class home(BaseHandler):
@@ -288,9 +287,12 @@ class regHandler(BaseHandler):
                     'name': user,
                     'email': email,
                     'email_validate': False,
+                    'created': datetime.datetime.now(),
+                    'type': 'user',
                     'role': [],
                 })
         else:
             self.render('_registration.hbs', msg = 'Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
 
         print(user, email, psw, pswc, agree)
+        self.redirect('/')

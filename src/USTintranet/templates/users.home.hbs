@@ -21,37 +21,52 @@
 
 </style>
 
-{#{{parent.__dict__}}#}
-{% if users %}
-	<h2>Uživatelské účty</h2>
-	<table>
-	<tr>
-		<th>Login</th>
-		<th>Name</th>
-		<th>Zbytek</th>
-	</tr>
-	{% for user in users%}
-		<tr><td>{{user['user']}}</td><td>{{user['name']}}</td><td>{{user}}</td></tr>
-	{% end %}
-	</table>
-{%end%}
 
-<hr>
-<h2>Nastavení mého účtu</h2>
+
+<div class="container" style="background: blue">
+
+tady bude nějaký seznam - 
+</div>
+<div class="container" style="">
+
 {{me}}
-<hr>
-<h2>Záznam mých operací</h2>
-<table>
-	<tr><th>Datetime</th><th>Uživatel</th><th>Modul</th><th>Operace</th><th>Data</th></tr>
-	{% for activity in my_activity %}
-	<tr>
-		<td>{{activity['_id'].generation_time}}</td>
-		<td>{{activity['user']}}</td>
-		<td>{{activity['module']}}</td>
-		<td>{{activity['operation']}}</td>
-		<td>{{activity['data']}}</td>
-	</tr>
-	{% end %}
-</table>
+<div class="card">
+	<div class="card-header"> <h2>Můj profil</h2></div>
+	<div class="card-content" id="place_user_edit">
+		<div class="form-row">
+			<div class="form-group col">
+				<label>Username</label>
+				<input class="form-control" type="text" disabled value="{{me.get('user', 'Err')}}">
+			</div>
+			<div class="form-group col">
+				<label>Jméno</label>
+				<input class="form-control" type="text" value="{{me.get('name', 'Err')}}>
+			</div>
+			<div class="form-group col">
+				<label>E-mail</label>
+				<input class="form-control" type="email" disabled>
+			</div>
+		</div>
+		<div class="form-row">
+			<div class="form-group col">
+				<label>Oprávnění</label>
+				<select class="form-control" id=""></select>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+
+
+
+<script type="text/javascript">
+	
+  $(document).ready(function(){
+  });
+
+
+
+</script>
 
 {% end %}{# block body#}
