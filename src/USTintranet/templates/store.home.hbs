@@ -137,12 +137,12 @@
 
 {% if permis %}
   <div class="col-12">
-	  <div class="form-group">
+	  <div class="form-group col">
 	      <label for="exampleFormControlTextarea1">Operace</label>
 	  	  <div id="selected_operations">
 	  	  	<div class="btn-group btn-group-justified">
             <div class="btn-group" role="group">
-                <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Do košíku</button>
+                <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons">playlist_add</i></button>
                 <div class="dropdown-menu form-group p-0" aria-labelledby="btnGroupDrop1">
                   <input class="form-control" type="number" id="add_to_cart_count" min="0" value="0">
                   <button class="form-control btn btn-success" onclick="add_to_cart_count(null, '#add_to_cart_count')">Přidat</button>
@@ -151,6 +151,7 @@
 				  	<button type="button" class="btn btn-primary" onclick="load_modal_operation('buy')">Nákup</button>
             <button type="button" class="btn btn-primary">Prodej</button>
             <button type="button" class="btn btn-primary" onclick="load_modal_operation('service')">Servisní odběr</button>
+            <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
 				</div> 
 	  	  </div>
 	  </div>
@@ -407,7 +408,7 @@
             {% if permis %}<div class="form-group row bg-danger">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
-                <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value="0" min="0" step="0.001">
+                <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value='0' disabled>
                 <div class="input-group-append">
                   <div class="input-group-text">Czk</div>
                 </div>
@@ -987,6 +988,7 @@ function load_product(id){
 							delay: 5000,
 							icon: false
 						});
+            
 						product_json = {
 							'_id': id,
 							'name': id,

@@ -25,7 +25,8 @@ function get_supplier_url(element_supplier){
 }
 
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
-function OpenArticleEdit(name){
+function OpenArticleEdit(name = null){
+    if (name === null){name = product_json['_id']}
     element = undefined;
     $('#modal-edit-component').modal('show');
     $('#inputCATEGORY_edit').select2({ width: '100%' });
@@ -96,11 +97,12 @@ function OpenArticleEdit(name){
                 $('#inputID_edit').val(element['_id']);
                 $("#inputID_edit").attr('disabled', true);
                 $('#inputNAME_edit').val(element.name || "Bez názvu");
-                $('#inputPRICE_edit').val(element.price || 0);
+                //$('#inputPRICE_edit').val(element.price || 0);
                 $('#inputPRICEp_edit').val(element.price_sell || 0);
                 $('#inputSELLABLE_edit').prop('checked', element.sellable || false);
                 $('#inputDESCRIPTION_edit').val(element.description || "");
                 $('#inputCATEGORY_edit').val(element['category']).trigger('change');
+                $('#inputSTOCK_list').empty();
 
                 $('#new_param_name')[0].value = "";
                 $('#new_param_value')[0].value = "";
@@ -132,13 +134,36 @@ function OpenArticleEdit(name){
     }
 }
 
+function ClearArticleEdit(){
+    $('#inputID_edit').val("");
+    $("#inputID_edit").attr('disabled', false);
+    $('#inputNAME_edit').val("");
+    $('#inputPRICE_edit').val(0);
+    $('#inputPRICEp_edit').val(0);
+    $('#inputSELLABLE_edit').prop('checked', false);
+    $('#inputDESCRIPTION_edit').val("");
+    $('#inputCATEGORY_edit').val(null).trigger('change');
+    $('#inputTAG_edit').val(null).trigger('change');
+
+    $('#new_param_name')[0].value = "";
+    $('#new_param_value')[0].value = "";
+
+    $('#new_supplier_code')[0].value = "";
+    $('#new_supplier_symbol')[0].value = "";
+    $('#new_supplier_url')[0].value = "";
+
+    draw_parameters();
+    draw_stock();
+    draw_history();
+    draw_supplier();
+}
 
 function UpdateFromForm(){
     element['_id'] = $('#inputID_edit')[0].value;
     element.name = $('#inputNAME_edit')[0].value;
     element.description=$('#inputDESCRIPTION_edit')[0].value;
     element.sellable = $('#inputSELLABLE_edit').prop('checked');
-    element.price = Number($('#inputPRICE_edit')[0].value);
+    //element.price = Number($('#inputPRICE_edit')[0].value);
     element.price_sell = Number($('#inputPRICEp_edit')[0].value);
     element.category = $('#inputCATEGORY_edit').val();
 
@@ -405,19 +430,5 @@ function new_component(){
 
     element = {};
 
-    $('#inputID_edit').val("");
-    $("#inputID_edit").attr('disabled', false);
-    $('#inputNAME_edit').val("Název položky");
-    $('#inputPRICE_edit').val(0);
-    $('#inputPRICEp_edit').val(0);
-    $('#inputSELLABLE_edit').prop('checked', false);
-    $('#inputDESCRIPTION_edit').val("");
-    $('#inputCATEGORY_edit').val([]).trigger('change');
-
-    $('#new_param_name')[0].value = "";
-    $('#new_param_value')[0].value = "";
-
-    $('#new_supplier_code')[0].value = "";
-    $('#new_supplier_symbol')[0].value = "";
-    $('#new_supplier_url')[0].value = "";
+    ClearArticleEdit();
 }
