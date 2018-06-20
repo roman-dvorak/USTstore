@@ -10,6 +10,15 @@
 
 </script>
 
+<style type="text/css">
+  
+  .table tbody td{
+    padding: 0.2rem;
+    vertical-align: middle;;
+  }
+
+</style>
+
 
 <div class="container-fluid" id="wrapper"><div class="row">
 
@@ -29,6 +38,8 @@
         <p>V prvním kroku tvorby faktury je potřeba kliknout na tlačítko <span class="btn btn-warning btn-sm">Nová faktura</span>, kterým se vytvoří unikátní ID pro novou objednávku/fakturu.</p>
         <h3>Stage 2: Zadání dodavatele</h3>
         <p>Nyní je potřeba zadat dodavatele a kliknout na <span class="btn btn-success btn-sm">Uložit</span>. Tím se otevře pole pro zadávání položek. V tomto kroku jsou ostatní pole volitelná.</p>
+        <h3>Stage 3: Vložení produktů.</h3>
+        <p>V tomto kroku je potřeba přidat jednotlivé položky objednávky. Vepsáním do prvního řádku vyberete položku ze skladu a její typ od dodavatele. (Vybraný dodavatel musí být u vybírané součástky přidaný v její kartě. Dále se musí vepsat cena za kus a počet objednaných kusů. Kliknutím na tlačítko <button class="btn btn-sm btn-success" onclick=""><i class="material-icons">add_circle_outline</i></button> tuto položku přidáte do seznamu. Seznam se aktualizuje okamžitě.</p>
       </div>
 
 
@@ -36,6 +47,10 @@
 
     <div class="card card-body">
       <div class="form-row">
+        <div class="form-group col-1">
+          <label>Stage</label>
+          <input class="form-control" type="text" name="" id="invoice_stage" value="" disabled>
+        </div>
         <div class="form-group col">
           <label>ID</label>
           <input class="form-control" type="text" name="" id="invoice_id" disabled>
@@ -107,8 +122,31 @@
       </div>
       
       <button class="form-control btn btn-success" onclick="save_invoice()">Uložit</button>
-      <button class="form-control btn btn-warning" onclick="next_stage_invoice()">Další krok: <span class="invoice_next_stage_name">Odeslat k validaci</span></button>
+      <button class="form-control btn btn-warning" id="btn_next-stage" onclick="next_stage_invoice()" style="display: none;">Další krok: <span id="invoice_next_stage_name">Odeslat k validaci</span></button>
+      <button class="form-control btn btn-warning" id="btn_export" onclick="export_invoice()" style="display: none;">Exportovat objednavku</button>
     </div>
+
+    <div class="modal fade" id="modal-next-stage-validation" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Odeslat k validaci?</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Tento krok nebudete moct vrátit zpátky...
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="next_stage_invoice(true)">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
 
     <div class="card" id="part_list" style="display: none;">
       <div>
@@ -347,6 +385,7 @@
               $('#invoice_created').val(new Date().toISOString().substr(0, 10));
               $('#invoice_duedate').val(null);
               $('#part_list').hide();
+              $('#btn_next-stage').hide();
 
             }else{
               $("#invoice_id").val(id);
@@ -354,10 +393,36 @@
               $("#invoice_direction").val(data['direction']);
               $("#invoice_number").val(data['invoice_id']);
               $("#invoice_created").value = data['created'];
-              $("#invoice_duedate").value = data['created'];
+              $("#invoice_duedate").value = data['duedate'];
+              $('#invoice_state').val(data['state']).trigger('change');
               $("#invoice_description").value = data['description'];
               $('#invoice_partner').empty().append('<option value="'+data['partner']+'">'+data['partner']+'</option>').val(data['partner']).trigger('change');
               $('#part_list').show();
+
+              console.log('ooooooooo', data['state']);
+              $('#btn_next-stage').hide();
+              $('#btn_export').hide();
+
+              $('#invoice_next_stage_name').text(null);
+              if(data['state'] == 4){
+                $('#btn_next-stage').show();
+                $('#invoice_next_stage_name').text('Odeslat k validování');
+              }
+
+              {% if parent.is_authorized(['invoice-validator', 'invoice-sudo']) %}
+              if(data['state'] == 3){
+                $('#btn_next-stage').show();
+                $('#invoice_next_stage_name').text('Validovat produkt');
+                $('#btn_export').show();
+              }
+              {%end%}
+
+              if(data['state'] == 2){
+                $('#btn_next-stage').show();
+                $('#invoice_next_stage_name').text('Příjem zboží'); 
+                $('#btn_export').show();
+              }
+
 
               elements = data;
               draw_invoice_table();
@@ -395,10 +460,16 @@
     load_invoices_list();
   }
 
-  function next_stage_invoice(){
+  function next_stage_invoice(validate = false){
+    if (validate == false) {
+      $('#modal-next-stage-validation').modal('show');
+      return;
+    }
+    $('#modal-next-stage-validation').modal('hide');
+
     $.ajax({
       type: "POST",
-      url: '/invoice_import/next_stage',
+      url: '/invoice_import/next_state/',
       data: {
         'id': $('#invoice_id').val(),
       },
@@ -406,7 +477,12 @@
 
       }
     });
+    load_invoice();
+    load_invoices_list();
+  }
 
+  function export_invoice(){
+    alert("Jeste neimplementovano...")
   }
 
   function create_operation() {
@@ -425,7 +501,7 @@
             'invoice': $('#invoice_id').val(),
             'type': $('#new_type').val()
           },
-          success: function( data, textStatus, jQxhr ){
+          success: function( data, textStatus, jqXhr ){
             console.log(data);
             $('#modal_operation').modal('hide');
               Lobibox.notify('success', {msg: 'Polozka byla připravena'});
@@ -434,8 +510,8 @@
 
           },
           error: function( jqXhr, textStatus, errorThrown ){
-            console.log( errorThrown );
-        Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+            console.log( errorThrown, textStatus);
+            Lobibox.notify('error', {msg: errorThrown});
           }
       }); 
       load_invoice($('#invoice_id').val());

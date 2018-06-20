@@ -180,7 +180,7 @@ class BaseHandler(tornado.web.RequestHandler):
             return None
         return user_db
 
-    def authorized(self, required = [], sudo = True):
+    def authorized(self, required = [], sudo = False):
         print("AUTHORIZED.....")
         if self.get_current_user():
             if sudo:
@@ -195,7 +195,7 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self.redirect('/login')
 
-    def is_authorized(self, required = [], sudo = True):
+    def is_authorized(self, required = [], sudo = False):
         print("AUTHORIZATION.....")
         if self.get_current_user():
             if sudo:

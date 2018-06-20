@@ -22,6 +22,7 @@ def make_handlers(module, plugin):
              (r'/{}/get_invoice/'.format(module), plugin.get_invoice),
              (r'/{}/save_invoice/'.format(module), plugin.save_invoice),
              (r'/{}/invoice/prepare_invoice_row/'.format(module), plugin.prepare_invoice_row),
+             (r'/{}/next_state/'.format(module), plugin.invoice_next_state),
              (r'/{}/invoice/(.*)/'.format(module), plugin.invoice),
              (r'/{}'.format(module), plugin.hand_bi_home),
              (r'/{}/'.format(module), plugin.hand_bi_home),
@@ -33,7 +34,8 @@ def plug_info():
     return{
         "module": "invoice_import",
         "name": "Importování faktur",
-        "icon": 'icon_sklad.svg'
+        "icon": 'icon_sklad.svg',
+        "role": ['invoice', 'invoice-access']
     }
 
 
@@ -123,55 +125,54 @@ class prepare_invoice_row(BaseHandler):
         price = self.get_argument('price')
 
 
-        out = self.mdb.invoice.find({ "_id": bson.ObjectId(invoice), 'history.article': comp, 'history.symbol': symbol}).count()
-        print(">>>>>>>", element_id)
+        state = list(self.mdb.invoice.find({ "_id": bson.ObjectId(invoice)}))[0].get('state', 0)
+        print(state)
+        if state > 3 or self.is_authorized(['invoice-sudo', 'invoice-validator']):
+            push_json = {
+                'bilance_planned': bilance_plan,
+                'bilance': bilance,
+                'article': comp,
+                'price': price,
+                'symbol': symbol,
+                'type': self.get_argument('type', None)
+            }
 
-        push_json = {
-            'bilance_planned': bilance_plan,
-            'bilance': bilance,
-            'article': comp,
-            'price': price,
-            'symbol': symbol,
-            'type': self.get_argument('type', None)
-        }
-
-        if int(element_id) == -1:
-            self.mdb.invoice.update(
-                { "_id": bson.ObjectId(invoice)},
-                { "$push": { 'history': push_json }}, upsert=True)
+            if int(element_id) == -1:
+                self.mdb.invoice.update(
+                    { "_id": bson.ObjectId(invoice)},
+                    { "$push": { 'history': push_json }}, upsert=True)
+            else:
+                self.mdb.invoice.update(
+                    { "_id": bson.ObjectId(invoice)},
+                    { "$set": { 'history.{}'.format(element_id): push_json }}, upsert=True)
         else:
-            self.mdb.invoice.update(
-                { "_id": bson.ObjectId(invoice)},
-                { "$set": { 'history.{}'.format(element_id): push_json }}, upsert=True)
-    
-        print("......")
-        print(out)
-    
-        '''
-        out = self.mdb.invoice.find({'_id': bson.ObjectId(invoice), 'history.article': comp}).count()
-        if out < 1:
-            oper = '$push'
-        else:
-            oper = '$push'
+            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")      
 
-        out = self.mdb.invoice.update({'_id': bson.ObjectId(invoice)},{
-                oper:{'history': {
-                        'bilance_planned': bilance_plan,
-                        'bilance': bilance,
-                        'article': comp,
-                        'price': price,
-                        'symbol': symbol,
-                        'type': self.get_argument('type', None)
-                }}
-            })
-        '''
-
-
-
-        #out = self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
-        #self.mdb.invoice.update({'_id': bson.ObjectId(invoice)}, {'$push':{ 'elements':{'_id': bson.ObjectId(out)}} })
-        
-        print('invoice', invoice)
-        print(out)
         self.LogActivity('store', 'prepare_invoice_row')
         self.write('ACK-prepare_invoice_row');
+
+
+class invoice_next_state(BaseHandler):
+    def post(self):
+        print("INVOICE NEXT STATE")
+        cid = bson.ObjectId(self.get_argument('id'))
+        state = int(list(self.mdb.invoice.find({'_id': cid}))[0].get('state', 0))
+
+        if state == 4 and self.is_authorized(['invoice-access', 'invoice-sudo', 'invoice_import', 'invoice-validator'], sudo=False):
+            print("4 -- 3")
+            self.mdb.invoice.update({'_id': cid}, {'$inc': {'state': -1}})
+            self.write('OK')
+        # validace
+        elif state == 3 and self.is_authorized(['invoice-sudo', 'invoice-validator'], sudo=False):
+            print("3 --- 2")
+            self.mdb.invoice.update({'_id': cid}, {'$inc': {'state': -1}})
+            self.write('OK')
+
+        #naskladneni
+        elif state == 3 and self.is_authorized(['invoice-sudo', 'invoice-reciever'], sudo=False):
+            print("2 --- 1")
+            self.mdb.invoice.update({'_id': cid}, {'$inc': {'state': -1}})
+            self.write('OK')
+        else:
+            print("AUTHORIZED PROBLEM ....", self.role)
+            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")      

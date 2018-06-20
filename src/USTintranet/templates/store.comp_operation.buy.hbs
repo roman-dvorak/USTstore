@@ -17,7 +17,7 @@ Součastné počty:<br>
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Dodavatel</label>
 		<select class="form-control table_style col-sm-10">
-			{% for i, sup in enumerate(article['supplier']) %}
+			{% for i, sup in enumerate(article.get('supplier',[])) %}
 				<option value="i">{{sup}}</option>
 			{% end %}
 		</select>

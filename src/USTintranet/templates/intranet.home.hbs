@@ -28,8 +28,9 @@
 
 
 {% for plug in plugins %}
-	
-	<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}">{{plugins[plug]['name']}}</label></div>
+	{%if len(plugins[plug].get('role', [])) is 0 or parent.is_authorized(plugins[plug].get('role', [])) %}
+	<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}">{{plugins[plug]['name']}}</label></div></a>
+	{%end%}
 	
 {% end %}
 
