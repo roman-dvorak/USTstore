@@ -88,7 +88,7 @@ class get_invoice(BaseHandler):
         jout = list(invoice)[0]
         print(oid)
         print(">>>", jout)
-        jout['elements'] = list(data)
+        #jout['elements'] = list(data)
         #output = bson.json_util.dumps(jout, indent=4, sort_keys=True)
         output = bson.json_util.dumps(jout)
         self.write(output)
@@ -107,25 +107,71 @@ class save_invoice(BaseHandler):
                 'due_date': self.get_argument('duedate'),
                 'partner': self.get_argument('partner'),
                 'type': self.get_argument('type', 1),
-                'state': self.get_argument('state')
+                'state': self.get_argument('state', 4)
             }
-        }, True)
+        }, upsert = True)
 
 class prepare_invoice_row(BaseHandler):
     def post(self):
+        element_id = self.get_argument('component_id', -1)
         comp = self.get_argument('component')
-        ctype = self.get_argument('type', None)
-        supplier = self.get_argument('supplier', None)
-        stock = self.get_argument('stock')
-        description = self.get_argument('description', '');
+        symbol = self.get_argument('symbol', None)
+        description = self.get_argument('description', '')
         bilance = 0
-        bilance_plan = self.get_argument('count_planned', None);
-        invoice = self.get_argument('invoice', None);
-        price = self.get_argument('price');
+        bilance_plan = self.get_argument('count_planned', None)
+        invoice = self.get_argument('invoice')
+        price = self.get_argument('price')
 
-        out = self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
-        self.mdb.invoice.update({'_id': bson.ObjectId(invoice)}, {'$push':{ 'elements':{'_id': bson.ObjectId(out)}} })
+
+        out = self.mdb.invoice.find({ "_id": bson.ObjectId(invoice), 'history.article': comp, 'history.symbol': symbol}).count()
+        print(">>>>>>>", element_id)
+
+        push_json = {
+            'bilance_planned': bilance_plan,
+            'bilance': bilance,
+            'article': comp,
+            'price': price,
+            'symbol': symbol,
+            'type': self.get_argument('type', None)
+        }
+
+        if int(element_id) == -1:
+            self.mdb.invoice.update(
+                { "_id": bson.ObjectId(invoice)},
+                { "$push": { 'history': push_json }}, upsert=True)
+        else:
+            self.mdb.invoice.update(
+                { "_id": bson.ObjectId(invoice)},
+                { "$set": { 'history.{}'.format(element_id): push_json }}, upsert=True)
+    
+        print("......")
+        print(out)
+    
+        '''
+        out = self.mdb.invoice.find({'_id': bson.ObjectId(invoice), 'history.article': comp}).count()
+        if out < 1:
+            oper = '$push'
+        else:
+            oper = '$push'
+
+        out = self.mdb.invoice.update({'_id': bson.ObjectId(invoice)},{
+                oper:{'history': {
+                        'bilance_planned': bilance_plan,
+                        'bilance': bilance,
+                        'article': comp,
+                        'price': price,
+                        'symbol': symbol,
+                        'type': self.get_argument('type', None)
+                }}
+            })
+        '''
+
+
+
+        #out = self.mdb.stock_movements.insert({'stock': stock, 'operation':'buy', 'product': comp, 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged})
+        #self.mdb.invoice.update({'_id': bson.ObjectId(invoice)}, {'$push':{ 'elements':{'_id': bson.ObjectId(out)}} })
         
         print('invoice', invoice)
+        print(out)
         self.LogActivity('store', 'prepare_invoice_row')
         self.write('ACK-prepare_invoice_row');

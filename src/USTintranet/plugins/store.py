@@ -81,10 +81,12 @@ class print_layout(BaseHandler):
             pdf.add_page()
 
 
-            data = self.mdb.stock.find({})
+            data = self.mdb.stock.aggregate([
+                    {'$addFields': {'count': {'$sum': '$history.bilance'}}}
+                ])
             for i, component in enumerate(data):
-
-
+                print(i, "=============================")
+                print(component['_id'])
                 try:
                     if pdf.get_y() > pdf.h-20:
                         pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
@@ -110,28 +112,42 @@ class print_layout(BaseHandler):
 
                     pdf.set_font('pt_sans', '', 10)
 
-                    count = 0
-                    price = 0
-                    for x in component['stock']:
-                        count += float(component['stock'][x]['count'])
-                    price = float(component['price'])
-                    money_sum += (price*count)
-                    if price == 0.0 and count > 0:
-                        Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
+                    count = component['count']
 
-                    print(i, component)
-                    pdf.set_x(10)
-                    pdf.cell(100, 5, component['_id'])
+                    if count >0:
+                        price = 0
+                        price_ks = 0
 
-                    pdf.set_x(95)
-                    pdf.cell(10, 5, "%5.d" %(count), align='R')
+                        pdf.set_x(10)
+                        pdf.cell(100, 5, component['_id'])
 
-                    pdf.set_x(120)
-                    pdf.cell(10, 5, "%6.2f Kč" %(price), align='R')
+                        pdf.set_x(95)
+                        pdf.cell(10, 5, "%5.d" %(count), align='R')
+                        
+                        rest = count
+                        for x in reversed(component.get('history', [])):
+                            print(x)
+                            if x['bilance'] > 0:
+                                if x['bilance'] <= rest:
+                                    price += x['price']*x['bilance']
+                                    rest -= x['bilance']
+                                else:
+                                    price += x['price']*rest
+                                    rest = 0
+                            print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+                        money_sum += price
+                        if price == 0.0 and x.get('count', 0) > 0:
+                            Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
 
-                    pdf.set_font('pt_sans-bold', '', 10)
-                    pdf.set_x(180)
-                    pdf.cell(10, 5, "%6.2f Kč" %(price*count), align='R', ln=2)
+                        price_ks = price/count
+
+
+                        pdf.set_x(120)
+                        pdf.cell(10, 5, "%6.2f Kč" %(price_ks), align='R')
+
+                        pdf.set_font('pt_sans-bold', '', 10)
+                        pdf.set_x(180)
+                        pdf.cell(10, 5, "%6.2f Kč" %(price), align='R', ln=2)
 
 
                 except Exception as e:
@@ -598,13 +614,23 @@ class api(BaseHandler):
         elif data == 'search':
             search = self.get_argument('q', '')
             page = self.get_argument('page', '0')
+            key = self.get_arguments('key[]')
+            if key == []: key = ['_id', 'name', 'description']
+            match = list(map(lambda x: {x: { '$regex': search, '$options': 'ix'}}, key ))
+            print(key)
+            print(match)
+            '''
+                                    [
+                                    {'_id': { '$regex': search, '$options': 'ix'}},
+                                    {'name': { '$regex': search, '$options': 'ix'}},
+                                    {'description': { '$regex': search, '$options': 'ix'}} ]
+            '''
+
+
             dbcursor = self.mdb.stock.aggregate([
                 {"$unwind": "$_id"},
                 {"$sort" : {"category": 1,"_id": 1} },
-                {"$match": {'$or':[
-                                    {'_id': { '$regex': search, '$options': 'ix'}},
-                                    {'name': { '$regex': search, '$options': 'ix'}},
-                                    {'description': { '$regex': search, '$options': 'ix'}} ]}
+                {"$match": {'$or':match}
                 },{
                     "$lookup":{
                         "from": "category",
