@@ -93,17 +93,20 @@
         <label class="col-4">{{_('Component name')}}</label>
         <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" ></>
       </div>
-      <div class="form-group form-inline">
-        <label class="col-4 bg-warning">Cena posl. nákupu</label>
-        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value=""></>
+      <div class="bg-warning form-group form-inline">
+        Tyto ceny (zatím) jsou průměry (poslední) všech operací - tzn. i připadného prodeje...
       </div>
       <div class="form-group form-inline">
-        <label class="col-4 bg-warning">Cena nákupu prům.</label>
-        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value=""></>
+        <label class="col-4">Cena posl. nákupu</label>
+        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_last" value=""></>
+      </div>
+      <div class="form-group form-inline">
+        <label class="col-4">Cena nákupu prům.</label>
+        <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_avg" value=""></>
       </div>
 
-		<div class="form-group form-inline bg-danger">
-		    <label class="col-4">Cena</label>
+		<div class="form-group form-inline">
+		    <label class="col-4">Cena prodejní</label>
 		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
 		</div>
 
@@ -458,7 +461,7 @@
             </div>
 
             <div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-warning">Tagy</label>
+              <label class="col-sm-3 col-form-label">Tagy</label>
               <div class="input-group col-sm-9">
               	<select id="inputTAG_edit" class="form-control" multiple="multiple"></select>
               </div>
@@ -487,9 +490,7 @@
               </div>
             </div>
 
-            <div class="row card container" id="modal_oper_place">
-              
-
+            <div class="row card card-body" id="modal_oper_place" style="margin-left: auto; margin-right: auto; display: none;">
             </div>
 
             <div class="form-group row">
@@ -521,7 +522,7 @@
             </div>
 
             <div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-warning">Dodavatelé</label>
+              <label class="col-sm-3 col-form-label ">Dodavatelé</label>
               <div class="col-sm-9">
               	  <div class="card m-0">
               	  	<div class="card-header" id="headingOne" style="padding: 0pt; background-color: white;">
@@ -578,11 +579,6 @@
 
 
 
-
-
-
-
-
 <!-- Modal - pro produktove operace -->
 <div id="modal_operation" class="modal hide fade" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -594,10 +590,7 @@
         <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
       <div class="modal-body" id="modal-operation-content">
-      </div>{#
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      </div>#}
+      </div>
     </div>
   </div>
 </div>
@@ -716,7 +709,7 @@
 					<span class="product_list-description" style=""></span>
 					<span style="" class="stock_holder"></span>
 				</span>
-				<input type="checkbox" class="stock_tag_selected">
+				{#<input type="checkbox" class="stock_tag_selected">#}
 				<span style="width: 8.5em;"><input type="number" name="sklad_value" class="stock_count table_input"disabled=""></span>
 			</div>
 		</template>
@@ -829,6 +822,8 @@ function update_view(){
         tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'];
         tmpl.querySelector('.product_list-description').innerText = element['description'];
+
+        // zaskrtavatko vybaraných polozek
         if(selected.indexOf(element['_id']) >= 0){
             tmpl.querySelector('.product_list-select').checked = true;
         }
@@ -836,26 +831,19 @@ function update_view(){
         try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
         catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
 
-        //if(element.stock){
-        //    tmpl.querySelector('.stock_holder').innerHTML += '<small>'+JSON.stringify(element.stock)+'</small>';
-        //}
         var name = ""+element['_id']+"";
         tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
         tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id']+'");');
 
         if ($('#display_select').val() == 'table'){
-            tmpl.querySelector('.stock_count').value = 0;
-            if (element['stock'] && element['stock'][$('#display_sklad').val()]['count']){
-                var stock = element['stock'][$('#display_sklad').val()]['count'];
-                tmpl.querySelector('.stock_count').value = stock;
-            }
+            tmpl.querySelector('.stock_count').value = element.count;
 
-            if (element.tags){if (element.tags['inventura2018']){
-                tmpl.querySelector('.stock_tag_selected').checked = true;
-            }}
+            //if (element.tags){if (element.tags['inventura2018']){
+            //    tmpl.querySelector('.stock_tag_selected').checked = true;
+            //}}
 
             tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
-            tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
+            //tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
         }
 
         if(current_detail == element['_id']){
@@ -970,10 +958,11 @@ function load_product(id){
 				url: "/store/api/product/",
 				data: {'type':'filter', 'key':'_id' ,'value': id, 'selected': active_categories(), 'polarity': $('#category_polarity').is( ":checked" )},
 				success: function( data, textStatus, jQxhr ){
+          console.log('load_product>>', data);
 					var element = data[0]
 					product_json = element;
-					var stock = data[1]
-					console.log(stock)
+					//var stock = data[1]
+					//console.log(stock)
 
 					JsBarcode("#selected-barcode",id, {
 						format: "CODE128",
@@ -981,14 +970,14 @@ function load_product(id){
 						margin: 2
 					});
 
-					if (stock == undefined){
+					if (false){
 						Lobibox.notify('warning', {
 							title: 'Neznámá položka',
 							msg: 'Položka s tímto ID ještě není zadána ve skladu. Pokračováním vytvoříte novou položku.',
 							delay: 5000,
 							icon: false
 						});
-            
+
 						product_json = {
 							'_id': id,
 							'name': id,
@@ -1004,7 +993,10 @@ function load_product(id){
 					//$('#selected-name-id').val(element['_id']);
 					$('#selected-name-id').attr("placeholder", element['_id']);
 					$('#selected-name-name').val(element['name']);
-					$('#selected-description').val(element['description']);
+          $('#selected-description').val(element['description']);
+          $('#selected-price_buy_avg').val(element['price_buy_avg']);
+          $('#selected-price_buy_last').val(element['price_buy_last']);
+
 
 					console.log("kategorie", element['category'][0]);
 					$('#selected-category-name').html("("+element['category']+")");
@@ -1012,8 +1004,8 @@ function load_product(id){
 					$('#selected-category').val(element['category']).trigger('change');
 				
 
-					if(element.price === undefined) element['price'] = null
-					$('#selected-price').val(element['price']);
+					if(element.price_sell === undefined) element['price_sell'] = null;
+					$('#selected-price').val(element['price_sell']);
 
 					$('#data-param-table > tbody').empty()
 					for (var i in element['parameters']) {
@@ -1032,9 +1024,9 @@ function load_product(id){
 
 
 					$('#stock_bilance').empty();
-					for (var i in stock){
-						document.getElementById('stock_bilance').append('<div>'+stock[i]+'</div>');
-					}
+					//for (var i in stock){
+					//	document.getElementById('stock_bilance').append('<div>'+stock[i]+'</div>');
+					//}
 
 					try{
 						$('#bilance_count_sob01').val(element['stock']['sob01']['count']);
@@ -1058,7 +1050,6 @@ function load_product(id){
 					if(element.tags === undefined) element['tags']={};
 					for(var i in element.tags){
             var tag = element.tags[i];
-						console.log("TAG>>", tag.id || 'err');
 						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag.id || 'err'+'</span>';
 					}
 

@@ -2,37 +2,45 @@ Součastné počty:<br>
 <ul>
 {%for sklad in counts %} <li>{{sklad['_id']}}: {{sklad['count']}}{%end%}
 </ul>
-<hr>
 
 <div class="container">
 	
 
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Počet ks</label>
-		<input class="form_control table_style col-sm-10" type="number" id="compo_count">
+		<input class="form-control table_style col-sm-10" type="number" id="compo_count" min="0" value="0">
 	</div>
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Cena (za ks)</label>
-		<input class="form_control table_style col-sm-10" type="number" id="compo_price" step = 0.00001>
+		<input class="form-control table_style col-sm-10" type="number" id="compo_price" step = 0.00001 value="0">
+	</div>
+	<div class="form-group row">
+		<label class="col-sm-2 col-form-label">Dodavatel</label>
+		<select class="form-control table_style col-sm-10">
+			{% for i, sup in enumerate(article['supplier']) %}
+				<option value="i">{{sup}}</option>
+			{% end %}
+		</select>
 	</div>
 	<div class="form-group row .bg-danger">
 		<label class="col-sm-2 col-form-label">Faktura </label>
-		<select class="form_control table_style col-sm-10" distabled></select>
+		<select class="form-control table_style col-sm-10" distabled></select>
 	</div>
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Poznámka </label>
-		<input class="form_control table_style col-sm-10" type="text" id="compo_description">
+		<input class="form-control table_style col-sm-10" type="text" id="compo_description" value="">
 	</div>
 
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Sklad </label>
-		<select class="form_control table_style col-sm-10" id="compo_stock">
+		<select class="form-control table_style col-sm-10" id="compo_stock">
 		   <option value="pha01">Praha (pha01)</option>
 		   <option value="sob01">Soběslav (sob01)</option>
 		</select>
 	</div>
-	<button class="form_control table_style btn btn-primary col-sm-10" onclick="compo_update_push()">Uložit</button>
-
+	<div class="form-group row">
+		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()">Uložit</button>
+	</div>
 </div><hr>
 <small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 

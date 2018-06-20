@@ -17,6 +17,9 @@ function get_supplier_url(element_supplier){
 		case 'TME':
 			return "https://www.tme.eu/cz/details/"+(element_supplier.symbol.replace('/', '_') || "Err");
 			break;
+    case 'Mouser':
+      return "https://cz.mouser.com/ProductDetail/"+element_supplier.symbol;
+      break;
 		default:
 			return null;
 			break;
@@ -26,6 +29,12 @@ function get_supplier_url(element_supplier){
 
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
 function OpenArticleEdit(name = null){
+    //ClearArticleEdit();
+    
+    $('#modal_oper_place').empty();
+    $('#modal_oper_place').hide();
+
+
     if (name === null){name = product_json['_id']}
     element = undefined;
     $('#modal-edit-component').modal('show');
@@ -67,7 +76,7 @@ function OpenArticleEdit(name = null){
             },
             success: function( data, textStatus, jQxhr ){
                 element = data[0]
-                element_stock = data[1]
+                //element_stock = data[1]
                 console.log(element);
 
                 JsBarcode("#edit_barcode",element['_id'], {
@@ -113,7 +122,7 @@ function OpenArticleEdit(name = null){
 
                 draw_parameters();
                 draw_supplier();
-                draw_stock(element_stock);
+                draw_stock(element);
                 draw_tags();
 
                 //draw_stock(element['id']);
@@ -143,7 +152,7 @@ function ClearArticleEdit(){
     $('#inputSELLABLE_edit').prop('checked', false);
     $('#inputDESCRIPTION_edit').val("");
     $('#inputCATEGORY_edit').val(null).trigger('change');
-    $('#inputTAG_edit').val(null).trigger('change');
+    //$('#inputTAG_edit').val(null).trigger('change');
 
     $('#new_param_name')[0].value = "";
     $('#new_param_value')[0].value = "";
@@ -152,6 +161,10 @@ function ClearArticleEdit(){
     $('#new_supplier_symbol')[0].value = "";
     $('#new_supplier_url')[0].value = "";
 
+    $('#modal_oper_place').empty();
+    $('#modal_oper_place').hide();
+
+    draw_tags();
     draw_parameters();
     draw_stock();
     draw_history();
@@ -181,6 +194,7 @@ function WriteToDb(){
     UpdateFromForm();
     $.ajax({
         type: "POST",
+        //contentType: "application/json; charset=utf-8",
         url: "/store/api/update_product/",
         data: {json: JSON.stringify(element)},
         success: function( data, textStatus, jQxhr ){
@@ -236,11 +250,13 @@ function move_param(id, dir){
 }
 
 function draw_parameters(){
-  var parameters = element.parameters;
 
-  if (parameters === undefined || parameters == {} || Array.isArray(parameters) == false){
-    parameters = [];
+  
+  if (element === undefined || parameters === undefined || parameters == {} || Array.isArray(parameters) == false){
+    var parameters = [];
     $("#new_param_id")[0].value = 1;
+  }else{
+    var parameters = element.parameters;
   }
   $("#param_table_body").empty();
   console.log("All", parameters);
@@ -259,10 +275,8 @@ function draw_parameters(){
     console.log(html);
     $("#param_table_body").append(html);
   }
-  element.parameters = parameters;
+  //element['parameters'] = parameters;
 }
-
-
 
 
 function add_supplier(){
@@ -316,9 +330,11 @@ function ed_supplier(id){
 }
 
 function draw_supplier(){
-  var parameters = element.supplier || [];
+  if (element.supplier === undefined){var parameters = []}
+  else{var parameters = element.supplier;}
+
   $("#inputSUPPLIER_list").empty();
-  $("#new_supplier_id")[0].value = (element.supplier).length+1;
+  $("#new_supplier_id")[0].value = (parameters).length+1;
   for (param in parameters){
     var p = parameters[param];
 
@@ -350,10 +366,12 @@ function draw_supplier(){
 function draw_stock(count){
   //var parameters = element.stock || {};
   $("#inputSTOCK_list").empty();
+  //var count = element.history;
   //console.log("STOCK", parameters);
 
-  for (param in count){
-    var c = count[param];
+  $("#inputSTOCK_list").append('celkovy pocet je ' + count.count+'<br>');
+  for (param in count.stock){
+    var c = count.stock[param];
     console.log(c);
     var num = c.bilance || 'Ndef';
     if (permis == 0){
@@ -364,12 +382,10 @@ function draw_stock(count){
         } else {
             num = num;
         }
+      }
+      var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
+      $("#inputSTOCK_list").append(html);
     }
-    var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
-    console.log(html);
-    $("#inputSTOCK_list").append(html);
-
-  }
 }
 
 function draw_tags(){
@@ -395,13 +411,11 @@ function draw_tags(){
         }
         //tokenSeparators: [',', ' '],
     });
-    $('#inputTAG_edit').val(null)
+    $('#inputTAG_edit').val(null).trigger('change');
     for (i in element.tags || []){
         tag = element.tags[i];
-        console.log(tag);
-        $('#inputTAG_edit').append(new Option(tag.id, tag.id, true, true));
+        $('#inputTAG_edit').append(new Option(tag.id, tag.id, true, true)).trigger('change');
     }
-    $('#inputTAG_edit').trigger('change');
 }
 
 

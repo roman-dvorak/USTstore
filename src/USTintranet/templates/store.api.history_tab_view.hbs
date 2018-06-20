@@ -12,14 +12,15 @@
     }
 
 </style>
-
-{% for row in dout%}
+{% for i in dout%}
+{%set row = i['history'] %}
  <div class="hist_element_row card mt-1 mb-0 p-2 pt-1">
     <div class="hist_line">
         <b><span class="hist_element" style="width: 30%;">{{row.get('operation', 'Err')}}</span></b><span class="hist_element" style="width: 39%;"></span><span class="hist_element" style="width: 15%;">{{row.get('user', 'Err')}}</span><span class="hist_element" style="width: 15%;">{{row.get('stock', 'Err')}}</span>
     </div>
     <div class="hist_line">
-        <span class="hist_element" style="width: 70%;">{{row.get('_id', 'Err').generation_time}}</span><span class="hist_element" style="width: 15%;">{{row.get('bilance', '-0-')}} ks</span><span class="hist_element" style="width: 15%;">{{row.get('price', '-0-')}} Czk</span>
+        <span class="hist_element" style="width: 70%;">{{row.get('_id').generation_time}}{#{row.get('_id').generation_time}#}
+</span><span class="hist_element" style="width: 15%;">{{row.get('bilance', '-0-')}} ks</span><span class="hist_element" style="width: 15%;">{{row.get('price', '-0-')}} Czk</span>
     </div>
     <div class="hist_line text-muted font-weight-light">{{row.get('description', 'Err')}}</div>
 

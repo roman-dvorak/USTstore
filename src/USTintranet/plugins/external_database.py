@@ -16,21 +16,27 @@ import code128
 import codecs
 import datetime
 
+import json
+import urllib
+import urllib.request
+import urllib.parse
+
 import collections, urllib, base64, hmac, hashlib, json
 
 
 def make_handlers(module, plugin):
         return [
-             (r'/%s' %module, plugin.hand_bi_home),
-             (r'/%s/' %module, plugin.hand_bi_home),
+             #(r'/%s' %module, plugin.hand_bi_home),
+             (r'/%s/tme/' %module, plugin.tme),
+             (r'/%s/octopart/' %module, plugin.octopart),
              #(r'/%s/print/' %module, plugin.print_layout),
              #(r'/%s/api/(.*)/' %module, plugin.api)
         ]
 
 def plug_info():
     return{
-        "module": "tme_load",
-        "name": "tme_load"
+        "module": "external_database",
+        "name": "external_database"
     }
 
 
@@ -76,7 +82,7 @@ def api_call(action, params, token, app_secret, show_header=False):
 
 
 
-class hand_bi_home(BaseHandler):
+class tme(BaseHandler):
     def get(self, data=None):
         print("TME")
 
@@ -84,21 +90,20 @@ class hand_bi_home(BaseHandler):
         app_secret = b'5fcc038203350d8e60ef'
 
         params = {
-            'SearchPlain' : self.get_argument('component', 'NE555'),
-            'Phrase' : self.get_argument('component', 'NE555'),
-            #'SymbolList' : [self.get_argument('component', 'NE555')],
+            #'SearchPlain' : self.get_argument('component', 'NE555'),
+            #'Phrase' : self.get_argument('component', 'NE555'),
+            #'SymbolList' : [self.get_argument('sku', '74HC1G14GW')],
+            'SymbolList[]' : '74HC1G14GW',
             'Country': 'CZ',
-            'Currency': 'CZK',
             'Language': 'CZ',
         }
 
-        #response = api_call('Products/GetPrices', params, token, app_secret, True)
+        response = api_call('Products/GetParameters', params, token, app_secret, True).decode()
         #response = api_call('Utils/Ping', {}, token, app_secret, True)
         #response = api_call('Auth/GetNonce', {}, token, app_secret, True)
-        response = api_call(self.get_argument('operation', 'Products/SearchParameters'), params, token, app_secret, True).decode('utf-8')
+        #response = api_call(self.get_argument('operation', 'Products/SearchParameters'), params, token, app_secret, True).decode('utf-8')
         #response = json.loads(response);
         print(response);
-
 
         self.write(json.loads(response))
 
@@ -125,12 +130,34 @@ class hand_bi_home(BaseHandler):
         self.write(json.loads(response))
 
 
-
 '''
-
 nonce: D0CCA76A25
 odpoved: 6820A40C41
 token: 963ac3230b4d77de3df46444a154c0d1052eb5b17a74159503
-
 '''
 
+
+
+class octopart(BaseHandler):
+    def get(self):
+
+
+        url = "http://octopart.com/api/v3/parts/search"
+        url += "?apikey=a400f668" 
+
+        args = [
+           ('q', self.get_argument('sku', '74HC1G14GW')),
+           ('start', 0),
+           ('limit', 10),
+           ('include[]','descriptions'),
+           ('include[]', 'specs')
+           ]
+
+        url += '&' + urllib.parse.urlencode(args)
+
+        print(url)
+        f = urllib.request.urlopen(url)
+        search_response = f.read()
+        print(search_response)
+
+        self.write(json.loads(search_response))
