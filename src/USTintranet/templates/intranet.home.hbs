@@ -1,38 +1,21 @@
 {% extends "base.hbs" %}
 {% block title %}UST intranet | Home{%end%}
 {% block body %}
-{% set plugins = parent.settings['plugins']%}
-
+{% set plugins = parent.settings['plugins'] %}
+{% set keys = sorted(plugins.keys()) %}
 
 <style type="text/css">
-	
-	.plugin_tab{
-		float: left;
-	}
-
+	.plugin_tab{float: left; padding: 1em;}
 </style>
 
-{# {{parent.settings['plugins']}} #}
 {% for e in err %}
 <p> CHYBA>>> {{e}} </p>
 {% end %}
 
-{#<ul>
-{% for plug in plugins %}
-<li>
-	<a href="/{{plugins[plug]['module']}}">{{plugins[plug]['name']}}</a>
-</li>
-{%end%}
 
-</ul>#}
-
-
-{% for plug in plugins %}
-	{%if len(plugins[plug].get('role', [])) is 0 or parent.is_authorized(plugins[plug].get('role', [])) %}
-	<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}">{{plugins[plug]['name']}}</label></div></a>
-	{%end%}
-	
-{% end %}
-
-
+	{% for plug in keys %}
+		{%if len(plugins[plug].get('role', [])) is 0 or parent.is_authorized(plugins[plug].get('role', [])) %}
+		<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}" class="pr-1">{{plugins[plug]['name']}}</label></div></a>
+		{%end%}
+	{% end %}
 {% end %}

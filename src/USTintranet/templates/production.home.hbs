@@ -1,0 +1,33 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Produkce, uvod{% end %}
+{% block body %}
+
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-4">
+			<div class="card">
+				<div class="card-header"><h3>Seznam výroby</h3></div>
+				<div class="card-body">
+					<a href="/production/new/" class="btn btn-sm btn-primary">Nový produkt</a>
+					<ul>
+					{% for production in production_list %}
+						<li><a href="/production/{{production.get('_id')}}/">{{production.get('name', 'Bez názvu')}}</a></li>
+					{% end %}
+					<ul>
+				</div>
+			</div>
+		</div>
+
+	</div>	
+</div>
+
+<script type="text/javascript">
+	
+	$('#new_production').click(function (){
+		
+	});
+
+
+</script>
+
+{% end %}

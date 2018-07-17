@@ -1,0 +1,508 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Produkce, uvod{% end %}
+{% block body %}
+
+<script type="text/javascript" src="/static/svg.min.js"></script>
+<script type="text/javascript">
+	var id = '{{id}}';
+	var components = [];
+	var placement = [];
+	var production = [];
+</script>
+
+<style type="text/css">
+	.th-input{
+		border: 1px solid lightgray;
+		width: 100%;
+		min-width: 5em;
+		max-width: 10em;
+	}
+
+	.select2-style{
+		height: initial;
+		line-height: initial;
+		padding: 0pt;
+		border-radius: 0px;
+	}
+
+	table td {padding: 1pt;}
+	table {table-layout: fixed;}
+
+
+</style>
+
+<div class="container-fluid">
+	<a href="/production" class="btn btn-sm btn-success"> Zpět</a>
+	{#Načíst bom:
+	<input type="file" id="file_bom" name="file_bom" />
+	Načíst Placement soubor:
+	<input type="file" id="file_placement" name="file_bom" />#}
+	UST BOM:
+	<input type="file" name="bom" id="ust_bom_file"/>
+	<input type="submit" value="upload" id="ust_bom_btn" onclick="startUpload()" />
+
+	<div class="row">
+		<div class="col-8">
+			<div class="card">
+				<div class="card-header"><h3>Production</h3></div>
+				<div class="card-body">
+					Název:
+					<input type="text" id='production_name'><br>
+					Autor:
+					<input type="text" id='production_autor' disabled><br>
+					Vytvořeno:
+					<input type="text" id='production_created' disabled><br>
+					Popis:
+					<input type="text" id='production_description'><br>
+					Type:
+					<input type="text" id='production_type' disabled><br>
+					Dále zde bude: Tagy, priorita, celková cena, 
+					<input type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
+				</div>
+			</div>
+		</div>
+
+		<div class="col-8">
+			<div class="card">
+				<div class="card-header"><h3>Části</h3></div>
+				<div style="overflow-x: auto; ">
+					<table class="table table-sm 100w">
+						<col width="2*">
+						<col width="4*">
+						<col width="4*">
+						<col width="8*">
+						<col width="8*">
+						<col width="3*">
+						<col width="3*">
+						<col width="3*">
+						<col width="8*">
+						<thead>
+							<tr>
+								<th>id</th>
+								<th>Značky</th>
+								<th>Položka</th>
+								<th>Pouzdro</th>
+								<th>Skladová náhrada</th>
+								<th>Cena<small> (předpokl)</small></th>
+								<th>Cena<small> (sklad)</small></th>
+								<th>Cena<small> (na vyrobku)</small></th>
+								<th>Poznámky</th>
+							</tr>
+							<tr>
+								<th class="p-0">#</th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_znacka"></th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_polozka"></th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_pouzdro"></th>
+								<th class="p-0"><select class="th-input"  id="row_nahrada"></select></th>
+								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_predicted"></th>
+								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_stock"></th>
+								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_final"></th>
+								<th class="p-0"><input  class="th-input" style="" type="text" id="row_description"></th>
+							</tr>
+							<tr>
+								<th colspan="9"><button class="btn btn-sm">Odstranit polozku</button>
+									<button class="btn btn-sm" onclick="row_update_values()">Ulozit změny</button>
+									<button class="btn btn-sm">...</button></th>
+							</tr>
+						</thead>
+						<tbody id="parts_table_body">
+							
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="col-4">
+			<div class="card">
+				<div class="card-header">
+					<h3>Placement</h3>
+				</div>
+				<div class="card-body">
+					<div id="placement_img"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	
+function edit_component(id){
+	console.log("CLICK");
+	console.log(id);
+	console.log(components);
+	var selected_id = null;
+	var selected = {}
+
+    for (i in components){
+    	var c = components[i];
+	
+    	//console.log(i, id, c);
+    	if (c.Ref == id[0]){
+    		selected_id = i;
+    		console.log(i);
+    		selected = components[i];
+    		break;
+    	}
+    }
+
+    console.log(selected)
+
+	$('#row_znacka').val(id);
+	$('#row_polozka').val(selected.Value);
+	$('#row_pouzdro').val(selected.Package);
+
+	$('#row_price_predicted').val(selected.price_predicted);
+	$('#row_price_stock').val(selected.price_store);
+	$('#row_price_final').val(selected.price_final);
+}
+
+
+
+function startUpload() {
+    var fileInput = document.getElementById("ust_bom_file");
+
+    if (fileInput.files.length == 0) {
+        alert("Please choose a file");
+        return;
+    }
+    
+    var xhr = new XMLHttpRequest();
+
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+			load_components();
+        } else {
+            alert("Error! Upload failed");
+        }
+    };
+    xhr.onerror = function() {
+        alert("Error! Upload failed. Can not connect to server.");
+    };
+    
+    xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
+    xhr.setRequestHeader("Content-Type", fileInput.files[0].type);
+    xhr.send(fileInput.files[0]);
+}
+
+
+
+
+
+function row_update_values(){
+	//tstamp, ref, name, value, package, ust_id, description, price_predicted, price_store, price_final
+	update_component(null,
+		$('#row_znacka').val(), 	// ref
+		null,						// name
+		$('#row_polozka').val(), 	// value
+		$('#row_pouzdro').val(), 	// package
+		$('#row_nahrada').val(), 	// ust_id
+		$('#row_description').val(), // popis
+		$('#row_price_predicted').val(), // price_predicted
+		$('#row_price_stock').val(), // ust_id
+		$('#row_price_final').val(), // price_final
+		);
+	load_components();
+}
+
+
+function load_components() {
+	//var components = [];
+
+	$.ajax({
+        type: "POST",
+        //contentType: "application/json; charset=utf-8",
+        url: ".",
+        data: {
+        	operation: 'get_production'
+        },
+   		async: false,
+        success: function( data, textStatus, jQxhr ){
+    		console.log("zacatek");
+            console.log(data);
+            production = data;
+            components = data['components'];
+            placement = data['placement'];
+            console.log(components);
+        },
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+    console.log(components);
+
+	var selected = [];
+	$('#parts_table_body').empty();
+	for (i in components){
+		if (selected.indexOf(i) == -1){
+			var com = components[i];
+			selected.push(i);
+			var c_position = [com['Ref']];
+			var c_package = com['Package'];
+			var c_type = com['Value'];
+			var c_replacement = com['UST_id'] || null;
+
+			for (j in components){
+				if (selected.indexOf(j) == -1){
+					var com2 = components[j];
+					//console.log(">>>", com2);
+					//console.log(c_package == com2['package'],c_type == com2['type'],c_replacement == com2['replacement']);
+					if (c_package == com2['Package'] && c_type == com2['Value'] && c_replacement == (com2['UST_id'] || null)) {
+						c_position.push(com2['Ref']);
+						selected.push(j);
+					}
+				}
+			}
+
+
+			var row = document.createElement("tr");
+			var x = row.insertCell(-1);
+			x.innerHTML = "<span class='position' clk_data='"+c_position+"'>"+i+"</span>";
+			
+			
+			x = row.insertCell(-1);
+			for (j in c_position){
+				if (j > 0){x.innerHTML += ', '}
+				x.innerHTML += "<span class='position' clk_data='" +c_position[j]+ "'>"+c_position[j]+"</span>";
+			}
+
+			x = row.insertCell(-1);
+			x.innerHTML = c_type;
+
+			x = row.insertCell(-1);
+			x.innerHTML = c_package;
+
+			x = row.insertCell(-1);
+			x.innerHTML = c_replacement;
+
+
+			x = row.insertCell(-1);
+			x.innerHTML = com['price_predicted'] || null;
+
+			x = row.insertCell(-1);
+			x.innerHTML = com['price_store'] || null;
+
+			x = row.insertCell(-1);
+			x.innerHTML = com['price_final'] || null;
+
+
+			x = row.insertCell(-1);
+			x.innerHTML = com['description'] || null;
+
+			$('#parts_table_body').append(row);
+		}
+	}
+
+	$('#production_name').val(production['name']);
+	$('#production_autor').val(production['author']);
+	$('#production_created').val(production['created']);
+	$('#production_type').val(production['type']);
+	$('#production_description').val(production['description']);
+
+    var draw = SVG('placement_img').size('300px', '300px');
+    //var maxx = 0;
+    //var maxy = 0
+    for (i in placement){
+    	var c = placement[i];
+    	console.log(c);
+    	draw.rect(10, 20).move(c.PosX*10, c.PosY*10).rotate(c.Rot).attr({ fill: '#f06', clk_data: c.Ref }).addClass('position');
+    	//if (c.PosX > maxx){maxx = c.PosX}
+  		//if (c.PosY > maxy){maxy = c.PosY}
+    }
+
+
+
+	$('.position').click(function(){
+        edit_component(this.getAttribute('clk_data').split(','));
+    });
+	$('.position').hover(function(){
+		var clk = this.getAttribute('clk_data');
+		console.log(clk);
+        $('.position').css('background-color', 'initial');
+        $('.position').attr('fill', '#f06');
+        $('[clk_data="'+clk+'"]').css('background-color', 'red');
+        $('[clk_data="'+clk+'"]').attr('fill', '#00f');
+    });
+}
+load_components();
+
+function update_parameters(){
+	$.ajax({
+        type: "POST",
+        url: ".",
+        data: {
+        	operation: 'update_parameters',
+        	name: $('#production_name').val(),
+        	description: $('#production_description').val(),
+        },
+   		async: false,
+        success: function( data, textStatus, jQxhr ){
+    		load_components()
+    	},
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+}
+
+function update_component(tstamp, ref, name, value, package, ust_id, description, price_predicted, price_store, price_final){
+	
+	$.ajax({
+        type: "POST",
+        url: ".",
+        data: {
+        	operation: 'update_component',
+        	tstamp: tstamp,
+        	ref: ref,
+        	name: name,
+        	value: value,
+        	package: package,
+        	ust_id: ust_id,
+        	description: description,
+        	price_predicted: price_predicted,
+        	price_store: price_store, 
+        	price_final: price_final
+        },
+   		async: false,
+        success: function( data, textStatus, jQxhr ){
+    		comp = data;
+            console.log(comp);
+        },
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+}
+
+
+
+// Ref,Val,Package,PosX,PosY,Rot,Side
+function update_placement(Ref,Val,Package,PosX,PosY,Rot,Side){
+	console.log("update_placement", Ref,Val,Package,PosX,PosY,Rot,Side);
+	$.ajax({
+        type: "POST",
+        url: ".",
+        data: {
+        	operation: 'update_placement',
+        	Ref: Ref,
+        	Val: Val,
+        	Package: Package,
+        	PosX: PosX,
+        	PosY: PosY,
+        	Rot: Rot,
+        	Side:Side
+        },
+   		async: false,
+        success: function( data, textStatus, jQxhr ){
+    		comp = data;
+            //console.log(comp);
+        },
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+}
+
+
+
+/*
+$('#file_bom').change(load_bom);
+function load_bom(){
+
+	var reader = new FileReader();
+	reader.onload = function(progressEvent){
+		console.log(this.result);
+
+		var lines = this.result.split('\n');
+		for(var i = 1; i < lines.length; i++){
+		  console.log(lines[i]);
+		  data = Papa.parse(lines[i], {
+		  		delimiter: ';',
+		  	}).data[0];
+		  //console.log(data);
+		  update_component(null, data[1], data[4], data[2], null, null, 0, 0, 0);
+		}
+
+		load_components();
+	};
+	reader.readAsText( $('#file_bom')[0].files[0]);
+}*/
+
+
+$('#file_placement').change(load_placement);
+function load_placement(){
+
+	var reader = new FileReader();
+	reader.onload = function(progressEvent){
+		console.log(this.result);
+
+		var lines = this.result.split('\n');
+		for(var i = 1; i < lines.length; i++){
+		  console.log(lines[i]);
+		  data = Papa.parse(lines[i], {
+		  		delimiter: ',',
+		  	}).data[0];
+		  //console.log(data);
+		  update_placement(data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
+		}
+
+		load_components();
+	};
+	reader.readAsText( $('#file_placement')[0].files[0]);
+}
+
+
+
+//$('.position').click(edit_component([this.innerHTML]));
+$('#row_nahrada').select2({
+  	//dropdownCssClass: "select2-style",
+  	width: '100%',
+    ajax: {
+    	delay: 250,
+	    url: '/store/api/search/',
+	    type: "POST",
+	    dataType: 'json',
+	    data: function (params) {
+	      var query = {
+	        q: params.term,
+	        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
+	        //key[2]: 'description',
+	        //key[3]: 'supplier.symbol',
+	        page: 0
+	      }
+	      // Query parameters will be ?search=[term]&type=public
+	      return query;
+	    },
+	    processResults: function (data) {
+	        return {
+	            results: $.map(data, function (item) {
+	                return {
+	                    text: item['name']+" ("+item['_id']+")",
+	                    id: item['_id']
+	                }
+	            })
+	        };
+	    }
+    }
+})
+
+
+</script>
+
+{% end %}

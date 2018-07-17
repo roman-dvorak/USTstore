@@ -404,25 +404,31 @@
               $('#btn_export').hide();
 
               $('#invoice_next_stage_name').text(null);
-              if(data['state'] == 4){
-                $('#btn_next-stage').show();
-                $('#invoice_next_stage_name').text('Odeslat k validování');
-              }
 
-              {% if parent.is_authorized(['invoice-validator', 'invoice-sudo']) %}
-              if(data['state'] == 3){
-                $('#btn_next-stage').show();
-                $('#invoice_next_stage_name').text('Validovat produkt');
-                $('#btn_export').show();
+              switch(data['state']){
+                case 4:
+                  $('#btn_next-stage').show();
+                  $('#invoice_next_stage_name').text('Odeslat k validování');
+                  break;
+                case 3:
+                  $('#btn_next-stage').show();
+                  $('#invoice_next_stage_name').text('Validovat objednávku');
+                  $('#btn_export').show();
+                  break;
+                case 2:
+                  $('#btn_next-stage').show();
+                  $('#invoice_next_stage_name').text('Zapsat naskladněné počty');
+                  $('#btn_export').show();
+                  break;
+                case 1:
+                  $('#btn_next-stage').show();
+                  $('#invoice_next_stage_name').text('Validovat příjem do skladu');
+                  $('#btn_export').show();
+                  break;
+                case 0:
+                  $('#btn_export').show();
+                  break;
               }
-              {%end%}
-
-              if(data['state'] == 2){
-                $('#btn_next-stage').show();
-                $('#invoice_next_stage_name').text('Příjem zboží'); 
-                $('#btn_export').show();
-              }
-
 
               elements = data;
               draw_invoice_table();
@@ -473,11 +479,17 @@
       data: {
         'id': $('#invoice_id').val(),
       },
-      success:{
+      success: function( data, textStatus, jqXhr ){
+              Lobibox.notify('success', {msg: textStatus});
 
-      }
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown, textStatus);
+            Lobibox.notify('error', {msg: errorThrown});
+          }
+
     });
-    load_invoice();
+    load_invoice($('#invoice_id').val());
     load_invoices_list();
   }
 

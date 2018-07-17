@@ -17,6 +17,7 @@ def make_handlers(module, plugin):
              (r'/{}'.format(module), plugin.home),
              (r'/{}/'.format(module), plugin.home),
              (r'/{}/test'.format(module), plugin.test),
+             (r'/{}/print/(.*)/'.format(module), plugin.api_print),
              (r'/{}/api/add_to_cart'.format(module), plugin.api_addToCart),
              (r'/{}/api/new_cart'.format(module), plugin.api_new_cart),
              #(r'/%s/print/' %module, plugin.print_layout),
@@ -116,3 +117,18 @@ class api(object):
 
     def post(self, data=None):
         self.finish()
+
+class api_print(BaseHandler):
+    def get(self, pid):
+        plist = list(self.mdb.carts.find({'_id': bson.ObjectId(pid)}))[0]
+        components = []
+        for element in plist['cart']:
+            components += [element['id']];
+        print(plist)
+        print(components)
+
+        url = '/store/print/?type=pdf&template=70x42-3_simple'
+        url += '&action[]='+'&action[]='.join(components)
+
+        print(url)
+        self.redirect(url)

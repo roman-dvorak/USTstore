@@ -169,8 +169,13 @@ class invoice_next_state(BaseHandler):
             self.write('OK')
 
         #naskladneni
-        elif state == 3 and self.is_authorized(['invoice-sudo', 'invoice-reciever'], sudo=False):
+        elif state == 2 and self.is_authorized(['invoice-sudo', 'invoice-reciever'], sudo=False):
             print("2 --- 1")
+            self.mdb.invoice.update({'_id': cid}, {'$inc': {'state': -1}})
+            self.write('OK')
+        # validace
+        elif state == 1 and self.is_authorized(['invoice-sudo', 'invoice-validator'], sudo=False):
+            print("1 --- 0")
             self.mdb.invoice.update({'_id': cid}, {'$inc': {'state': -1}})
             self.write('OK')
         else:

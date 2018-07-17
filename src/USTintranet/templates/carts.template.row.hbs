@@ -37,6 +37,10 @@
         <span class="header-tag">Čas založení:</span>
         <span class="header-value">{{data.get('created', 'Err')}}</span>
       </span>
+
+      <span class="header-cell">
+        <span onclick="cart_print('{{data["_id"]}}')">Tisk</span>
+      </span>
     </div>
   </div>
   <div class="cart-row-properties">

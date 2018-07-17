@@ -27,10 +27,12 @@ function get_supplier_url(element_supplier){
 
 }
 
+
+
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
-function OpenArticleEdit(name = null){
-    //ClearArticleEdit();
-    
+function OpenArticleEdit(name = null, clear = true){
+    if (clear == true){ClearArticleEdit();}
+
     $('#modal_oper_place').empty();
     $('#modal_oper_place').hide();
 
@@ -76,7 +78,6 @@ function OpenArticleEdit(name = null){
             },
             success: function( data, textStatus, jQxhr ){
                 element = data[0]
-                //element_stock = data[1]
                 console.log(element);
 
                 JsBarcode("#edit_barcode",element['_id'], {
@@ -100,33 +101,24 @@ function OpenArticleEdit(name = null){
                         'description':'',
                         'category': [],
                     }
+                    element = product_json;
                     return 0;
+                }else{
+                  $('#inputID_edit').val(element['_id']);
+                  $("#inputID_edit").attr('disabled', true);
+                  $('#inputNAME_edit').val(element['name'] || "Bez názvu");
+                  $('#inputPRICEp_edit').val(element['price_sell'] || 0);
+                  $('#inputSELLABLE_edit').prop('checked', element['sellable'] || false);
+                  $('#inputDESCRIPTION_edit').val(element['description'] || "");
+                  $('#inputCATEGORY_edit').val(element['category']).trigger('change');
+
+
+                  draw_parameters();
+                  draw_supplier();
+                  draw_stock(element);
+                  draw_tags();
+                  draw_history(element['_id']);
                 }
-
-                $('#inputID_edit').val(element['_id']);
-                $("#inputID_edit").attr('disabled', true);
-                $('#inputNAME_edit').val(element.name || "Bez názvu");
-                //$('#inputPRICE_edit').val(element.price || 0);
-                $('#inputPRICEp_edit').val(element.price_sell || 0);
-                $('#inputSELLABLE_edit').prop('checked', element.sellable || false);
-                $('#inputDESCRIPTION_edit').val(element.description || "");
-                $('#inputCATEGORY_edit').val(element['category']).trigger('change');
-                $('#inputSTOCK_list').empty();
-
-                $('#new_param_name')[0].value = "";
-                $('#new_param_value')[0].value = "";
-
-                $('#new_supplier_code')[0].value = "";
-                $('#new_supplier_symbol')[0].value = "";
-                $('#new_supplier_url')[0].value = "";
-
-                draw_parameters();
-                draw_supplier();
-                draw_stock(element);
-                draw_tags();
-
-                //draw_stock(element['id']);
-                draw_history(element['_id']);
 
             },
             error: function( jqXhr, textStatus, errorThrown ){
@@ -144,48 +136,45 @@ function OpenArticleEdit(name = null){
 }
 
 function ClearArticleEdit(){
-    $('#inputID_edit').val("");
+    $('#inputID_edit').val(null);
     $("#inputID_edit").attr('disabled', false);
-    $('#inputNAME_edit').val("");
+    $('#inputNAME_edit').val(null);
     $('#inputPRICE_edit').val(0);
     $('#inputPRICEp_edit').val(0);
     $('#inputSELLABLE_edit').prop('checked', false);
-    $('#inputDESCRIPTION_edit').val("");
+    $('#inputDESCRIPTION_edit').val(null);
     $('#inputCATEGORY_edit').val(null).trigger('change');
-    //$('#inputTAG_edit').val(null).trigger('change');
+    $('#inputTAG_edit').val(null).trigger('change');
 
-    $('#new_param_name')[0].value = "";
-    $('#new_param_value')[0].value = "";
+    $('#inputSTOCK_list').empty();
+    $('#inputHISTORY_edit').empty();
+    $('#inputSUPPLIER_list').empty();
 
-    $('#new_supplier_code')[0].value = "";
-    $('#new_supplier_symbol')[0].value = "";
-    $('#new_supplier_url')[0].value = "";
+    $('#new_param_name').val(null);
+    $('#new_param_value').val(null);
+
+    $('#new_supplier_code').val(null);
+    $('#new_supplier_symbol').val(null);
+    $('#new_supplier_url').val(null);
+
 
     $('#modal_oper_place').empty();
     $('#modal_oper_place').hide();
-
-    draw_tags();
-    draw_parameters();
-    draw_stock();
-    draw_history();
-    draw_supplier();
 }
 
 function UpdateFromForm(){
-    element['_id'] = $('#inputID_edit')[0].value;
-    element.name = $('#inputNAME_edit')[0].value;
-    element.description=$('#inputDESCRIPTION_edit')[0].value;
-    element.sellable = $('#inputSELLABLE_edit').prop('checked');
-    //element.price = Number($('#inputPRICE_edit')[0].value);
-    element.price_sell = Number($('#inputPRICEp_edit')[0].value);
-    element.category = $('#inputCATEGORY_edit').val();
+    if(element === undefined){element = {}}
+    element['_id'] = $('#inputID_edit').val();
+    element['name'] = $('#inputNAME_edit').val();
+    element['description'] = $('#inputDESCRIPTION_edit').val();
+    element['sellable'] = $('#inputSELLABLE_edit').prop('checked');
+    element['price_sell'] = Number($('#inputPRICEp_edit').val());
+    element['category'] = $('#inputCATEGORY_edit').val();
 
     tags = [];
     for (tag in $('#inputTAG_edit').val()){
         tags = tags.concat( {'id': $('#inputTAG_edit').val()[tag]} );
-        console.log([{'id': $('#inputTAG_edit').val()[tag]}]);
     }
-    console.log(tags);
     element['tags'] = tags;
     console.log(element);
 }
@@ -364,12 +353,10 @@ function draw_supplier(){
 }
 
 function draw_stock(count){
-  //var parameters = element.stock || {};
+  console.log("Count>>", count);
   $("#inputSTOCK_list").empty();
-  //var count = element.history;
-  //console.log("STOCK", parameters);
+  $("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
 
-  $("#inputSTOCK_list").append('celkovy pocet je ' + count.count+'<br>');
   for (param in count.stock){
     var c = count.stock[param];
     console.log(c);

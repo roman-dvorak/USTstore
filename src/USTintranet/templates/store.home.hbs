@@ -1165,6 +1165,9 @@ function preparePrint(){
 	window.open(str,'_blank');
 }
 
+$('#inputID_edit').change(function(){
+  OpenArticleEdit($('#inputID_edit').val(), false);
+})
 
 // Tahle funkce pri zmacknuti enteru spusti onchange spoustec
 function call_change(event, element) {

@@ -2,6 +2,15 @@
 {% block title %} UST intranet | Adresář{%end%}
 {% block body %}
 
+<script type="text/javascript">
+  
+  function cart_print(id){
+    var a = window.open('/cart/print/'+id+'/', '_blank');
+    a.focus();
+  }
+
+</script>
+
 <style media="screen">
   .cart-row{
     border: #bbb solid 1px;
@@ -101,8 +110,8 @@
           alert("Polozka nebyla pridata");
         }
     });
-
   }
+
 
 </script>
 
