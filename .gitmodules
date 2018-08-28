@@ -7,3 +7,6 @@
 [submodule "src/USTintranet/static/select2"]
 	path = src/USTintranet/static/select2
 	url = git@github.com:select2/select2.git
+[submodule "src/USTintranet/static/tabulator"]
+	path = src/USTintranet/static/tabulator
+	url = git@github.com:olifolkerd/tabulator.git

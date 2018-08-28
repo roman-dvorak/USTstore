@@ -3,6 +3,13 @@
 {% block body %}
 
 <script type="text/javascript" src="/static/svg.min.js"></script>
+<!-- <link href="/static/tabulator/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="/static/tabulator/dist/js/tabulator.min.js"></script> -->
+
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+
 <script type="text/javascript">
 	var id = '{{id}}';
 	var components = [];
@@ -26,6 +33,7 @@
 	}
 
 	table td {padding: 1pt;}
+	.table-sm td {padding: 2pt; font-size: small;}
 	table {table-layout: fixed;}
 
 
@@ -58,16 +66,22 @@
 					<input type="text" id='production_type' disabled><br>
 					Dále zde bude: Tagy, priorita, celková cena, 
 					<input type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
+					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary">Print</a>
+					<input type="button" id="production_update_prices" value="Zaktualizovat ceny" class="btn btn-sm btn-primary" onclick="update_prices()">
 				</div>
 			</div>
 		</div>
 
-		<div class="col-8">
+		<div class="col-12">
 			<div class="card">
 				<div class="card-header"><h3>Části</h3></div>
-				<div style="overflow-x: auto; ">
+				<!-- <div style="overflow-x: auto; ">
 					<table class="table table-sm 100w">
 						<col width="2*">
+						<col width="4*">
+						<col width="4*">
+						<col width="4*">
+						<col width="4*">
 						<col width="4*">
 						<col width="4*">
 						<col width="8*">
@@ -78,9 +92,12 @@
 						<col width="8*">
 						<thead>
 							<tr>
-								<th>id</th>
+								<th>#</th>
 								<th>Značky</th>
 								<th>Položka</th>
+								<th>MFNP</th>
+								<th>Distributor</th>
+								<th>Odkaz</th>
 								<th>Pouzdro</th>
 								<th>Skladová náhrada</th>
 								<th>Cena<small> (předpokl)</small></th>
@@ -89,16 +106,19 @@
 								<th>Poznámky</th>
 							</tr>
 							<tr>
-								<th class="p-0">#</th>
+								<th class="p-0"></th>
+								<th class="p-0"></th>
 								<th class="p-0"><input  class="th-input" type="text" id="row_znacka"></th>
 								<th class="p-0"><input  class="th-input" type="text" id="row_polozka"></th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_mfpn"></th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_distributor"></th>
+								<th class="p-0"><input  class="th-input" type="text" id="row_odkaz"></th>
 								<th class="p-0"><input  class="th-input" type="text" id="row_pouzdro"></th>
 								<th class="p-0"><select class="th-input"  id="row_nahrada"></select></th>
 								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_predicted"></th>
 								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_stock"></th>
 								<th class="p-0"><input  class="th-input" style="width: 100%;" type="number" id="row_price_final"></th>
-								<th class="p-0"><input  class="th-input" style="" type="text" id="row_description"></th>
-							</tr>
+								</tr>
 							<tr>
 								<th colspan="9"><button class="btn btn-sm">Odstranit polozku</button>
 									<button class="btn btn-sm" onclick="row_update_values()">Ulozit změny</button>
@@ -109,6 +129,9 @@
 							
 						</tbody>
 					</table>
+				</div> -->
+				<div>
+					<div id="component-table" class="table-sm table-striped"></div>
 				</div>
 			</div>
 		</div>
@@ -126,6 +149,114 @@
 </div>
 
 <script type="text/javascript">
+	//$("#component-table").tabulator();
+
+
+	//create autocomplete editor
+	var ust_id_autocomplete = function(cell, onRendered, success, cancel){
+	    //cell - the cell component for the editable cell
+	    //onRendered - function to call when the editor has been rendered
+	    //success - function to call to pass the succesfully updated value to Tabulator
+	    //cancel - function to call to abort the edit and return to a normal cell
+
+	    var input = $('<select class="th-input"  id="row_ustid"></select>');
+
+
+	    onRendered(function(){	
+		    input.select2({
+			  	//dropdownCssClass: "select2-style",
+			  	width: '100%',
+			    ajax: {
+			    	delay: 250,
+				    url: '/store/api/search/',
+				    type: "POST",
+				    dataType: 'json',
+				    data: function (params) {
+				      var query = {
+				        q: params.term,
+				        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
+				        //key[2]: 'description',
+				        //key[3]: 'supplier.symbol',
+				        page: 0
+				      }
+				      // Query parameters will be ?search=[term]&type=public
+				      return query;
+				    },
+				    processResults: function (data) {
+				    	console.log(data);
+				    	data.unshift(Object({name: 'Nic', value: null}))
+				    	console.log(data);
+				        return {
+				            results: $.map(data, function (item) {
+				                return {
+				                    text: item['name']+" ("+item['_id']+")",
+				                    id: item['_id']
+				                }
+				            })
+				        };
+				    }
+			    }
+			});
+			//input.focus();
+	    });
+
+	    //submit new value on blur
+	    input.on("change blur", function(e){
+	        if(input.val() != cell.getValue()){
+	            success(input.val());
+	        }else{
+	            cancel();
+	        }
+	    });
+
+	    //submit new value on enter
+	    input.on("keydown", function(e){
+	        if(e.keyCode == 13){
+	            success(input.val());
+	        }
+
+	        if(e.keyCode == 27){
+	            cancel();
+	        }
+	    });
+
+	    return input;
+	};
+
+
+	$("#component-table").tabulator({
+	    //height:"311px",
+	    layout:"fitColumns",
+	    columns:[
+	        {title:"#", field:"id", sorter:"number", width:20, editor:"input"},
+	        {title:"Značka", field:"Ref", editor:"input"},
+	        {title:"Položka", field:"Value", editor:"input"},
+	        {title:"MFPN", field:"MFPN", editor:"input"},
+	        {title:"Distributor", field:"Distributor", editor:"input"},
+	        {title:"Odkaz", field:"Datasheet", editor:"input"},
+	        {title:"Pouzdro", field:"Footprint", editor:"input"},
+	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
+	        {   title:"Cena",
+	            columns:[
+			        {title:"Předpoklad", field:"price_predicted", editor:"input"},
+			        {title:"Sklad", field:"price_store", editor:"input"},
+			        {title:"Výrobek", field:"price_predicted", editor:"input"},
+				]
+			},
+	        {title:"Poznámka", field:"note", editor:"input"},
+	    ],
+	    cellEdited:function(cell){
+        //cell - cell component
+    	console.log(cell.cell.column.field);
+    	console.log(cell.cell.row.cells[1].value);
+    	update_component_parameter(cell.cell.row.cells[1].value, cell.cell.column.field, cell.cell.value);
+    	},
+	});
+	var ajaxConfig = {
+	    type:"POST", //set request type to Position
+	    //contentType: 'application/json; charset=utf-8', //set specific content type
+	};
+	$("#component-table").tabulator("setData", ".", {operation:"get_components_grouped"}, ajaxConfig);
 	
 function edit_component(id){
 	console.log("CLICK");
@@ -151,10 +282,14 @@ function edit_component(id){
 	$('#row_znacka').val(id);
 	$('#row_polozka').val(selected.Value);
 	$('#row_pouzdro').val(selected.Package);
+	$('#row_description').val(selected.Note);
 
 	$('#row_price_predicted').val(selected.price_predicted);
 	$('#row_price_stock').val(selected.price_store);
 	$('#row_price_final').val(selected.price_final);
+
+	$('#row_nahrada').empty().trigger('change');
+	$('#row_nahrada').append(new Option(selected['UST_ID'], selected['UST_ID'], true, true)).trigger('change');
 }
 
 
@@ -183,6 +318,8 @@ function startUpload() {
     xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
     xhr.setRequestHeader("Content-Type", fileInput.files[0].type);
     xhr.send(fileInput.files[0]);
+
+    load_components();
 }
 
 
@@ -241,18 +378,18 @@ function load_components() {
 		if (selected.indexOf(i) == -1){
 			var com = components[i];
 			selected.push(i);
-			var c_position = [com['Ref']];
-			var c_package = com['Package'];
-			var c_type = com['Value'];
-			var c_replacement = com['UST_id'] || null;
+			var c_ref = [com['Ref']];
+			var c_package = com['Package']  || null;
+			var c_note = com['Note'] || null;
+			var c_value = com['Value']  || null;
+			var c_ustid = com['UST_ID'] || null;
 
+			// Tato cast provede 'grouping' polozek se stejnymi parametry
 			for (j in components){
 				if (selected.indexOf(j) == -1){
 					var com2 = components[j];
-					//console.log(">>>", com2);
-					//console.log(c_package == com2['package'],c_type == com2['type'],c_replacement == com2['replacement']);
-					if (c_package == com2['Package'] && c_type == com2['Value'] && c_replacement == (com2['UST_id'] || null)) {
-						c_position.push(com2['Ref']);
+					if (c_package == com2['Package'] && c_value == com2['Value'] && c_ustid == (com2['UST_ID'] || null) && c_note == (com2['Note'] || null)) {
+						c_ref.push(com2['Ref']);
 						selected.push(j);
 					}
 				}
@@ -261,25 +398,34 @@ function load_components() {
 
 			var row = document.createElement("tr");
 			var x = row.insertCell(-1);
-			x.innerHTML = "<span class='position' clk_data='"+c_position+"'>"+i+"</span>";
+			x.innerHTML = "<span class='position' clk_data='"+c_ref+"'>"+i+"</span>";
 			
 			
 			x = row.insertCell(-1);
-			for (j in c_position){
+			for (j in c_ref){
 				if (j > 0){x.innerHTML += ', '}
-				x.innerHTML += "<span class='position' clk_data='" +c_position[j]+ "'>"+c_position[j]+"</span>";
+				x.innerHTML += "<span class='position' clk_data='" +c_ref[j]+ "'>"+c_ref[j]+"</span>";
 			}
 
 			x = row.insertCell(-1);
-			x.innerHTML = c_type;
+			x.innerHTML = c_value;
 
+
+			//x = row.insertCell(-1);
+			//x.innerHTML = str(len(c_ref));
+
+			x = row.insertCell(-1);
+			x.innerHTML = com['MFNP'] || null;
+			x = row.insertCell(-1);
+			x.innerHTML = com['Distributor'] || null;
+			x = row.insertCell(-1);
+			x.innerHTML = com['Link'] || null;
 			x = row.insertCell(-1);
 			x.innerHTML = c_package;
-
 			x = row.insertCell(-1);
-			x.innerHTML = c_replacement;
-
-
+			if (c_ustid){
+				x.innerHTML = '<a href = "/store#'+c_ustid+'" target="_blank">'+c_ustid+'</a>';
+			}
 			x = row.insertCell(-1);
 			x.innerHTML = com['price_predicted'] || null;
 
@@ -291,7 +437,7 @@ function load_components() {
 
 
 			x = row.insertCell(-1);
-			x.innerHTML = com['description'] || null;
+			x.innerHTML = c_note || null;
 
 			$('#parts_table_body').append(row);
 		}
@@ -301,20 +447,14 @@ function load_components() {
 	$('#production_autor').val(production['author']);
 	$('#production_created').val(production['created']);
 	$('#production_type').val(production['type']);
-	$('#production_description').val(production['description']);
+	$('#production_description').val(production['Note']);
 
     var draw = SVG('placement_img').size('300px', '300px');
-    //var maxx = 0;
-    //var maxy = 0
     for (i in placement){
     	var c = placement[i];
     	console.log(c);
     	draw.rect(10, 20).move(c.PosX*10, c.PosY*10).rotate(c.Rot).attr({ fill: '#f06', clk_data: c.Ref }).addClass('position');
-    	//if (c.PosX > maxx){maxx = c.PosX}
-  		//if (c.PosY > maxy){maxy = c.PosY}
     }
-
-
 
 	$('.position').click(function(){
         edit_component(this.getAttribute('clk_data').split(','));
@@ -328,7 +468,7 @@ function load_components() {
         $('[clk_data="'+clk+'"]').attr('fill', '#00f');
     });
 }
-load_components();
+//load_components();
 
 function update_parameters(){
 	$.ajax({
@@ -342,6 +482,31 @@ function update_parameters(){
    		async: false,
         success: function( data, textStatus, jQxhr ){
     		load_components()
+    	},
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+}
+
+function update_component_parameter(component, param, value){
+	$.ajax({
+        type: "POST",
+        url: ".",
+        data: {
+        	operation: 'update_component_parameters',
+        	name: $('#production_name').val(),
+        	component: component,
+        	parameter: param,
+        	value: value
+        },
+   		async: false,
+        success: function( data, textStatus, jQxhr ){
+    		//load_components()
     	},
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );

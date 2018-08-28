@@ -262,14 +262,14 @@
 </div> <!-- Konec levého sloupce, Pravy sloupec -->
 <div class="col-md-8 offset-md-4 col-sm-12 offset-sm-0 pt-3">
 
-<div class="card">
-  <div class="form-inline m-3 row">
+<div class="card m-0">
+  <div class="form-inline m-1 row">
     <button type="button" class="btn btn-success col-2" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
     <input type="text" class="form-control col-10" id="filter-search" onchange="update_list()" placeholder="Vyhledavani" value="">
 
 
   </div>
-  <div id="filter-collapse" class="collapse">
+  <div id="filter-collapse" class="collapse m-1">
     <div class="pl-3 pb-3">
       <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
       <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
@@ -299,22 +299,22 @@
   </div>
   </div>
 </div>
-<div class="card">
+<div class="card m-0 mt-2">
 
-	<div class="page_select_btn p-3">
-		<button onclick="page(-1, true)" class="btn btn-primary"> -1 </button>
+	<div class="page_select_btn p-2">
+		<button onclick="page(-1, true)" class="btn btn-primary btn-sm"> -1 </button>
 		page <span class="actual_list_page"></span>
-		<button onclick="page(+1, true)" class="btn btn-primary"> +1 </button>
-		<button class="btn btn-default" onclick="update_list()">obnovit</button>
+		<button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
+		<button class="btn btn-default btn-sm" onclick="update_list()">obnovit</button>
 
 	</div>
 	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
 	<div id="product_list"> </div>                                                <!--  TABULKA S PRODUKTY -->
 
-  <div class="page_select_btn p-3">
-    <button onclick="page(-1, true)" class="btn btn-primary"> -1 </button>
-    page <span class="actual_list_page"></span>
-    <button onclick="page(+1, true)" class="btn btn-primary"> +1 </button>
+  <div class="page_select_btn p-2">
+    <button onclick="page(-1, true)" class="btn btn-primary btn-sm"> -1 </button>
+    page <span class="actual_list_page btn-sm"></span>
+    <button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
   </div>
 </div></div>
 
@@ -408,6 +408,7 @@
                 <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
               </div>
             </div>
+            {#
             {% if permis %}<div class="form-group row bg-danger">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
@@ -416,7 +417,7 @@
                   <div class="input-group-text">Czk</div>
                 </div>
               </div>
-            </div>{%end%}
+            </div>{%end%}#}
             <div class="form-group row">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena je určena jako základní pro samostatný prodej. Zaškrtávátko určuje, jestli tato položka je samostatně prodejná.">Cena (prodejní) <i class="material-icons">help</i></label>
               <div class="input-group col-sm-9">
@@ -534,10 +535,8 @@
 				    </div>
 				    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
      					<div class="card-body">
-     						#<input class="form-control" id="new_supplier_id" type="number" name="" min=1 value=1 disabled>
-     						Dodavatel
-		          	  		<select class="form-control" id="new_supplier_name"></select>
-
+     						        #<input class="form-control" id="new_supplier_id" type="number" name="" min=1 value=1 disabled>
+     						        Dodavatel <select class="form-control" id="new_supplier_name"></select>
 		              	  	<input type='hidden' id='' style='width:300px'/>
 		              	  	Symbol:<input class="form-control" id="new_supplier_symbol" type="text" name="">
 		              	  	code:<input class="form-control" id="new_supplier_code" type="text" name="">
@@ -552,7 +551,7 @@
 		              	  		<option value="UPC-E">UPC E</option>
 		              	  	</select>
 		              	  	URL:<input class="form-control" id="new_supplier_url" type="text" name="">
-		              	  	<button onclick="add_supplier()">Save</button>
+		              	  	<button onclick="add_supplier()">Použít</button>
 		              	</div>
 		              </div>
               	  </div>
@@ -633,7 +632,7 @@
 
 <script type="text/javascript">
 	
-  <!-- Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna -->
+  // Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna
   {% if permis %}function mcat_update_push(){
     if ( $('#mcat_cat_name').val() && $('#mcat_cat_name_cs').val() && $('#mcat_cat_path').val() ){
   		$.ajax({
@@ -1056,10 +1055,6 @@ function load_product(id){
 					}
 
 
-					//if ($('#selected_advance_function').val() == 'inventura'){
-					//	$('#bilance_count_pha01').focus().select();
-					//}
-
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
 					console.log( errorThrown );
@@ -1166,7 +1161,7 @@ function preparePrint(){
 }
 
 $('#inputID_edit').change(function(){
-  OpenArticleEdit($('#inputID_edit').val(), false);
+  OpenArticleEdit($('#inputID_edit').val(), false, false);
 })
 
 // Tahle funkce pri zmacknuti enteru spusti onchange spoustec

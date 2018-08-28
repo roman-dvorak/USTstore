@@ -30,7 +30,9 @@ function get_supplier_url(element_supplier){
 
 
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
-function OpenArticleEdit(name = null, clear = true){
+// nacneni polozky dle jmena
+function OpenArticleEdit(name = null, clear = true, show = true){
+    console.log('OpenArticleEdit', name, clear);
     if (clear == true){ClearArticleEdit();}
 
     $('#modal_oper_place').empty();
@@ -39,7 +41,9 @@ function OpenArticleEdit(name = null, clear = true){
 
     if (name === null){name = product_json['_id']}
     element = undefined;
-    $('#modal-edit-component').modal('show');
+    if(show){
+        $('#modal-edit-component').modal('show');
+    }
     $('#inputCATEGORY_edit').select2({ width: '100%' });
     $('#new_supplier_name').select2({
         width: '100%',
@@ -162,6 +166,11 @@ function ClearArticleEdit(){
     $('#modal_oper_place').hide();
 }
 
+
+//
+// Aktualizovat promennou soucastky z karty produktu
+//
+
 function UpdateFromForm(){
     if(element === undefined){element = {}}
     element['_id'] = $('#inputID_edit').val();
@@ -179,6 +188,10 @@ function UpdateFromForm(){
     console.log(element);
 }
 
+
+//
+// Ulozit soucastku z karty produktu
+//
 function WriteToDb(){
     UpdateFromForm();
     $.ajax({
@@ -238,9 +251,8 @@ function move_param(id, dir){
     draw_parameters();
 }
 
-function draw_parameters(){
 
-  
+function draw_parameters(){  
   if (element === undefined || parameters === undefined || parameters == {} || Array.isArray(parameters) == false){
     var parameters = [];
     $("#new_param_id")[0].value = 1;
@@ -268,6 +280,20 @@ function draw_parameters(){
 }
 
 
+
+
+
+
+function clear_supplier(){
+    var id = 
+    $('#new_supplier_name').val(null).trigger('change');
+    $('#new_supplier_id').val((element.supplier || []).length+1);
+    $('#new_supplier_symbol').val('');
+    $('#new_supplier_code').val('');
+    $('#new_supplier_bartype').val('');
+    $('#new_supplier_url').val('');
+}
+
 function add_supplier(){
   var data = {
         "supplier":$('#new_supplier_name').val()[0],
@@ -276,6 +302,9 @@ function add_supplier(){
         "bartype":$('#new_supplier_bartype')[0].value,
         "url":$('#new_supplier_url')[0].value
   };
+  if(element === undefined){
+      element = {};
+  }
   if ((element.supplier || []).length < Number($('#new_supplier_id')[0].value)){
       if (element.supplier === undefined){
           console.log("Toto jeste neni definovane");
@@ -285,16 +314,10 @@ function add_supplier(){
   } else {
       element.supplier[Number($('#new_supplier_id')[0].value)-1] = data;
   }
-    $("#new_supplier_id")[0].value = (element.supplier).length+1;
+    $("#new_supplier_id").val((element.supplier).length+1);
     draw_supplier();
+    clear_supplier();
     $('#collapseOne').collapse('hide');
-
-    $('#new_supplier_name').val(null).trigger('change');
-    $('#new_supplier_id')[0].value = id+1
-    $('#new_supplier_symbol')[0].value = '';
-    $('#new_supplier_code')[0].value = '';
-    $('#new_supplier_bartype')[0].value = '';
-    $('#new_supplier_url')[0].value = '';
 }
 
 function rm_supplier(id){
@@ -426,10 +449,10 @@ function draw_history(id){
 
 function new_component(){
 
+    element = {};
+    //$('#modal-edit-component').modal('hide');
     $('#modal-edit-component').modal('show');
     $('#inputCATEGORY_edit').select2({ width: '100%' });
-
-    element = {};
 
     ClearArticleEdit();
 }
