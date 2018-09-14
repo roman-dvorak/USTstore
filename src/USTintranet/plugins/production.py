@@ -33,48 +33,6 @@ def plug_info():
     }
 
 
-#
-#   {'Ref': 'U9', 'Value': 'NCP1117ST50', 'Tstamp': '5AA08E3A', 'Datasheet': 'http://www.diodes.com/datasheets/AP1117.pdf', 'Footprint': 'TO_SOT_Packages_SMD:SOT-223-3_TabPin2'}
-#
-'''
-
-for (j in components){
-    if (selected.indexOf(j) == -1){
-        var com2 = components[j];
-        if (c_package == com2['Package'] && c_value == com2['Value'] && c_ustid == (com2['UST_ID'] || null) && c_note == (com2['Note'] || null)) {
-            c_ref.push(com2['Ref']);
-            selected.push(j);
-        }
-    }
-}
-
-
-
-
-
-    for (i in components){
-        if (selected.indexOf(i) == -1){
-            var com = components[i];
-            selected.push(i);
-            var c_ref = [com['Ref']];
-            var c_package = com['Package']  || null;
-            var c_note = com['Note'] || null;
-            var c_value = com['Value']  || null;
-            var c_ustid = com['UST_ID'] || null;
-
-            // Tato cast provede 'grouping' polozek se stejnymi parametry
-            for (j in components){
-                if (selected.indexOf(j) == -1){
-                    var com2 = components[j];
-                    if (c_package == com2['Package'] && c_value == com2['Value'] && c_ustid == (com2['UST_ID'] || null) && c_note == (com2['Note'] || null)) {
-                        c_ref.push(com2['Ref']);
-                        selected.push(j);
-                    }
-                }
-            }
-
-
-'''
 
 def mask_array(data, mask, default = None):
     new = {}
@@ -82,7 +40,13 @@ def mask_array(data, mask, default = None):
         new[x] = data.get(x, default)
     return new
 
-def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value']):
+def num_to_float(data):
+    try:
+        return float(data)
+    except Exception as e:
+        return 0
+
+def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
     selected = []
     for component in data:
         use = 0
@@ -90,18 +54,49 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value']):
         c_footprint = component.get('Footprint', None)
         c_ustid = component.get('UST_ID', None)
         c_value = component.get('Value', 0)
+        c_price = num_to_float(component.get('price', 0.0))
+        print(c_price)
+        
 
         s = 0
         for i, sel in enumerate(selected):
             if mask_array(component, groupby) == mask_array(sel, groupby):
                 s += 1
-        if s != 0:
+        if s != 0:  # pokud už produkt tam je
             selected[i]['Ref'] += c_ref
-        else:
+            selected[i]['count'] += 1
+            selected[i]['price_group'] += c_price
+        else: # polozka je zde poprvj
             component['Ref'] = c_ref
+            component['count'] = 1
+            component['price_group'] = c_price
+            price = 0
+            print("stav:...", db, c_ustid)
+            if db and c_ustid:
+                try:
+                    o = list(db.stock_movements.find({'product': c_ustid}))
+                    print(">...", o)
+                    price = o[0].get('price', 0.0)
+                except Exception as e:
+                    print("ERr", c_ustid)
+                        
+            component['price_store'] = price
             selected.append(component)
 
     return selected
+
+# prida do pole pocet skladovych zasob na zaklade nazvu soucastky v dictionary jako 'UST_ID', pokud to neobsahuje, tak je pole preskoceno...
+def get_component_stock(data, db):
+    for component_i, component in enumerate(data):
+        print(component_i, component)
+        if component.get('UST_ID', False):
+            stock = 0
+            movements = db.stock_movements.find({'product': component['UST_ID']})
+            for movement in movements:
+                print(movement)
+                stock += movement.get('bilance', 0)
+            data[component_i]['stock'] = stock
+    return data
 
 class hand_bi_home(BaseHandler):
     def get(self):
@@ -152,7 +147,11 @@ class edit(BaseHandler):
                 {'$match': {'_id': bson.ObjectId(name)}},
                 {'$sort': {'components.Ref': 1}}
             ]))
-            dout = group_data(dout[0].get('components', []))
+            dout = group_data(dout[0].get('components', []), db = self.mdb)
+            dout = get_component_stock(dout, db = self.mdb)
+            for i,d in enumerate(dout):
+                if not d.get('price', False):
+                    dout[i]['price'] = d.get('price_store', 0)
             out = bson.json_util.dumps(dout)
             self.write(out)
 
@@ -256,6 +255,20 @@ class edit(BaseHandler):
         ##
         #### END: Update component
         ##
+
+
+
+        elif op == 'update_prices':
+            print("UPDATE PRICES ....")
+            print(name)
+            production = list(self.mdb.production.aggregate([
+                {'$match': {'_id': bson.ObjectId(name)}},
+            ]))[0]
+            components = production.get('components', [])
+            for c in components:
+                print(c.get('UST_ID', None))
+
+
 
 
         ##
@@ -395,7 +408,8 @@ class print_bom(BaseHandler):
             {'$match': {'_id': bson.ObjectId(name)}},
             {'$sort': {'components.Ref': 1}}
         ]))[0]
-        print(dout)
+        out = group_data(dout.get('components', []), db = self.mdb)
+        #out = bson.json_util.dumps(dout)
 
 
         pdf = FPDF('P', 'mm', format='A4')
@@ -404,47 +418,69 @@ class print_bom(BaseHandler):
         pdf.add_page()
 
         pdf.set_font('pt_sans', '', 12)
-
         pdf.set_xy(10, 10)
         pdf.cell(0,5, dout.get('name', name))
+
+        pdf.set_font('pt_sans', '', 8)
+        pdf.set_y(15)
+        pdf.cell(0,5, dout.get('description', name))
 
         pdf.set_font('pt_sans', '', 8)
 
         row = []
         used = []
 
-        df = pd.DataFrame(dout['components'])
-        df = df.sort('Ref')
-        print(df)
-        grouped = df.groupby(by=['Value', 'Footprint'])
+        #df = pd.DataFrame(dout['components'])
+        #df = df.sort('Ref')
+        #print(df)
+        #grouped = df.groupby(by=['Value', 'Footprint'])
 
-        rowh = 8
-
+        rowh = 9
+        first_row = 28
         pdf.set_xy(10, 28)
-        for i, c in enumerate(grouped.groups):
-            
-            indexes = list(grouped.groups[c])
-            ref = []
-            for j, index in enumerate(indexes):
-                component = df.loc[[index]]
-                ref.append(component['Ref'].values[0])
-            pdf.set_xy(10, 28+i*rowh+3)
-            pdf.cell(0, 5, str(len(ref))+'x', border=0)
 
+        out = [{'count': '',
+                'Ref': ['Ref'],
+                'Value': 'Value',
+                'Footprint': 'Package',
+                "MFPN": 'MFPN',
+                'UST_ID': 'UST_ID'}]+out
+
+        j = 0
+        for i, component in enumerate(out):
+            print(i, component)
+            j += 1
+            if j > 26:
+                j=0
+                first_row = 10
+                pdf.add_page()
+
+            pdf.set_font('pt_sans', '', 8)
+            pdf.set_xy(10, first_row+j*rowh)
+            pdf.cell(0, 5, str(component['count'])+'x', border=0)
+            pdf.set_xy(17, first_row+j*rowh+3.5)
+            pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
             
-            pdf.set_xy(15, 28+i*rowh+3)
+            pdf.set_xy(15, first_row+j*rowh+3.5)
             #pdf.cell(0, 5, component, border=0)
-            pdf.cell(0, 5, repr(self.get_component(dout['components'], component['Ref'].values[0])))
+            #pdf.cell(0, 5, repr(self.get_component(dout['components'], component['Ref'])))
 
-            pdf.set_xy(3, 28+i*rowh)
-            pdf.cell(0, 5, ', '.join(ref), border=0)
+            #pdf.set_xy(3, 28+i*rowh)
+            #pdf.cell(0, 5, ', '.join(), border=0)
+            pdf.set_font('pt_sans-bold', '', 9)
+            pdf.set_xy(15, first_row+j*rowh)
+            pdf.cell(0, 5, component.get('Value', '--'))
+            pdf.set_xy(55, first_row+j*rowh)
+            pdf.cell(0, 5, component.get('Footprint', '--'))
+            pdf.set_xy(130,  first_row+j*rowh)
+            pdf.cell(0, 5, component.get('MFPN', '--'))
+            pdf.set_xy(130, first_row+j*rowh+3.5)
+            pdf.cell(0, 5, component.get('UST_ID', '--'))
+            #pdf.set_xy(55, 28+j*rowh)
+            #pdf.cell(0, 5, component.get('Value', '--'))
 
-            pdf.set_xy(55, 28+i*rowh)
-            pdf.cell(0, 5, component['Value'].values[0])
-            pdf.set_xy(95, 28+i*rowh)
-            pdf.cell(0, 5, component['Footprint'].values[0])
-
-
+            #pdf.set_line_width(0.5)
+            pdf.line(10, first_row+j*rowh+8, 200, first_row+j*rowh+8)
             print("=============================================================")
             #pdf.cell(100, 5, repr(cg[0]))
             #pdf.set_x(95)
@@ -480,11 +516,6 @@ pdf.set_font('pt_sans', '', 8)
 
 
 
-
-
-
-
-
     def get(self, name):
         
 
@@ -517,7 +548,7 @@ pdf.set_font('pt_sans', '', 8)
 
         rowh = 8
 
-        pdf.set_xy(10, 28)
+        pdf.set_xy(10, 28)k
         ref = []
         for j, index in enumerate(indexes):
             component = df.loc[[index]]
@@ -550,14 +581,6 @@ pdf.set_font('pt_sans', '', 8)
             self.set_header("Content-Disposition", "inline; filename=UST_osazovaci_list.pdf")
             self.write(f.read())
         f.close()
-
-
-
-
-
-
-
-
 
 
 '''

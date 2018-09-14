@@ -46,6 +46,7 @@ class print_layout(BaseHandler):
         else:
             comp = self.mdb.stock.find().sort([("category", 1), ("_id",1)])
         page = 0
+        print("Budeme tisknout:", comp)
 
         if layout == 'souhrn_01':
             autori = self.get_arguments('autor', None)

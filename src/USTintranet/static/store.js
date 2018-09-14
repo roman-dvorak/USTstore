@@ -378,7 +378,8 @@ function draw_supplier(){
 function draw_stock(count){
   console.log("Count>>", count);
   $("#inputSTOCK_list").empty();
-  $("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
+  //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
+  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count + ' u </div>');
 
   for (param in count.stock){
     var c = count.stock[param];
