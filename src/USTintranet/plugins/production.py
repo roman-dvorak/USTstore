@@ -55,18 +55,21 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
         c_ustid = component.get('UST_ID', None)
         c_value = component.get('Value', 0)
         c_price = num_to_float(component.get('price', 0.0))
-        print(c_price)
+        print("########")
+        print(c_ref)
         
 
         s = 0
         for i, sel in enumerate(selected):
             if mask_array(component, groupby) == mask_array(sel, groupby):
-                s += 1
-        if s != 0:  # pokud už produkt tam je
-            selected[i]['Ref'] += c_ref
-            selected[i]['count'] += 1
-            selected[i]['price_group'] += c_price
-        else: # polozka je zde poprvj
+                print("Shod..", mask_array(component, groupby), mask_array(sel, groupby))
+                selected[i]['Ref'] += c_ref
+                selected[i]['count'] += 1
+                selected[i]['price_group'] += c_price
+                s = 1
+                break
+        if not s:
+            #else: # polozka je zde poprvj
             component['Ref'] = c_ref
             component['count'] = 1
             component['price_group'] = c_price
@@ -82,19 +85,27 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
                         
             component['price_store'] = price
             selected.append(component)
+            
 
     return selected
 
 # prida do pole pocet skladovych zasob na zaklade nazvu soucastky v dictionary jako 'UST_ID', pokud to neobsahuje, tak je pole preskoceno...
 def get_component_stock(data, db):
     for component_i, component in enumerate(data):
+        print("____")
         print(component_i, component)
         if component.get('UST_ID', False):
             stock = 0
-            movements = db.stock_movements.find({'product': component['UST_ID']})
+            movements = db.stock.aggregate([
+                {
+                    "$match":{'_id': component.get('UST_ID')}
+                },{
+                    "$unwind": "$history"
+                },
+            ])
             for movement in movements:
                 print(movement)
-                stock += movement.get('bilance', 0)
+                stock += movement['history'].get('bilance', 0)
             data[component_i]['stock'] = stock
     return data
 
@@ -161,21 +172,22 @@ class edit(BaseHandler):
 
         elif op == 'update_component_parameters':
             component = self.get_arguments('component[]')
-            parameter = self.get_argument('parameter')
-            value = self.get_argument('value')
+            parameter = self.get_argument('parameter').strip()
+            value = self.get_argument('value').strip()
+
+            if value == 'undefined': value = ''
 
             for c in component:
                 self.mdb.production.update(
                     {
-                       '_id': bson.ObjectId(name),
-                       "components.Ref": c
+                       '_id': bson.ObjectId(name.strip()),
+                       "components.Ref": c.strip()
                     },
                     {
-                        "$set":{"components.$.{}".format(parameter): value}
-                    }#,
-                    #'upsert': False,
-                    #'multiple': True
+                        "$set":{"components.$.{}".format(parameter): value.strip()}
+                    }
                 )
+                print("Uravil jsem", c)
 
             print(component, parameter, value)
             out = bson.json_util.dumps({})

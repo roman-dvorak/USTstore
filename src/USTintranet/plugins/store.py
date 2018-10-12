@@ -21,6 +21,7 @@ def make_handlers(module, plugin):
              (r'/%s' %module, plugin.hand_bi_home),
              (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
+             (r'/%s/newprint' %module, plugin.newprint),
              (r'/%s/api/(.*)/' %module, plugin.api),
              (r'/{}/operation/(.*)/'.format(module), plugin.operation)
         ]
@@ -746,3 +747,87 @@ class operation(BaseHandler):
             self.write('''
                 <h2>AAA {} {}</h2>
             '''.format(data, self.get_argument('component')))
+
+
+
+
+
+class newprint(BaseHandler):
+    def post(self, data=None):
+        comp = self.get_arguments('component')
+        if self.get_argument('cart', False):
+            l = list(self.mdb.carts.find({'_id': bson.ObjectId(self.get_argument('cart'))}))[0]['cart']
+            comp = [d['id'] for d in l if 'id' in d]
+    
+        print("Zahajuji generovani PDF")
+        print("Soucastky", comp)
+
+        comp = self.mdb.stock.find({'_id' : {'$in' : comp}})
+
+        pdf = stickers_simple(comp = comp)
+        pdf.output("static/sestava.pdf")
+
+        with open('static/sestava.pdf', 'rb') as f:
+            self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
+            self.set_header("Content-Disposition", "inline; filename=UST_tiskova_sestava.pdf")
+            self.write(f.read())
+        f.close()
+
+
+
+def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
+    page = 0
+    page_cols = col
+    page_rows = rows
+    page_cells = page_cols * page_rows
+    cell_w = 210/page_cols
+    cell_h = 297/page_rows
+
+
+    print ("pozadovany format je 70x42")
+    pdf = FPDF('P', 'mm', format='A4')
+
+    pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
+    pdf.add_font('pt_sans-bold', '', 'static/pt_sans/PT_Sans-Web-Bold.ttf', uni=True)
+    pdf.set_font('pt_sans-bold', '', 12)
+
+    pdf.set_auto_page_break(False)
+    pdf.add_page()
+
+    for i, component in enumerate(comp):
+        i += skip
+        id = component['name'].strip().replace('/', '_')
+        code128.image(component['_id']).save("static/barcode/%s.png"%(id))
+
+        if i != 0 and i%(page_cells) == 0:
+            page += 1
+            pdf.add_page()
+            print("New PAGE --- ", i, i%page_cells)
+
+        row = int(i/page_cols)-page*page_rows
+        column = i%page_cols
+        cell_x = column*cell_w
+        cell_y = row*cell_h
+
+        pdf.set_xy(cell_x+5, cell_y+6.75)
+        if len(component['name'])<23:
+            pdf.set_font('pt_sans-bold', '', 14)
+        else:
+            pdf.set_font('pt_sans-bold', '', 10)
+        pdf.cell(cell_w-10, 0, component['name'][:35])
+        pdf.set_xy(cell_x+2.5, cell_y+9)
+        pdf.image('static/barcode/%s.png'%(id), w = cell_w-5, h=7)
+
+        pdf.set_font('pt_sans', '', 11)
+        pdf.set_xy(cell_x+4, cell_y+20)
+        try:
+            pdf.multi_cell(cell_w-8, 4, component['description'][:185])
+        except Exception as e:
+            pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
+
+
+        pdf.set_xy(cell_x+5, cell_y+cell_h-7)
+        pdf.set_xy(cell_x+5, cell_y+13)
+        pdf.set_font('pt_sans', '', 7.5)
+        pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| " + component['_id'])
+    return pdf

@@ -36,7 +36,7 @@ def plug_info():
 
 class home(BaseHandler):
     def get(self, data=None):
-        carts = self.mdb.carts.find()
+        carts = self.mdb.carts.find({}).sort([("_id", -1)] )
         self.render('carts.home.hbs', title = "TITLE", carts = carts, handler_cart = self.cart)
 
 

@@ -240,15 +240,19 @@ class loginHandler(BaseHandler):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
         
-        username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})['user']
-        hash = hashlib.sha384((passw+username).encode('utf-8')).hexdigest()
-        print("login", username, hash)
-        userdb = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}], 'pass': hash})
-        if userdb:
-            self.set_secure_cookie('user', userdb['user'])
-            self.redirect('/')
-        else:
-            self.redirect('/login')
+        username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
+        print("USERNAME:", username)
+        if username:
+            username = username.get('user', None)
+            hash = hashlib.sha384((passw+username).encode('utf-8')).hexdigest()
+            print("login", username, hash)
+            userdb = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}], 'pass': hash})
+            if userdb:
+                self.set_secure_cookie('user', userdb['user'])
+                self.redirect('/')
+                self.finish()
+        
+        self.redirect('/login?msg=badlogin')
 
 class logoutHandler(BaseHandler):
     def get(self):

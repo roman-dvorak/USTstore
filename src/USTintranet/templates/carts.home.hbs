@@ -5,8 +5,18 @@
 <script type="text/javascript">
   
   function cart_print(id){
-    var a = window.open('/cart/print/'+id+'/', '_blank');
-    a.focus();
+    //var a = window.open('/cart/print/'+id+'/', '_blank');
+    //a.focus();
+
+    $.post("/store/newprint",
+        {
+            cart: id,
+        },
+        function(data, status){
+          var a = window.open('/static/sestava.pdf', '_blank');
+          a.focus();
+        }
+    );
   }
 
 </script>

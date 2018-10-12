@@ -191,7 +191,7 @@
 
 
 
-	var ust_id_autocomplete = function(cell, onRendered, success, cancel){
+var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     //cell - the cell component for the editable cell
     //onRendered - function to call when the editor has been rendered
     //success - function to call to pass the succesfully updated value to Tabulator
@@ -200,10 +200,7 @@
     //create and style input
 
 
-	var input = $('<select class="th-input" id="row_ustid"></select>');
-
 	var input = document.createElement("select");
-
     input.setAttribute("class", "th-input");
     input.setAttribute("id", "row_ustid");
 
@@ -215,7 +212,7 @@
 
     onRendered(function(){
     	console.log('RENDER')
-    	$(input).select2({
+    	var sel = $(input).select2({
 			  	//dropdownCssClass: "select2-style",
 			  	width: '100%',
 			    ajax: {
@@ -245,27 +242,30 @@
 				    }
 			    }
 		});
-
+    	$(input).select2("open");
         //input.focus();
         //input.style.height = "100%";
     });
 
     function onChange(e = null){
-    	console.log("cahn", e);
+    	console.log("e", e);
     	console.log('change', $(input).val());
-        if($(input).val() != cell.getValue()){
+        if($(input).val() != cell.getValue() && cell.getValue != 'undefined'){
+        	//var data = $(input).val();
 	        success($(input).val());
         }else{
+            //input.remove();
             cancel();
+
         }
     }
 
-    //submit new value on blur or change
     $(input).on("change", onChange);
-    input.addEventListener("change", onChange);
-    input.addEventListener("blur", onChange);
+    $(input).on("blur", onChange);
 
-    console.log(input)
+    //function succes(){}
+
+    console.log(input);
     return input;
 };
 
@@ -293,9 +293,9 @@
 	function editf(e, cell){
 		//alert("BTN", e, cell);
 		console.log("...........")
-		console.log(e);
+		//console.log(e);
 		console.log(cell.cell);
-		cell.cell.edit(true);
+		//cell.cell.edit(true);
 		cell.edit(true);
 	}
 
@@ -308,7 +308,6 @@
 	        {title:"Sklad",
 	        	columns:[
 	        		{title: "Celkem", field:"stock", editable: false, width: 80},
-	        		{title: "...", field:"", editable: false, width: 80},
 	        	]
 	    	},
 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf},
@@ -316,7 +315,7 @@
 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
-	        {title:"Pouzdro", field:"Footprint", editor:"input", editable:true, cellDblClick:editf},
+	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
 	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
 	        {title:"Cena",
 	            columns:[
@@ -329,9 +328,10 @@
 	    ],
     	addRowPos:"bottom",
 	    cellEdited:function(cell){
-        	console.log(cell.cell.column.field);
-    		console.log(cell.cell.row.cells[5].value);
-    		update_component_parameter(cell.cell.row.cells[5].value, cell.cell.column.field, cell.cell.value);
+	    	console.log("EDITED");
+        	console.log(cell);
+    		console.log(cell.cell.row.cells[4].value);
+    		update_component_parameter(cell.cell.row.cells[4].value, cell.cell.column.field, cell.cell.value);
     	},
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');

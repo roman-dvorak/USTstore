@@ -19,7 +19,7 @@ import os
 #from handlers import admin, auth
 from handlers import BaseHandler
 
-tornado.options.define("port", default=10010, help="port", type=int)
+tornado.options.define("port", default=10020, help="port", type=int)
 tornado.options.define("debug", default=True, help="debug mode", type=bool)
 tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
 #tornado.options.define("mysql_pass", default=None, help="mysql pass")
@@ -29,7 +29,8 @@ tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
 class home(BaseHandler):
     def get(self, arg=None):
         print("GET home")
-        err = self.get_arguments('err', [])
+        err = []
+        #err = self.get_arguments('err', [])
         self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err)
 
     def post(self, arg=None):
@@ -52,7 +53,7 @@ class WebApp(tornado.web.Application):
     def __init__(self, config={}):
 
         name = 'UST inntranet'
-        server = 'sklad.zvpp.ionozor.cz'
+        server = 'sklad.ust.cz'
         server_url = '{}:{}'.format(server, tornado.options.options.port)
         server_url = '{}:{}'.format(server, 88)
 

@@ -10,3 +10,6 @@
 [submodule "src/USTintranet/static/tabulator"]
 	path = src/USTintranet/static/tabulator
 	url = git@github.com:olifolkerd/tabulator.git
+[submodule "src/USTintranet/static/material-design-icons"]
+	path = src/USTintranet/static/material-design-icons
+	url = http://github.com/google/material-design-icons/
