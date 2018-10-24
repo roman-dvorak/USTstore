@@ -37,7 +37,8 @@ def plug_info():
 class print_layout(BaseHandler):
     def get(self, data = None):
         out_type = self.get_argument('type', 'html')
-        components = self.get_arguments('action[]', [])
+        components = []
+        components = self.get_query_argument('action[]', [])
         multiply = int(self.get_argument('multiply', 5))
         layout = self.get_argument('template', '70x40_simple')
         skip = int(self.get_argument('skip', 0))
@@ -50,7 +51,7 @@ class print_layout(BaseHandler):
         print("Budeme tisknout:", comp)
 
         if layout == 'souhrn_01':
-            autori = self.get_arguments('autor', None)
+            autori = self.get_query_argument('autor', None)
             if not autori: autori = ['autory vlozite pridanim autoru do adresy s parametrem "autor"', 'autoru muze byt vice, pouzijte vice parametru', 'Například pridanim tohoto na konec adresy: &autor=Tester První']
             datum = self.get_argument('datum', ">>pro specifikovani pridejte parametr 'datum' do GET parametru<<")
             page = 1
