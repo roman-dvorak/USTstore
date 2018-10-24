@@ -19,6 +19,9 @@ def make_handlers(module, plugin):
         return [
              #(r'/{}/(.*)/upload/bom/ust/'.format(module), plugin.ust_bom_upload),
              #(r'/{}/(.*)/print/'.format(module), plugin.print_bom),
+
+             (r'/{}/get_item/'.format(module), plugin.load_item),
+             (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
              (r'/{}'.format(module), plugin.home),
              (r'/{}/'.format(module), plugin.home),
              #(r'/{}/(.*)/'.format(module), plugin.edit),
@@ -37,6 +40,75 @@ def plug_info():
 class home(BaseHandler):
     def get(self):
         self.render('stocktaking.home.hbs')
+
+
+
+class load_item(BaseHandler):
+    def post(self):
+        self.set_header('Content-Type', 'application/json')
+        item = self.get_argument('_id', None)
+        print("ARGUMENT JE....", item)
+        #self.write(item)
+        out = {}
+        out['item'] = self.mdb.stock.find_one({'_id': item})
+        out['history'] = list(self.mdb.stock.aggregate([
+                {
+                    '$match':{'_id': item}
+                },{
+                    '$unwind': '$history'
+                },{
+                    '$group' : {
+                        '_id' : '$history.stock',
+                        'bilance': { '$sum': '$history.bilance' },
+                    }
+                }]))
+        out = bson.json_util.dumps(out)
+        self.write(out)
+
+class save_stocktaking(BaseHandler):
+    def post(self):
+        
+        self.set_header('Content-Type', 'application/json')
+        stock = self.get_argument('stock', 'pha01')
+        description = self.get_argument('description', None)
+        bilance = self.get_argument('bilance')
+        absolute = self.get_argument('absolute')
+        item = self.get_argument('_id', None)
+
+        print("service_push >>", item, stock, description, bilance, absolute)
+        data = {
+                '_id': bson.ObjectId(),
+                'stock': stock,
+                'operation': 'inventory',
+                'bilance': float(bilance),
+                'absolute': float(absolute),
+                'description': description,
+                'user':self.logged,
+                }
+        print(data)
+        out = self.mdb.stock.update(
+                {'_id': item},
+                {
+                    '$push': {'history':data}
+                }
+            )
+        out = self.mdb.stock.update(
+                {'_id': item},
+                {
+                    '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
+                }
+            )
+        print(out)
+        #self.mdb.stock.update(
+        #    {"_id": item},
+        #    {'$set':{"tags.inventura2019":
+        #        {'date': datetime.datetime.utcnow() }
+        #    }}
+        #)
+        
+        self.write(bson.json_util.dumps(data))
+
+
 
 class edit(BaseHandler):
     def get(self, name):
