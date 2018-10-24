@@ -39,7 +39,9 @@ def plug_info():
 
 class home(BaseHandler):
     def get(self):
-        self.render('stocktaking.home.hbs')
+        cat = list(self.mdb.category.find({}))
+        cat = sorted(cat, key = lambda x: x['path']+x['name'])
+        self.render('stocktaking.home.hbs', category = cat)
 
 
 

@@ -31,6 +31,23 @@
     }
 
 
+  .cat_top{
+    flex: 0 0 auto;
+    width: 150pt;
+  }
+
+  #filter_block{
+    /* display: flex; */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0pt;
+  }
+
+.form-tab-td{
+  padding: 0px;
+}
+
+
 </style>
 
 
@@ -90,7 +107,47 @@
             </div>
         </div>
 
-        <div class="col-6 col-md-6 col-lg-6">
+        <div class="col-6 col-md-6 col-lg-7">
+
+
+            <div class="card m-0">
+              <div class="form-inline m-1 row">
+                <button type="button" class="btn btn-success col-2" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
+                <input type="text" class="form-control col-10" id="filter-search" onchange="update_list()" placeholder="Vyhledavani" value="">
+
+
+              </div>
+              <div id="filter-collapse" class="collapse m-1">
+                <div class="pl-3 pb-3">
+                  <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+                  <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+                  <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+                  <span style="display: none;"><span>Filtrování TAGu: </span>
+                  <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
+                  <small>Inverzní filtr tagu<input type="checkbox" id="tag_polarity" onchange="update_list()"></small></span>
+                </div>
+
+              <div id="filter_block" class="row">
+                {% set last = {'path': "/", 'name':""} %}
+                <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
+                {% for cat in category %}
+                  {% if (cat['path']+cat['name']).split('/')[1] != (last['path']+last['name']).split('/')[1]%}
+                    </div>
+                    <div class="col cat_top">
+                  {% end %}
+                  {# {{cat['path'].split('/')}}{{cat}}<br> #}
+                   <a onclick="console.log('{{cat['path']}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
+                     <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
+                     {{cat['name_cs']}}
+                   </a>
+                  {% set last = cat%}
+                {% end %}
+                </div>
+
+              </div>
+              </div>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <div id="product_list"></div>
@@ -240,11 +297,6 @@
             tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
             //tmpl.querySelector('.product_list-select').value = element['_id'];
             tmpl.querySelector('.product_list-description').innerText = element['description'];
-
-            // zaskrtavatko vybaraných polozek
-            //if(selected.indexOf(element['_id']) >= 0){
-            //    tmpl.querySelector('.product_list-select').checked = true;
-            //}
 
             try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
             catch(err){ tmpl.querySelector('.category_name').innerText = "err";}
