@@ -50,50 +50,75 @@
 
 </style>
 
+<script type = "text/javascript">
+   function WebSocketBarcode() {
+      if ("WebSocket" in window) {
+         var ws = new WebSocket("ws://localhost:8765/ws");
+         ws.onopen = function() {
+            console.log("opened...")
+         };
 
+         ws.onmessage = function (evt) {
+           console.log(evt);
+            var received_msg = evt.data;
+            var obj = JSON.parse(evt.data);
+            $('#sku_search').val(obj.code);
+            $('#sku_search').trigger('change');
+         };
+
+         ws.onclose = function() {
+            alert("Barcode reader is disconected....");
+         };
+      } else {
+         alert("WebSocket NOT supported by your Browser!");
+      }
+   }
+
+   WebSocketBarcode();
+</script>
 
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-6 col-md-6 col-lg-5">
+        <div class="col-6 col-md-12 col-lg-5">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body row">
 
-                    <div class="form-group row">
+                    <div class="form-group row col-lg-12 col-md-6">
                         <label class="col-sm-2 col-form-label">SKU</label>
                         <div class="col-sm-10"><input class="form-control" type="text" id="sku_search"></div>
                     </div>
-                    <div class="form-group row">
+                    <div class="form-group row col-lg-12 col-md-6">
                         <label class="col-sm-2 col-form-label">search</label>
                         <div class="col-sm-10"><input class="form-control" type="text" id="all_search" disabled></div>
                     </div>
                     <div>
-                        
+
                     </div>
-                    <div id="next_operation" class=" display-4 text-muted">
+                    <div id="next_operation" class=" display-5 text-muted col-md-6">
                         Načtěte další kód...
                     </div>
-                    <div class="row">
-                        <div class="col text-center align-middle display-1 shadow"><span id="val_old">000.00</span> ks</div>
+                    <div class="row col-lg-12 col-md-6">
+                        <div class="col text-center align-middle display-4 shadow"><span id="val_old">000.00</span> ks</div>
                     </div>
 
-                    <div class="row">
-                        <div class="col big" id='message'></div>
+                    <div class="row col-lg-12 col-md-6">
+                        <div class="col" id='message'></div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group col-lg-12 col-md-6">
                         <label>Nový počet kusů</label>
                         <input class="form-control form-control-lg" type="number" name="count" id="new_count" autofocus>
                     </div>
-                    <div class="row">
+                    <div class="row col-lg-12 col-md-6">
                         <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
                         <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group col-lg-12 col-md-6">
                         <label>Poznámka</label>
-                        <input class="form-control form-control-lg" type="number" name="count" id="note" autofocus>
+                        <input class="form-control form-control-lg" type="text" name="count" id="note" autofocus>
                     </div>
-                    <div class="row form-group">
+                    <div class="row form-group col-lg-12 col-md-6">
                         <button id="btn_accept" class="col-6 btn form-control" >Potvrdit data</button>
                         <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
                     </div>
@@ -151,16 +176,16 @@
             <div class="card">
                 <div class="card-body">
                     <div id="product_list"></div>
-                    
+
                 </div>
             </div>
         </div>
-    </div>  
+    </div>
 
 
     <h3>Moje TODO ...</h3>
     <div class="bg-warning">
-        
+
     </div>
 
     <div class="bg-danger">
@@ -171,8 +196,7 @@
 <script type="text/javascript">
     $("#sku_search").on("change", function(){
         clear_form()
-        //$(this).hide();
-            
+
         $.ajax({
           type: "POST",
           url: "/stocktaking/get_item/",
@@ -180,6 +204,7 @@
             '_id': $('#sku_search').val(),
           },
           success: function( data, textStatus, jQxhr ){
+            var first_time = true;
             if(data.item != null){
                 item = data;
                 item['count'] = 0;
@@ -193,10 +218,24 @@
                 for (tag in data.item.tags){
                     console.log(data.item.tags[tag]);
                     if(data.item.tags[tag].id == "inventura2019"){
+                        first_time = false;
                         console.log("!!!!!!!!!");
-                        $("#message").addClass('bg-warning');
-                        $("#message").text("Inventora této polozky již problěhla...");
                     }
+                }
+                if (first_time == true){
+                  Lobibox.notify('success', {
+                      title: 'Načteno úšpěšně',
+                      //msg: 'U položky <b>'+$('#sku_search').val()+'</b> inventura již problěhla.',
+                      delay: 1000
+                  });
+                }else{
+                  $("#message").addClass('bg-warning');
+                  $("#message").text("Inventora této polozky již problěhla...");
+                  Lobibox.notify('warning', {
+                      title: 'Tato položka již byla inventurovaná..',
+                      msg: 'U položky <b>'+$('#sku_search').val()+'</b> inventura již problěhla.',
+                      delay: 3000
+                  });
                 }
                 $("#val_old").text(item.count);
                 $("#new_count").focus();
@@ -212,7 +251,7 @@
             console.log( errorThrown );
           }
         });
-    }); 
+    });
 
     $("#new_count").on("change", function(){
         //$("#val_percent").text(item.count / $("#new_count").val());
@@ -246,9 +285,21 @@
           },
           success: function( data, textStatus, jQxhr ){
             console.log(data);
+            Lobibox.notify('success', {
+                title: 'Provedeno',
+                msg: 'U součástky <b>'+$('#sku_search').val()+'</b> byla provedena inventura <b>' + $("#new_count").val() +' ks</b>.',
+                delay: 3000
+            });
+            $("#sku_search").val("");
           },
           error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
+            Lobibox.notify('error', {
+                title: 'Nebylo možné provést úpravu položky',
+                msg: 'U položky <b>'+$('#sku_search').val()+'</b> nastal neznámý problém. Zkontrolujte log.',
+                delay: 3000
+            });
+            $("#sku_search").val("");
           }
         });
     });
@@ -261,6 +312,7 @@
         $("#btn_accept").prop('disabled', false);
         $("#btn_send").prop('disabled', true);
         $("#sku_search").focus();
+        $('#message').removeClass('bg-warning')
         $('#message').empty();
         //$("#message").
     }
@@ -271,7 +323,7 @@
 
 <template id="products-template_table">
     <div class="product_list_element product_list_element_table">
-        
+
         <span class="product_list-name" style="font-size: 1.2em font-weight: 300; width: 30em;"></span>
         <small style="width: 30em;"><span class="category_name"></span></small>
         <span style="width: calc(100%);">
