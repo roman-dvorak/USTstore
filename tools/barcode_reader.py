@@ -54,6 +54,7 @@ sh = {
 
 sl = {
     'MINUS':'-',
+    'SLASH':'/'
 }
 
 def build_string(pole):
@@ -170,5 +171,5 @@ if __name__ == "__main__":
     myIP = socket.gethostbyname(socket.gethostname())
     print('*** Websocket Server Started at %s***' % myIP)
 
-    tornado.ioloop.PeriodicCallback(blocking_func, 20).start()
+    tornado.ioloop.PeriodicCallback(blocking_func, 20gi).start()
     tornado.ioloop.IOLoop.instance().start()

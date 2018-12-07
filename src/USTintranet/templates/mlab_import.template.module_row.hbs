@@ -1,0 +1,12 @@
+<div class="card">
+
+<div class="card-header {%if data.get('stock_exist', False)%}  text-white bg-success {%else%} text-white bg-danger {%end%} mb-2">
+
+		{{data['_id']}}
+
+        <button class="btn btn-success btn-sm float-right" onclick="UpdateModule('{{data['_id']}}')">Add to stock</button>
+</div>
+<div class="card-body">
+	{{data}}
+</div>
+</div>

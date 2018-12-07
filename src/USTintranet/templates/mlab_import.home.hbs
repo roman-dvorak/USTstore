@@ -1,0 +1,34 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Import z MLABu{% end %}
+{% block body %}
+
+<script src="/static/mlab_import.js"></script>
+
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-12">
+            <h3> Importování MLAB modulů </h3>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="loading-show"> loading </div>
+                </div>
+            </div>
+
+
+            <div id="module_list"></div> 
+
+		</div>
+	</div>
+
+
+
+</div>
+
+<script type="text/javascript">
+
+    $( "#module_list" ).load( "/mlab_import/data/module_list" );
+
+</script>
+
+{% end %}

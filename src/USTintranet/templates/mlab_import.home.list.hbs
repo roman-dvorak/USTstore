@@ -1,0 +1,6 @@
+<div class="">
+	{% for module in data %}
+		{#<li>{{module}}</li>#}
+        {% module Template('mlab_import.template.module_row.hbs', data= module) %}
+	{% end %}
+</div>

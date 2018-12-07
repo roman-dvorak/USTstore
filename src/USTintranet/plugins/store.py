@@ -38,15 +38,15 @@ class print_layout(BaseHandler):
     def get(self, data = None):
         out_type = self.get_argument('type', 'html')
         components = []
-        components = self.get_query_argument('action[]', [])
+        components = self.get_query_arguments('action[]', [])
         multiply = int(self.get_argument('multiply', 5))
         layout = self.get_argument('template', '70x40_simple')
         skip = int(self.get_argument('skip', 0))
-        print(components)
+        print("Soucastky..",components)
         if len(components) > 0:
-            comp = self.mdb.stock.find({'_id' : {'$in' : components}})
+            comp = list(self.mdb.stock.find({'_id' : {'$in' : components}}))
         else:
-            comp = self.mdb.stock.find().sort([("category", 1), ("_id",1)])
+            comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
         page = 0
         print("Budeme tisknout:", comp)
 
@@ -126,7 +126,7 @@ class print_layout(BaseHandler):
 
                         pdf.set_x(95)
                         pdf.cell(10, 5, "%5.d" %(count), align='R')
-                        
+
                         rest = count
                         for x in reversed(component.get('history', [])):
                             print(x)
@@ -420,7 +420,7 @@ class api(BaseHandler):
 
         if data == 'product':
             print(self.request.arguments.get('selected[]', None))
-            
+
             dout = list(self.mdb.stock.aggregate([
                     {
                         '$match': {self.get_argument('key', '_id'): self.get_argument('value', '')}
@@ -429,13 +429,13 @@ class api(BaseHandler):
                         # tady avg je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
                     },{
                         '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-                    
+
                     },{
                         '$addFields': {'count': {'$sum': '$history.bilance'}}
-                    
+
                     }
                 ]))
-            
+
             dout[0]['stock'] = list(self.mdb.stock.aggregate([
                 {
                     '$match':{'_id': self.get_argument('value', '')}
@@ -447,7 +447,7 @@ class api(BaseHandler):
                         'bilance': { '$sum': '$history.bilance' },
                     }
                 }]))
-            
+
 
         elif data == "get_tags":
             dout = list(self.mdb.stock.distinct('tags.id'))
@@ -515,10 +515,10 @@ class api(BaseHandler):
                     }
                 },{
                     '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-                
+
                 },{
                     '$addFields': {'count': { '$sum': '$history.bilance'}}
-                
+
                 }], useCursor=True)
 
             dout = list(dbcursor)
@@ -661,7 +661,7 @@ class hand_bi_home(BaseHandler):
             self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
         else:
             self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-            
+
 
 class operation(BaseHandler):
     def post(self, data=None):
@@ -683,7 +683,7 @@ class operation(BaseHandler):
                         }
                     }]))
             self.render("store.comp_operation.{}.hbs".format(data), last = article, counts = counts)
-        
+
         elif data == 'service_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
             stock = self.get_argument('stock')
@@ -742,9 +742,9 @@ class operation(BaseHandler):
                 )
             self.LogActivity('store', 'operation_service')
             self.write(out);
-        
 
-        else: 
+
+        else:
             self.write('''
                 <h2>AAA {} {}</h2>
             '''.format(data, self.get_argument('component')))
@@ -759,12 +759,12 @@ class newprint(BaseHandler):
         if self.get_argument('cart', False):
             l = list(self.mdb.carts.find({'_id': bson.ObjectId(self.get_argument('cart'))}))[0]['cart']
             comp = [d['id'] for d in l if 'id' in d]
-    
+
         print("Zahajuji generovani PDF")
         print("Soucastky", comp)
 
         comp = self.mdb.stock.find({'_id' : {'$in' : comp}})
-
+        print("......................")
         pdf = stickers_simple(comp = comp)
         pdf.output("static/sestava.pdf")
 

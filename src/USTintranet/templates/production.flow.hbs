@@ -85,10 +85,10 @@
 						<div class="col-2"> Type: </div>
 						<input class="form-control col-10" type="text" id='production_type' disabled><br>
 					</div>
-					
+
 					Dále zde bude: Tagy, priorita, celková cena
 					<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
-					
+
 					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary">Print</a>
 					<input type="button" id="production_update_prices" value="Zaktualizovat ceny" class="btn btn-sm btn-primary" onclick="update_prices()">
 				</div>
@@ -130,7 +130,7 @@
 	var aa_ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		console.log('UST_ID own editor')
 	    var input = $('<select class="th-input"  id="row_ustid"></select>');
-	    onRendered( function(){	
+	    onRendered( function(){
 		    input.select2({
 			  	//dropdownCssClass: "select2-style",
 			  	width: '100%',
@@ -208,7 +208,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     input.style.padding = "3px";
     input.style.width = "100%";
     input.style.boxSizing = "border-box";
-    
+
 
     onRendered(function(){
     	console.log('RENDER')
@@ -310,7 +310,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        		{title: "Celkem", field:"stock", editable: false, width: 80},
 	        	]
 	    	},
-	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf},
+	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
@@ -335,13 +335,13 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     	},
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
-	
+
 	//var ajaxConfig = {
 	//    type:"POST", //set request type to Position
 	//    //contentType: 'application/json; charset=utf-8', //set specific content type
 	//};
 	//table.setData(".", {operation:"get_components_grouped"}, ajaxConfig);
-	
+
 function edit_component(id){
 	console.log("CLICK");
 	console.log(id);
@@ -351,7 +351,7 @@ function edit_component(id){
 
     for (i in components){
     	var c = components[i];
-	
+
     	//console.log(i, id, c);
     	if (c.Ref == id[0]){
     		selected_id = i;
@@ -385,7 +385,7 @@ function startUpload() {
         alert("Please choose a file");
         return;
     }
-    
+
     var xhr = new XMLHttpRequest();
 
     xhr.onload = function() {
@@ -398,7 +398,7 @@ function startUpload() {
     xhr.onerror = function() {
         alert("Error! Upload failed. Can not connect to server.");
     };
-    
+
     xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
     xhr.setRequestHeader("Content-Type", fileInput.files[0].type);
     xhr.send(fileInput.files[0]);
@@ -484,8 +484,8 @@ function load_components() {
 			var row = document.createElement("tr");
 			var x = row.insertCell(-1);
 			x.innerHTML = "<span class='position' clk_data='"+c_ref+"'>"+i+"</span>";
-			
-			
+
+
 			x = row.insertCell(-1);
 			for (j in c_ref){
 				if (j > 0){x.innerHTML += ', '}
@@ -612,7 +612,7 @@ function update_component_parameter(component, param, value){
 /*
 // Pouzivalo se pro nahravani BOMu parserovaneho v prohlizeci
 function update_component(tstamp, ref, name, value, package, ust_id, description, price_predicted, price_store, price_final){
-	
+
 	$.ajax({
         type: "POST",
         url: ".",
@@ -626,7 +626,7 @@ function update_component(tstamp, ref, name, value, package, ust_id, description
         	ust_id: ust_id,
         	description: description,
         	price_predicted: price_predicted,
-        	price_store: price_store, 
+        	price_store: price_store,
         	price_final: price_final
         },
    		async: false,
