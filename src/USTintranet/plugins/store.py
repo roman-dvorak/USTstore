@@ -481,7 +481,7 @@ class api(BaseHandler):
 
         elif data == 'products':
             polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
-            tag_polarity = True if (self.request.arguments.get('tag_polarity', ['true'])[0] == b'true') else False
+            tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
             selected = (self.request.arguments.get('selected[]', []))
             page = self.get_argument('page', 0)
             page_len = self.get_argument('page_len', 100)
@@ -491,7 +491,7 @@ class api(BaseHandler):
             print("tag polarity", tag_polarity)
             dout = []
 
-            dbcursor = self.mdb.stock.aggregate([
+            agq = [
                 {"$unwind": "$_id"},
                 {"$sort" : {"category": 1,"_id": 1} },
                 {"$match": {'$or':[
@@ -500,9 +500,19 @@ class api(BaseHandler):
                                     {'description': { '$regex': search, '$options': 'ix'}} ]}
                 },{
                     "$match": {'category': {polarity: ascii_list_to_str(selected)}}
-                #},{
-                #    "$match": {'$not': {'tags.id' : 'inventura2018'}}
-                },{
+                }]
+
+            if len(tag_search) > 1 and not tag_polarity:
+                agq += [{
+                    "$match": {'tags': { '$not': {'$elemMatch': {'id': tag_search}}}}
+                }]
+            
+            elif len(tag_search) > 1 and tag_polarity:
+                agq += [{
+                    "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
+                }]
+
+            agq += [{
                     '$skip' : int(page_len)*int(page)
                 },{
                     '$limit' : int(page_len)
@@ -519,8 +529,9 @@ class api(BaseHandler):
                 },{
                     '$addFields': {'count': { '$sum': '$history.bilance'}}
 
-                }], useCursor=True)
+                }]
 
+            dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
             dout = list(dbcursor)
             #print(dout)
             print("POCET polozek je", len(dout))
