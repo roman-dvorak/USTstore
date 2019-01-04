@@ -314,6 +314,7 @@
 		page <span class="actual_list_page"></span>
 		<button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
 		<button class="btn btn-default btn-sm" onclick="update_list()">obnovit</button>
+    Načteno <span id="item_count"></span> položek
 
 	</div>
 	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
@@ -802,7 +803,8 @@ function update_list(){
 	  },
 	  success: function( data, textStatus, jQxhr ){
 	      console.log('/products/', data, textStatus);
-	      current_page = data;
+        $('#item_count').html(data.count);
+	      current_page = data.data;
 	      update_view();
 	  },
 	  error: function( jqXhr, textStatus, errorThrown ){
