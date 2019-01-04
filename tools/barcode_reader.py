@@ -53,8 +53,11 @@ sh = {
 
 
 sl = {
+    'SPACE':' ',
     'MINUS':'-',
-    'SLASH':'/'
+    'SLASH':'/',
+    'DOT': '.',
+    'COMMA': ','
 }
 
 def build_string(pole):
