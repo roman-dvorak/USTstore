@@ -401,7 +401,7 @@
           },
           success: function( data, textStatus, jQxhr ){
               console.log('/products/', data, textStatus);
-              current_page = data;
+              current_page = data.data;
               update_view();
           },
           error: function( jqXhr, textStatus, errorThrown ){
