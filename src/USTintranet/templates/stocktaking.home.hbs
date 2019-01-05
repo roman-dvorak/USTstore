@@ -235,6 +235,7 @@
                   });
                 }
                 $("#val_old").text(item.count);
+		//$("#new_count").val(item.count);
                 $("#new_count").focus();
 
             }else{
@@ -250,14 +251,23 @@
         });
     });
 
-    $("#new_count").on("change", function(){
+
+    function after_count_edit(){
+        if ($("#new_count").val() == ""){
+            $("#new_count").val(item.count);
+        }
         //$("#val_percent").text(item.count / $("#new_count").val());
-        delta = $("#new_count").val() - item.count;
-        $("#val_delta").text(delta);
-        //$("#btn_accept").focus();
+        $("#val_delta").text($("#new_count").val() - item.count);
         $("#btn_send").prop('disabled', false);
         $("#btn_send").focus();
+    }
 
+    $('#new_count').on('keypress', (event)=> {
+        if(event.which === 13){after_count_edit();}
+    });
+
+    $("#new_count").on("change", function(){
+        after_count_edit();
     });
 
 
