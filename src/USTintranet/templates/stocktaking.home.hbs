@@ -125,10 +125,7 @@
 
                 </div>
             </div>
-            <div class="card">
-                <div class="card-body">
-                    <div class="bg-warning">Tady budou nějaké základní informace o součástce...</div>
-                </div>
+            <div class="list-group" id="stocktaking_history">
             </div>
         </div>
 
@@ -293,8 +290,9 @@
                 msg: 'U součástky <b>'+$('#sku_search').val()+'</b> byla provedena inventura <b>' + $("#new_count").val() +' ks</b>.',
                 delay: 3000
             });
+            add_history($("#sku_search").val(), $("#new_count").val(), 'success');
             $("#sku_search").val("");
-          },
+            },
           error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
             Lobibox.notify('error', {
@@ -302,6 +300,7 @@
                 msg: 'U položky <b>'+$('#sku_search').val()+'</b> nastal neznámý problém. Zkontrolujte log.',
                 delay: 3000
             });
+            add_history($("#sku_search").val(), $("#new_count").val(), 'danger');
             $("#sku_search").val("");
           }
         });
@@ -411,6 +410,28 @@
         });
     }
     update_list();
+
+
+
+function add_history(name, count, status = null){
+  console.log(name, count, status);
+  
+  switch(status){
+    case 'success':
+      var background = 'lightgreen';
+      break;
+    case 'success':
+      var background = 'lightred';
+      break;
+    default:
+      var background = 'white'
+  }
+
+  html  = " <div class='list-group-item d-flex justify-content-between align-items-center' style='background:"+background+"'> <div>"
+  html += name + "</div><div>" + count + " ks </div></div>";
+
+  $('#stocktaking_history').prepend(html);
+}
 
 </script>
 
