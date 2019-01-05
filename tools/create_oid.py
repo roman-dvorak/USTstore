@@ -17,34 +17,23 @@ db = client.USTintranet
 
 components = db.stock.find()
 
-for comp in components[:10]:
+for comp in components:
     try:
         print("====================================")
 
         pprint(comp)
-        pprint(comp['_id'])
-        gen_time = datetime.datetime.now().replace(year=2000)
-        dummy_id = ObjectId.from_datetime(gen_time)
+        
+        oldid = comp['_id']
         dummy_id = ObjectId()
-        print(dummy_id)
+        
+        comp['barcode'] = [comp['_id']]
+        comp['_id'] = ObjectId(dummy_id)
 
-        #print(comp['_id'])
-        #tags = comp['tags']
-        #tlist = list(tags.keys())
-        #tnew = []
-        #for tag in tlist:
-        #    tnew.append({'id': tag})
-        #print(tnew)
+        print("----------")
+        pprint(comp)
 
-        #db.stock.update({'_id': comp['_id']}, {'$set': {'tags': tnew}})
-
-
-        #print(">>> ", cena)
-        #for stock in comp['stock']:
-        #    pocet = float(comp['stock'][stock]['count'])
-        #    if pocet > 0:
-        #        print(">>", stock, pocet)
-        #        db.stock_movements.insert({'product': comp['_id'], 'operation': 'inventory', 'price': cena, 'bilance': pocet, 'stock': stock, 'user': 'admin', 'description': 'Inventura 2018 (2018/05)'})
+        db.stock.insert(comp)
+        db.stock.remove({'_id': oldid})
 
     except Exception as e:
         print(e)
