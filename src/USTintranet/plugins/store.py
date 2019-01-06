@@ -9,6 +9,7 @@ from . import BaseHandler
 #from pyoctopart.octopart import Octopart
 import json
 import bson.json_util
+from bson import *
 import urllib
 from fpdf import FPDF
 import barcode
@@ -22,6 +23,7 @@ def make_handlers(module, plugin):
              (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
              (r'/{}/api/products/'.format(module), plugin.api_products_json),
+             (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
              (r'/%s/newprint' %module, plugin.newprint),
              (r'/%s/api/(.*)/' %module, plugin.api),
              (r'/{}/operation/(.*)/'.format(module), plugin.operation)
@@ -104,6 +106,31 @@ class api_products_json(BaseHandler):
 
         dout = bson.json_util.dumps(dout)
         self.write(dout)
+
+
+
+class api_parameters_list(BaseHandler):
+    def post(self):
+        self.set_header('Content-Type', 'application/json')
+
+        search = self.get_argument('term', '')
+        print("vyhledavam dle", search)
+
+        agq = [{"$match": {'$or':[
+                        {'name': { '$regex': search, '$options': 'ix'}},
+                        {'lang.en': { '$regex': search, '$options': 'ix'}},
+                        {'lang.cs': { '$regex': search, '$options': 'ix'}}
+                    ]}
+                }]
+
+        dout = list(self.mdb.parameters.aggregate(agq))
+
+        data = {
+            'total_count': len(dout),
+            'incomplete_results': False,
+            'items': dout,
+        }
+        self.write(bson.json_util.dumps(data))
         
 class api(BaseHandler):
     def post(self, data=None):
@@ -116,7 +143,7 @@ class api(BaseHandler):
 
             dout = list(self.mdb.stock.aggregate([
                     {
-                        '$match': {self.get_argument('key', '_id'): self.get_argument('value', '')}
+                        '$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}
                     },{
                         '$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
                         # tady avg je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
@@ -129,6 +156,7 @@ class api(BaseHandler):
                     }
                 ]))
 
+            '''
             dout[0]['stock'] = list(self.mdb.stock.aggregate([
                 {
                     '$match':{'_id': self.get_argument('value', '')}
@@ -140,7 +168,7 @@ class api(BaseHandler):
                         'bilance': { '$sum': '$history.bilance' },
                     }
                 }]))
-
+            '''
 
         elif data == "get_tags":
             dout = list(self.mdb.stock.distinct('tags.id'))

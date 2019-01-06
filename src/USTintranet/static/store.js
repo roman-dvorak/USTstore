@@ -39,7 +39,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
     $('#modal_oper_place').hide();
 
 
-    if (name === null){name = product_json['_id']}
+    if (name === null){name = product_json['_id'].$oid}
     element = undefined;
     if(show){
         $('#modal-edit-component').modal('show');
@@ -84,7 +84,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                 element = data[0]
                 console.log(element);
 
-                JsBarcode("#edit_barcode",element['_id'], {
+                JsBarcode("#edit_barcode",element['barcode'][0], {
                     format: "CODE128",
                     displayValue: false,
                     margin: 0
@@ -108,7 +108,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                     element = product_json;
                     return 0;
                 }else{
-                  $('#inputID_edit').val(element['_id']);
+                  $('#inputID_edit').val(element['_id'].$oid);
                   $("#inputID_edit").attr('disabled', true);
                   $('#inputNAME_edit').val(element['name'] || "Bez názvu");
                   $('#inputPRICEp_edit').val(element['price_sell'] || 0);
@@ -121,7 +121,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   draw_supplier();
                   draw_stock(element);
                   draw_tags();
-                  draw_history(element['_id']);
+                  draw_history(element['_id'].$oid);
                 }
 
             },
@@ -173,7 +173,7 @@ function ClearArticleEdit(){
 
 function UpdateFromForm(){
     if(element === undefined){element = {}}
-    element['_id'] = $('#inputID_edit').val();
+    element['_id'] = ObjectID($('#inputID_edit').val());
     element['name'] = $('#inputNAME_edit').val();
     element['description'] = $('#inputDESCRIPTION_edit').val();
     element['sellable'] = $('#inputSELLABLE_edit').prop('checked');

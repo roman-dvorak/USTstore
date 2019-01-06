@@ -1,13 +1,18 @@
-<div class="product_list_element product_list_element_table" style="font-size: 13px;">
-	<span style="margin-left: 20pt; width: 8pt;"><input type="checkbox" class="product_list-select form-check-input" name="selected" value="" onchange="update_selected(this)"></span>
-	<span style="min-width: 120px;">
+<div class="list-group-item product_list_element product_list_element_table p-0 d-flex" style="font-size: 13px;">
+	<span class="align-self-center" style="min-width: 120px;">
 		<img src="" style="width: 120px; height: 120px;">
 	</span>
-	<span class="product_list-name" style="font-size: 1.5em; font-weight: 400; width: 30em;"></span>
-	<small style="width: 30em;"><span class="category_name"></span></small>
-	<span style="width: calc(100%);">
-		<span class="product_list-description" style=""></span>
-		<span style="" class="stock_holder"></span>
-	</span>
-	<span style="width: 8.5em;"><input type="number" name="sklad_value" class="stock_count table_input"disabled=""></span>
+
+	<div class=" flex-grow-1 p-1" style="flex-grow: 1;">
+		<div class="d-flex" style="padding-left: 20px;">
+			<input type="checkbox" class="product_list-select form-check-input" name="selected" onchange="update_selected(this)">
+			<span class="product_list-name" style="font-size: 1.2em; font-weight: 400;"></span>
+			<span class="category_name ml-auto" style="font-size: 1.1em; font-weight: 400; min-width: 10em;"></span>
+		</div>
+		<div>
+			<span class="product_list-description" style=""></span>
+			<span class="stock_holder"></span>
+		</div>
+	</div>
+	<div style=""><input type="number" name="sklad_value" class="stock_count table_input"disabled=""></div>
 </div>
