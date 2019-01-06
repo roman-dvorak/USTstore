@@ -3,3 +3,6 @@ src/USTintranet/static/sestava.pdf
 
 
 *.pyc
+*.pyo
+.Python
+__pycache__/
