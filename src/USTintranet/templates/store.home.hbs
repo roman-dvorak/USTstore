@@ -314,6 +314,7 @@
       <div>
         Filtrovat podle parametru: <select class="parameters-filter-new-tab"></select>
       </div>
+      <div id="filter_tab_content"></div>
     </div> <!-- Konec zalozky PARAMETRY -->
   </div>
   </div>
@@ -721,17 +722,20 @@
 		</template>
 
 
-		<template id="products-template_table">
-			 {% module Template('store.api.template.component.row.hbs') %}
-		</template>
+    <template id="products-template_table">
+       {% module Template('store.api.template.component.row.hbs') %}
+    </template>
 
+  	<template id="supplier-template">
+  		<div class="col-12 card supplier_list_element m-0 mb-1">
+  			<b><a class="supplier_name" target="_blank"></a></b>
+  			<span class="supplier_product"></span>
+  		</div>
+  	</template>
 
-    	<template id="supplier-template">
-    		<div class="col-12 card supplier_list_element m-0 mb-1">
-    			<b><a class="supplier_name" target="_blank"></a></b>
-    			<span class="supplier_product"></span>
-    		</div>
-    	</template>
+    <template id="filter_tab_template">
+       {% module Template('store.api.template.filter_tab.hbs') %}
+    </template>
 
 
 
@@ -1211,13 +1215,24 @@ $('.parameters-filter-new-tab').select2({
           results: $.map(data.items, function (item) {
               console.log(item);
               return {
-                  text: item.name,
+                  text: item.lang.cs + "  ("+item.name+")",
                   id: item._id.$oid
               }
           })
       };
     }
   }
+});
+
+$('.parameters-filter-new-tab').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("Pridavam novy filter", data);
+    var t = document.querySelector('#filter_tab_template');
+
+
+
+    t.content.querySelector('.filter_tab_name').innerHTML = data.text;
+    $("#filter_tab_content").append(document.importNode(t.content, true));
 });
 
 </script>
