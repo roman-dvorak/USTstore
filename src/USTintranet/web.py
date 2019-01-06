@@ -94,8 +94,9 @@ class WebApp(tornado.web.Application):
             print("", plugin)
         print ("handlers:")
         for handler in handlers:
+            pass
             #print("", server_url+handler[0], handler[1])
-            print(server_url+handler[0])
+            #print(server_url+handler[0])
 
         settings = dict(
             plugins = plugins,
