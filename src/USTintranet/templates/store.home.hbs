@@ -312,7 +312,7 @@
     </div> <!-- Konec zalozky KATEGORIE -->
     <div class="tab-pane fade" role="tabpanel" id="nav-filter-parameters"> <!-- Zacatek zalozky PARAMETRY -->
       <div>
-        Filtrovat podle parametru: <select class="parameters-filter-new-tab"></select>
+        Filtrovat podle parametru: <select class="select-component-parameters" id="select-component-parameters-filter"></select>
       </div>
       <div id="filter_tab_content"></div>
     </div> <!-- Konec zalozky PARAMETRY -->
@@ -384,219 +384,8 @@
 </div></div>                                                              <!-- Konec divu WRPPPER a ROW -->
 
 
-
-
-<div id="modal-edit-component"  class="modal hide fade" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Editace součástky</h5>
-        <span>
-	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-	          <span aria-hidden="true">&times;</span>
-	        </button>
-	        {% if permis %}<button type="button mr-0" class="close" onclick="WriteToDb()">{%end%}
-	          <span aria-hidden="true"><i class="material-icons">save</i></span>
-          
-	        </button>
-	    </span>
-      </div>
-      <!-- <div class="modal-body bg-warning">
-     		Barva v levém sloupci značí v jakém stavu vývoje položka je
-     		<ul>
-     			<li>zelená dokončeno (nebo bez barvy - první část).
-     			<li>Oranžová - mělo by být funkční, ale ještě je potřeba něco dodělat.
-     			<li>Červená - pouze textové pole. data se neukládají. Nepoužívat.
-     		</ul>
-     		Ukládání pomocí tlačítka dole by mělo fungovat.<br>
-     		Barvy a toto pole budou odstaněny...
-      </div> -->
-      <div class="modal-body">
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label">ID</label>
-              <div class="col-sm-9 input-group">
-                <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky"> 
-                <div class="input-group-append">
-			    	<button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button>
-			  	</div>
-                <div style="height: 43pt; padding: 0pt; margin-top: 1rem;" class="col-12"><svg id="edit_barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
-              </div>
-            </div>
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label">Name</label>
-              <div class="col-sm-9">
-                <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
-              </div>
-            </div>
-            {#
-            {% if permis %}<div class="form-group row bg-danger">
-              <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
-                <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value='0' disabled>
-                <div class="input-group-append">
-                  <div class="input-group-text">Czk</div>
-                </div>
-              </div>
-            </div>{%end%}#}
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena je určena jako základní pro samostatný prodej. Zaškrtávátko určuje, jestli tato položka je samostatně prodejná.">Cena (prodejní) <i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
-              	<div class="input-group-prepend">
-				    <div class="input-group-text">
-				      <input id="inputSELLABLE_edit" type="checkbox" aria-label="Checkbox for following text input">
-				    </div>
-				  </div>
-                <input type="number" class="form-control" id="inputPRICEp_edit" placeholder="Cena (prodejní)" value="0" min="0" step="0.001">
-                <div class="input-group-append">
-                  <div class="input-group-text">Czk</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label">Skladové zásoby</label>
-              <div class="col-sm-9">
-                  <div class="d-flex flex-row" id="inputSTOCK_list">
-
-                  </div>
-              </div>
-            </div>
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label">Popis</label>
-              <div class="input-group col-sm-9">
-                <textarea class="form-control" aria-label="With textarea" rows="5" id="inputDESCRIPTION_edit"></textarea>
-              </div>
-            </div>
-
-            <div class="form-group row">
-               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Pokud nebude kategorie zadána, položka bude zařazena do 'Nezařazeno'.">Kategorie<i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
-                <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
-                {% for cat in category %}
-                    <option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
-                {% end %}
-                </select>
-
-              </div>
-            </div>
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label">Tagy</label>
-              <div class="input-group col-sm-9">
-              	<select id="inputTAG_edit" class="form-control" multiple="multiple"></select>
-              </div>
-            </div>
-
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label bg-warning">Operace</label>
-              <div class="input-group col-sm-9">
-                
-                <div id="selected_operations">
-                  <div class="btn-group btn-group-justified">
-                    <div class="btn-group" role="group">
-                        <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Do košíku</button>
-                        <div class="dropdown-menu form-group p-0" aria-labelledby="btnGroupDrop1">
-                          <input class="form-control" type="number" id="add_to_cart_count" min="0" value="0">
-                          <button class="form-control btn btn-success" onclick="add_to_cart_count(null, '#add_to_cart_count')">Přidat</button>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-primary" onclick="load_modal_operation('buy', '#modal_oper_place')">Nákup</button>
-                    <button type="button" class="btn btn-primary">Prodej</button>
-                    <button type="button" class="btn btn-primary" onclick="load_modal_operation('service', '#modal_oper_place')">Servisní odběr</button>
-                </div> 
-                </div>
-
-              </div>
-            </div>
-
-            <div class="row card card-body" id="modal_oper_place" style="margin-left: auto; margin-right: auto; display: none;">
-            </div>
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label ">Parametry</label>
-              <div class="col-sm-9">
-                  <div class="card m-0">
-                    <table id="inputPARAM_edit" class="table table-sm mb-0" style="width:100%;">
-                      <thead>
-                        <tr>
-                            <td>#</td>
-                            <td>Jméno</td>
-                            <td>Hodnota</td>
-                            <td>Operace</td>
-                        </tr><tr>
-                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_id" type="number" class="form-control form-tab" style="width: 4em;" min=1 step=1 value=1> </td>
-                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_name" type="text" class="form-control form-tab" value=""> </td>
-                          <td class="form-tab-td" style="padding: 0pt;"> <input id="new_param_value" type="text" class="form-control form-tab" value=""> </td>
-                          <td class="form-tab-td" style="padding: 0pt;">
-                            <button class="form-control" onclick="add_parameter()"><i class="fa fa-plus" aria-hidden="true">+</i></button></td>
-                        </tr>
-                      </thead>
-                      <tbody id="param_table_body">
-
-                      </tbody>
-                    </table>
-
-                  </div>
-              </div>
-            </div>
-
-            <div class="form-group row">
-              <label class="col-sm-3 col-form-label ">Dodavatelé</label>
-              <div class="col-sm-9">
-              	  <div class="card m-0">
-              	  	<div class="card-header" id="headingOne" style="padding: 0pt; background-color: white;">
-				      <h5 class="mb-0">
-				        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-				          Nový dodavatel
-				        </button>
-				      </h5>
-				    </div>
-				    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
-     					<div class="card-body">
-     						        #<input class="form-control" id="new_supplier_id" type="number" name="" min=1 value=1 disabled>
-     						        Dodavatel <select class="form-control" id="new_supplier_name"></select>
-		              	  	<input type='hidden' id='' style='width:300px'/>
-		              	  	Symbol:<input class="form-control" id="new_supplier_symbol" type="text" name="">
-		              	  	code:<input class="form-control" id="new_supplier_code" type="text" name="">
-		              	  	BarcodeType:<select class="form-control" id="new_supplier_bartype">
-		              	  		<option value="CODE128">Code 128</option>
-		              	  		<option value="CODE39">Code 39</option>
-		              	  		<option value="EAN-13">EAN 13</option>
-		              	  		<option value="EAN-8">EAN 8</option>
-		              	  		<option value="EAN-5">EAN 5</option>
-		              	  		<option value="EAN-2">EAN 2</option>
-		              	  		<option value="UPC-A">UPC A</option>
-		              	  		<option value="UPC-E">UPC E</option>
-		              	  	</select>
-		              	  	URL:<input class="form-control" id="new_supplier_url" type="text" name="">
-		              	  	<button onclick="add_supplier()">Použít</button>
-		              	</div>
-		              </div>
-              	  </div>
-                  <div class="" id="inputSUPPLIER_list">
-
-                  </div>
-              </div>
-            </div>
-            {% if permis %}<div class="form-group row">
-              <label class="col-sm-3 col-form-label">Historie operací</label>
-              <div class="col-sm-9">
-                  <div class="" id="inputHISTORY_edit" style="max-height: 60vh; overflow-y: auto;"></div>
-              </div>
-            </div>{%end%}
-
-      </div>
-      <div class="modal-footer">
-        {% if permis %}<button type="button" class="btn btn-primary" onclick="WriteToDb()">Save changes</button>{%end%}
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
+{% module Template('store.modal.component.edit.hbs', permis=permis, category=category) %}
+{% module Template('store.modal.component.edit.scripts.hbs') %}
 
 
 <!-- Modal - pro produktove operace -->
@@ -1203,7 +992,7 @@ function call_change(event, element) {
 
 
 // Slouzi k vyhledani seznamu parametru pro vyhledavani polozek
-$('.parameters-filter-new-tab').select2({
+$('.select-component-parameters').select2({
   ajax: {
     url: '/store/api/get_parameters/list/',
     dataType: 'json',
@@ -1215,8 +1004,9 @@ $('.parameters-filter-new-tab').select2({
           results: $.map(data.items, function (item) {
               console.log(item);
               return {
-                  text: item.lang.cs + "  ("+item.name+")",
-                  id: item._id.$oid
+                  text: item.lang.cs + "  ("+item.name+") ["+item.unit+"]",
+                  name: item.name,
+                  id: item.name
               }
           })
       };
@@ -1224,12 +1014,10 @@ $('.parameters-filter-new-tab').select2({
   }
 });
 
-$('.parameters-filter-new-tab').on('select2:select', function (e) {
+$('#select-component-parameters-filter').on('select2:select', function (e) {
     var data = e.params.data;
     console.log("Pridavam novy filter", data);
     var t = document.querySelector('#filter_tab_template');
-
-
 
     t.content.querySelector('.filter_tab_name').innerHTML = data.text;
     $("#filter_tab_content").append(document.importNode(t.content, true));

@@ -24,7 +24,6 @@ function get_supplier_url(element_supplier){
 			return null;
 			break;
 	}
-
 }
 
 
@@ -37,6 +36,9 @@ function OpenArticleEdit(name = null, clear = true, show = true){
 
     $('#modal_oper_place').empty();
     $('#modal_oper_place').hide();
+
+    var table = new Tabulator("#edit-parameters-table");
+    table.clearData();
 
 
     if (name === null){name = product_json['_id'].$oid}
@@ -173,7 +175,7 @@ function ClearArticleEdit(){
 
 function UpdateFromForm(){
     if(element === undefined){element = {}}
-    element['_id'] = ObjectID($('#inputID_edit').val());
+    element['_id'] =$('#inputID_edit').val();
     element['name'] = $('#inputNAME_edit').val();
     element['description'] = $('#inputDESCRIPTION_edit').val();
     element['sellable'] = $('#inputSELLABLE_edit').prop('checked');
@@ -218,24 +220,10 @@ function WriteToDb(){
 }
 
 function add_parameter(){
-  if ((element.parameters || []).length < Number($('#new_param_id')[0].value)){
-    if (element.parameters === undefined){
-        console.log("Toto jeste neni definovane");
-        element.parameters = [];
-    }
-    var nid = element.parameters.push({
-        "name":$('#new_param_name')[0].value,
-        "value":$('#new_param_value')[0].value
-    });
-  }
-  else {
-    element.parameters[Number($('#new_param_id')[0].value)-1]={
-        "name":$('#new_param_name')[0].value,
-        "value":$('#new_param_value')[0].value
-    };
-  }
 
-  $("#new_param_id")[0].value = (element.parameters || []).length+1;
+  element.parameters.push({'name': $('#select-component-parameters-edit').val(),
+                            'value': $('#value-component-parameters-edit').val()})
+  
   draw_parameters();
 }
 
@@ -253,31 +241,41 @@ function move_param(id, dir){
 
 
 function draw_parameters(){  
-  if (element === undefined || parameters === undefined || parameters == {} || Array.isArray(parameters) == false){
-    var parameters = [];
-    $("#new_param_id")[0].value = 1;
-  }else{
-    var parameters = element.parameters;
+  if (element.parameters == undefined){
+    element['parameters'] = [];
   }
+  var parameters = element.parameters
+
+  // if (element === undefined || element.parameters == undefined || parameters === undefined || parameters == {} || Array.isArray(parameters) == false){
+  //   var parameters = [];
+  //   $("#new_param_id")[0].value = 1;
+  // }else{
+  //   var parameters = element.parameters;
+  // }
   $("#param_table_body").empty();
   console.log("All", parameters);
 
-  for (param in parameters){
-    var p = parameters[param];
 
-    var html = "<tr><td>" + (Number(param)+1).toString() + "</td><td>" + p.name + "</td><td>"+ p.value +
-      "</td><td style='padding: 0pt;'>"+
-      "<div class='btn-group' role='group'>"+
-      "<button class='btn btn-sm btn-outline-primary' onclick='edit_param("+param+")'><i class='material-icons'>edit</i></button>" +
-      "<button class='btn btn-sm btn-outline-success' onclick='move_param("+param+", -1)'><i class='material-icons'>keyboard_arrow_up</i></button>" +
-      "<button class='btn btn-sm btn-outline-success' onclick='move_param("+param+", +1)'><i class='material-icons'>keyboard_arrow_down</i></button>" +
-      "<button class='btn btn-sm btn-outline-danger'  onclick='rm_parameter("+param+")'><i class='material-icons'>delete_forever</i></button></td></tr>"+
-      "</div>";
-    console.log(html);
-    $("#param_table_body").append(html);
-  }
+  var table = new Tabulator("#edit-parameters-table",{
+    layout:"fitColumns",
+    columns:[
+        {title:"#", field:"id", sorter:"number", width: 25, editable:false},
+        {title:"Parametr", field: "name", editable:false},
+        {title:"Hodnota", field: "value", editable:false},
+        {title:"Veličina", field:"unitn", editable:true, sorter:"string"},    
+    ],
+    addRowPos:"bottom",
+    cellEdited:function(cell){
+      console.log("EDITED");
+      console.log(cell);
+    },
+  });
+  table.setData(parameters);
+
   //element['parameters'] = parameters;
 }
+
+
 
 
 

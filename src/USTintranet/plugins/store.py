@@ -10,6 +10,7 @@ from . import BaseHandler
 import json
 import bson.json_util
 from bson import *
+from bson import ObjectId
 import urllib
 from fpdf import FPDF
 import barcode
@@ -232,9 +233,10 @@ class api(BaseHandler):
             if len(new_json['category']) == 0:
                 new_json['category'] += ['Nezařazeno']
 
+            id = new_json.pop('_id')
             dout = (self.mdb.stock.update(
                         {
-                            "_id": new_json['_id']
+                            "_id": ObjectId(id)
                         },{
                             '$set': new_json
                         },upsert=True))
