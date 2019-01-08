@@ -14,6 +14,10 @@ import datetime
 import pandas as pd
 from fpdf import FPDF
 
+import sys
+sys.path.append("..")
+from plugins.store_data.stock_counting import getLastInventory, getPrice
+
 
 def make_handlers(module, plugin):
         return [
@@ -22,8 +26,10 @@ def make_handlers(module, plugin):
 
              (r'/{}/get_item/'.format(module), plugin.load_item),
              (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
+             (r'/{}/view/categories'.format(module), plugin.view_categories),
              (r'/{}'.format(module), plugin.home),
              (r'/{}/'.format(module), plugin.home),
+
              #(r'/{}/(.*)/'.format(module), plugin.edit),
              #(r'/{}/(.*)'.format(module), plugin.edit),
         ]
@@ -36,13 +42,58 @@ def plug_info():
     }
 
 
-
 class home(BaseHandler):
     def get(self):
         cat = list(self.mdb.category.find({}))
         cat = sorted(cat, key = lambda x: x['path']+x['name'])
         self.render('stocktaking.home.hbs', category = cat)
 
+
+##
+##  Trida, pro prehled skladu rozrazeny do kategorii
+##
+class view_categories(BaseHandler):
+    def get(self):
+
+        categories = list(self.mdb.category.aggregate([]))
+
+        # seradit kategorie tak, aby to odpovidalo adresarove strukture
+        paths = set()
+        for x in categories:
+            paths.add(x['path']+x['name'])
+        paths = sorted(list(paths))
+
+        data = []
+        data = list(data)
+
+        for i, path in enumerate(paths):
+            data += [{}]
+            data[i]['path'] = path
+            print(path.split('/')[-1])
+            data[i]['level'] = len(path.split('/'))-2
+            data[i]['category'] = path
+
+            cat_modules = self.mdb.stock.aggregate([
+                {'$match': {'category.0': path.split('/')[-1]}},
+                {'$addFields': {'count': {'$sum': '$history.bilance'}}},
+                {'$sort': {'name': 1}}
+            ])
+            data[i]['modules'] = list(cat_modules)
+
+            cat_sum = 0
+            for module in data[i]['modules']:
+                module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
+                if module['inventory']:
+                    module['count'] = module['inventory']
+                module['inventory'] = bool(module['inventory'])
+                module['price_sum'] = getPrice(module)
+                if module['count'] > 0:
+                    module['price'] = module['price_sum']/module['count']
+                else:
+                    module['price'] = 0
+                cat_sum += module['price_sum']
+            data[i]['cat_sum'] = cat_sum
+        self.render("stocktaking.view.categories.hbs", data=data, category = data)
 
 
 class load_item(BaseHandler):

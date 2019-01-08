@@ -1,0 +1,73 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Produkce, uvod{% end %}
+{% block body %}
+
+<style type="text/css">
+	
+.cat-title{
+	width: 100%;
+	border-bottom: 2pt black solid;
+	padding-top: 1em;
+	padding-left: 3em;
+	font-weight: 500;
+	font-size: 15pt;
+}
+
+.cat-level-0{
+	padding-left: 3em;
+}
+
+.cat-level-1{
+	padding-left: 5em;
+}
+
+.cat-level-2{
+	padding-left: 7em;
+}
+
+.cat-level-3{
+	padding-left: 9em;
+}
+
+.module-row{
+	border-bottom: 0.2pt lightgray solid;
+	padding-left: 0pt;
+	padding-right: 0pt;
+	margin-left: 0pt;
+	margin-right: 0pt;
+}
+
+.col{
+	text-align: right;
+}
+
+
+</style>
+
+
+<div>
+	
+	{% for cat in category %}
+		<div class="d-flex flex-row justify-content-between cat-title">
+			<div class="cat-level-{{cat['level']}}">{{cat['category']}}</div>
+			<div class="" style="margin-right: 1em;">{{"{:6,.2f} Czk".format(cat['cat_sum'])}}</div>
+		</div>
+		<div class="pl-table">
+		{% for module in cat['modules'] %}
+			<div class="d-flex flex-row justify-content-between row module-row">
+				<div class="col">{{module['name']}}</div>
+				<div class="col" style="">{{"{:f}".format(len(module.get('history', [])))}}</div>
+				<div class="col" style="">{{"{:6.2f} j".format(module['count'])}}</div>
+				<div class="col" style="">{{"{:6.2f} Czk".format(module['price'])}}</div>
+				<div class="col" style="">{{"{:6.2f} Czk".format(module['price_sum'])}}</div>
+				<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+			</div>
+			{#<div><small>{{module}}</small></div>#}
+		{% end %}
+		</div>
+
+	{% end %}
+
+</div>
+
+{% end %}{# body #}
