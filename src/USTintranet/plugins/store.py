@@ -64,6 +64,8 @@ class api_products_json(BaseHandler):
                                 {'description': { '$regex': search, '$options': 'ix'}} ]}
             },{
                 "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+            },{
+                '$addFields': {'count': {'$sum': '$history.bilance'}}
             }]
 
         if len(tag_search) > 1 and not tag_polarity:
@@ -75,6 +77,11 @@ class api_products_json(BaseHandler):
             agq += [{
                 "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
             }]
+
+        if in_stock == 'Yes':
+            agq += [{"$match": {'count': {"$gt": 0}}}]
+        elif in_stock == 'No':
+            agq += [{"$match": {'count': {"$eq": 0}}}]
 
         count = len(list(self.mdb.stock.aggregate(agq)))
         
@@ -92,19 +99,8 @@ class api_products_json(BaseHandler):
             },{
                 '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
 
-            },{
-                '$addFields': {'count': {'$sum': '$history.bilance'}}
-
             }]
 
-        if in_stock == 'Yes':
-            agq += [{"$match": {'count': {"$gt": 0}}}]
-            print("POUZE TO, CO je ve sklade.....")
-        elif in_stock == 'No':
-            agq += [{"$match": {'count': {"$eq": 0}}}]
-            print("POUZE TO, CO NENI ve sklade.....")
-        else:
-            print("VSE......", in_stock)
 
         dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
         dout = {}
