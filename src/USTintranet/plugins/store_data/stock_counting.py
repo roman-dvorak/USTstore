@@ -14,6 +14,22 @@ def getLastInventory(component, until, use_count = False):
     return count
 
 
+def getInventory(component, fro = None, to = None, use_count = False):
+    count = 0
+    price = 0
+    if use_count: count = component['count']
+    for x in reversed(component.get('history', [])):
+        if x.get('operation', None) == 'inventory':
+            print(x['_id'].generation_time.date())
+            if (fro and x['_id'].generation_time.date() > fro.date()) and (to and x['_id'].generation_time.date() < to.date()):
+                print("selected!!!! ", fro.date(), x["_id"].generation_time.date(), to.date())
+                price = x.get('price', None)
+                count = x.get('bilance', None)
+                break;
+
+    return (count, price)
+
+
 def getPrice(component):
     count = component['count']
     rest = count 

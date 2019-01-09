@@ -16,7 +16,7 @@ from fpdf import FPDF
 
 import sys
 sys.path.append("..")
-from plugins.store_data.stock_counting import getLastInventory, getPrice
+from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
 
 
 def make_handlers(module, plugin):
@@ -65,7 +65,7 @@ class view_categories(BaseHandler):
 
         data = []
         data = list(data)
-
+        
         for i, path in enumerate(paths):
             data += [{}]
             data[i]['path'] = path
@@ -79,9 +79,13 @@ class view_categories(BaseHandler):
                 {'$sort': {'name': 1}}
             ])
             data[i]['modules'] = list(cat_modules)
-
+            cat_elements = 0
             cat_sum = 0
+            cat_sum_bilance = 0
+            inventura = True
+
             for module in data[i]['modules']:
+                #module['inventory'] = getInventory(module, datetime.datetime(2018, 10, 1), None, False)
                 module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
                 if module['inventory']:
                     module['count'] = module['inventory']
@@ -91,8 +95,22 @@ class view_categories(BaseHandler):
                     module['price'] = module['price_sum']/module['count']
                 else:
                     module['price'] = 0
+
+                module['inventory_2018'] = {'bilance_count': None, 'bilance_price': None}
+                (module['inventory_2018']['count'], module['inventory_2018']['price']) = getInventory(module, datetime.datetime(2018, 1, 1), datetime.datetime(2018, 10, 1), False)
+                module['inventory_2018']['bilance_count'] = module['count'] - module['inventory_2018']['count']
+                module['inventory_2018']['bilance_price'] = module['price_sum'] - module['inventory_2018']['price']*module['inventory_2018']['count']
+
                 cat_sum += module['price_sum']
+                cat_elements += module['count']
+                cat_sum_bilance += module['inventory_2018']['bilance_price']
+                inventura &= (module['inventory'] or (module['count']==0))
+
+
             data[i]['cat_sum'] = cat_sum
+            data[i]['cat_sum_bilance'] = cat_sum_bilance
+            data[i]['cat_elements'] = cat_elements
+            data[i]['cat_inventura'] = inventura
         self.render("stocktaking.view.categories.hbs", data=data, category = data)
 
 
