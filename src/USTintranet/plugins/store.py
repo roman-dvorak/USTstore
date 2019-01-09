@@ -39,15 +39,14 @@ ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]
 ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
 
 
-
-
 class api_products_json(BaseHandler):
     def post(self):
         self.set_header('Content-Type', 'application/json')
 
         polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
-        selected = (self.request.arguments.get('selected[]', []))
+        selected = self.request.arguments.get('selected[]', [])
+        in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
         search = self.get_argument('search')#.decode('ascii')
@@ -94,9 +93,18 @@ class api_products_json(BaseHandler):
                 '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
 
             },{
-                '$addFields': {'count': { '$sum': '$history.bilance'}}
+                '$addFields': {'count': {'$sum': '$history.bilance'}}
 
             }]
+
+        if in_stock == 'Yes':
+            agq += [{"$match": {'count': {"$gt": 0}}}]
+            print("POUZE TO, CO je ve sklade.....")
+        elif in_stock == 'No':
+            agq += [{"$match": {'count': {"$eq": 0}}}]
+            print("POUZE TO, CO NENI ve sklade.....")
+        else:
+            print("VSE......", in_stock)
 
         dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
         dout = {}

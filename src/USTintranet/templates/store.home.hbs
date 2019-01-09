@@ -276,7 +276,11 @@
       <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
       <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
       <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
-     <!--  <span style="display: none;"><span>Filtrování TAGu: </span>
+      <select id="filter-instock" onchange="update_list()">
+        <option value="All" selected>Vše</option>
+        <option value="Yes">Skladem</option>
+        <option value="No">Vyskladněno</option>
+      </select>     <!--  <span style="display: none;"><span>Filtrování TAGu: </span>
       <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
       <small>Inverzní filtr tagu<input type="checkbox" id="tag_polarity" onchange="update_list()"></small></span> -->
     </div>
@@ -799,6 +803,7 @@ function update_list(){
 	  		'polarity': $('#category_polarity').is( ":checked" ),
 	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),
 	  		'tag_search': $("#tag-search").val(),
+        'in_stock': $("#filter-instock").val(),
 	  		'page': list_page
 	  },
 	  success: function( data, textStatus, jQxhr ){
