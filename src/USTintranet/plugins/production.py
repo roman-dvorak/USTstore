@@ -5,7 +5,7 @@ import tornado.escape
 import tornado.web
 import tornado.websocket
 from . import Intranet
-from . import BaseHandler
+from . import BaseHandler, BaseHandlerJson
 #from pyoctopart.octopart import Octopart
 import json
 import urllib
@@ -19,10 +19,10 @@ def make_handlers(module, plugin):
         return [
              (r'/{}/(.*)/upload/bom/ust/'.format(module), plugin.ust_bom_upload),
              (r'/{}/(.*)/print/'.format(module), plugin.print_bom),
-             (r'/{}'.format(module), plugin.hand_bi_home),
-             (r'/{}/'.format(module), plugin.hand_bi_home),
-             (r'/{}/(.*)/'.format(module), plugin.edit),
-             (r'/{}/(.*)'.format(module), plugin.edit),
+             (r'/{}/(.*)/edit/'.format(module), plugin.edit),
+             (r'/{}/api/getProductionList'.format(module), plugin.get_production_list),
+             (r'/{}'.format(module), plugin.home),
+             (r'/{}/'.format(module), plugin.home),
         ]
 
 def plug_info():
@@ -109,10 +109,26 @@ def get_component_stock(data, db):
             data[component_i]['stock'] = stock
     return data
 
-class hand_bi_home(BaseHandler):
+class home(BaseHandler):
     def get(self):
         production_list = self.mdb.production.aggregate([])
         self.render('production.home.hbs', production_list = production_list)
+
+'''
+    Nacte vsechny polozky z DB pro vytvoreni prehledove tobulky.
+'''
+class get_production_list(BaseHandlerJson):
+    def post(self):
+        data = list(self.mdb.production.find())
+        for d in data:
+            d['id'] = str(d['_id'])
+            d['components'] = len(d['components'])
+            d['created'] = str(d['created'].date())
+            d['author_text'] = ', '.join(d['author'])
+            d['placement'] = None
+        print(data)
+        out = bson.json_util.dumps(data)
+        self.write(out)
 
 class edit(BaseHandler):
     def get(self, name):
@@ -130,7 +146,7 @@ class edit(BaseHandler):
                     'components': []
                 })
             print(product)
-            self.redirect('/production/{}/'.format(product))
+            self.redirect('/production/{}/edit/'.format(product))
 
         product = self.mdb.production.aggregate([
                 {'$match': {'_id': bson.ObjectId(name)}}
