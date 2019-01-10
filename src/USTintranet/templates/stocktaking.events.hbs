@@ -1,0 +1,194 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Produkce, uvod{% end %}
+{% block body %}
+
+<div class="container pt-5">
+	<div class="row">
+		<div class="col">
+			<div id="stocktaking-table"></div>
+			 <span onclick="stocktakingNew()">Vytvořit novou.</span>
+		</div>
+		<div class="col">
+			<div class="form-hide bg-warning" id="form-none">Žádná kampaň není načtena. Pokračujte kliknutím na řádek v levém sloupci nebo vytvořte <span onclick="stocktakingNew()">novou</span>.</div>
+			<div class="form-hide" id="form-loadig"><div class="loader"></div></div>
+			<div class="form-hide" id="form-form">
+
+			<form>
+			  <div class="form-group row">
+			    <label for="eventFormId" class="col-sm-2 col-form-label">ID</label>
+			    <div class="col-sm-10">
+			      <input type="text" readonly class="form-control" id="eventFormId" value="new id">
+			    </div>
+			  </div>
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Name</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="eventFormName" placeholder="Name">
+			    </div>
+			  </div>
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">From, To</label>
+			    <div class="col-sm-5">
+			      <input type="date" class="form-control" id="eventFormFrom" placeholder="Date from">
+			    </div>
+			    <div class="col-sm-5">
+			      <input type="date" class="form-control" id="eventFormTo" placeholder="Date to">
+			    </div>
+			  </div>
+			  
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Authors</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="eventFormAuthors" placeholder="Authors">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Status</label>
+			    <div class="col-sm-10">
+			      <select class="form-control" id="eventFormStatus" placeholder="Status">
+			      	<option value="0">Locked</option>
+			      	<option value="1">Opened</option>
+			      </select>
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label"></label>
+			    <div class="col-sm-10">
+			      <input type="button" class="form-control" value="Uložit" onclick="stocktakingSave()">
+			    </div>
+			  </div>
+
+
+			</form>
+		</div>
+	</div>
+	</div>
+</div>
+
+
+
+<script type="text/javascript">
+	
+// Načte všechny kampaně a zobrazí je do tabulky
+function stocktakingLoadEvents(){
+	var table = new Tabulator("#stocktaking-table", {
+	width: '100%',
+	columns:[
+        {title:"ID", field:"id", width:100},
+        {title:"Name", field:"name", sorter:"string", width:200},
+        {title:"From", field:"opened_from", sorter:"date", align:"center"},
+        {title:"To", field:"opened_to", sorter:"date", align:"center"},
+        {title:"status", field:"status", sorter:"string", align:"center"},
+    ],
+    rowClick:function(e, row){
+    	//e - the click event object, row - row component
+    	var event_id = row._row.cells[0].value
+    	stocktakingLoadEvent(event_id);
+    },
+    ajaxURL:"/stocktaking/events", //ajax URL
+    ajaxConfig:{
+        method:"POST", //set request type to Position
+        headers: {
+            "Content-type": 'application/json; charset=utf-8', //set specific content type
+        },
+    }
+});
+}
+
+
+function stoctakingClearTable(){
+	$('#eventFormId').val(null);
+	$('#eventFormName').val(null);
+	$('#eventFormStatus').val(null);
+	$('#eventFormFrom').val(null);
+	$('#eventFormTo').val(null);
+
+}
+
+function stocktakingRenderTable(data){
+	$('#eventFormId').val(data['id']);
+	$('#eventFormName').val(data['name']);
+	$('#eventFormStatus').val(data['status']);
+	$('#eventFormFrom').val(data['opened_from']);
+	$('#eventFormTo').val(data['opened_to']);
+
+	$('.form-hide').hide();
+	$('#form-form').show();
+}
+
+/* Načte detaily o jedné kampani */
+function stocktakingLoadEvent(event_id){
+	$('.form-hide').hide();
+	$('#form-loadig').show();
+	$.ajax({
+        url: "/stocktaking/event/"+event_id,
+        type: "post",
+        success: function (response) {
+           console.log(response);
+           stocktakingRenderTable(response)
+			$('.form-hide').hide();
+			$('#form-form').show();
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log(textStatus, errorThrown);
+			$('.form-hide').hide();
+			$('#form-none').show();
+        }
+    });
+}
+
+
+function stocktakingNew(){
+	stoctakingClearTable();
+	$('#eventFormId').val("new");
+	$('#eventFormStatus').val(1);
+
+	$('.form-hide').hide();
+	$('#form-form').show();
+
+}
+
+function stocktakingSave(){
+	$('.form-hide').hide();
+	$('#form-loadig').show();
+	var event_id = $('#eventFormId').val();
+	var data = {
+		id: event_id,
+		name: $('#eventFormName').val(),
+		status: $('#eventFormStatus').val(),
+		from: $('#eventFormFrom').val(),
+		to: $('#eventFormTo').val(),
+	}
+	$.ajax({
+        url: "/stocktaking/event/"+event_id+"/save",
+        type: "post",
+        data: data,
+        success: function (response) {
+           console.log(response);
+           stocktakingLoadEvent(response);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log(textStatus, errorThrown);
+			$('.form-hide').hide();
+			$('#form-none').show();
+        }
+    });
+
+	$('.form-hide').hide();
+	$('#form-form').show();
+	stocktakingLoadEvents();
+}
+
+
+stoctakingClearTable();
+stocktakingLoadEvents();
+$('.form-hide').hide();
+$('#form-none').show();
+
+
+</script>
+
+
+{% end %}

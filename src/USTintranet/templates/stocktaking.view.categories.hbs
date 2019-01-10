@@ -115,11 +115,11 @@
 
 			<div class="d-flex flex-row justify-content-between row module-row {%if cat['cat_inventura']%}done{%end%}">
 				<div class="col">Název</div>
-				<div class="col" style="">Počet záznamů</div>
-				<div class="col" style="">Počet kusů</div>
-				<div class="col" style="">Cena za ks</div>
-				<div class="col" style="">Cena celkem</div>
-				<div class="col" style="">Inventura 2018, 2019</div>
+				<div class="col">Počet záznamů</div>
+				<div class="col">Počet kusů</div>
+				<div class="col">Cena za ks</div>
+				<div class="col">Cena celkem</div>
+				<div class="col">Inventura 2018, 2019</div>
 			</div>
 
 		{% for module in cat['modules'] %}
@@ -134,7 +134,7 @@
 				<div class="col" style="flex-grow: 0;">{%if module['inventory_2018'].get('count',None)%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
 				<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
 			</div>
-			{#<div><small>{{module}}</small></div>#}
+			
 		{% end %}
 		</div>
 
