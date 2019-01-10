@@ -23,262 +23,191 @@
 
 
 
-<div class="container" style="background: blue">
-
-tady bude nějaký seznam - 
-</div>
 <div class="container" style="">
-
-
-<div class="card">
-	<div class="card-header"> <h2>Editace uživatele</h2></div>
-	<div class="card-body" id="place_user_edit">
-		<div class="form-row">
-			<div class="form-group col">
-				<label>Username</label>
-				<input class="form-control" type="text" disabled id="placement_user">
-			</div>
-			<div class="form-group col">
-				<label>Jméno</label>
-				<input class="form-control" type="text" id="placement_name">
-			</div>
-			<div class="form-group col">
-				<label>E-mail</label>
-				<input class="form-control" type="email" disabled id="placement_email">
-			</div>
-		</div>
-		<div class="form-row">
-			<div class="form-group col">
-				<label>Telefon</label>
-				<input class="form-control" type="number" id="placement_telephone">
-			</div>
-		</div>
-		<div class="form-row">
-			<div class="form-group col">
-				<label>Oprávnění</label>
-				<select class="form-control" id="placement_role"></select>
-			</div>
-		</div>
-		<div class="row" id="placement_address">
+<div class="row">
+	<div class="col-6">
+				<div id="users-table"></div>
 			
-		</div>
 	</div>
+<div class="col-6">
+	<div class="form-hide bg-warning" id="form-none">Není načten žádný uživatel... Uživatelem vyberete kliknutím na příslušný řádek tabulky.</div>
+			<div class="form-hide" id="form-loadig"><div class="loader"></div></div>
+			<div class="form-hide" id="form-form">
+
+			<form>
+			  <div class="form-group row">
+			    <label for="eventFormId" class="col-sm-2 col-form-label">ID</label>
+			    <div class="col-sm-10">
+			      <input type="text" readonly class="form-control" id="userFormId" value="new id">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Uživatelské jméno</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="userFormUser" placeholder="Uživatelské jméno">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Jméno</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="userFormName" placeholder="Celé jméno">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Email</label>
+			    <div class="col-sm-10">
+			      <input type="email" class="form-control" id="userFormEmail" placeholder="Email">
+			    </div>
+			  </div>
+
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Role</label>
+			    <div class="col-sm-10">
+			      <input class="form-control" id="userFormRole" placeholder="Role">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label"></label>
+			    <div class="col-sm-10">
+			      <input type="button" class="form-control" value="Uložit" onclick="userFormSave()">
+			    </div>
+			  </div>
+
 </div>
 
-<div class="card">
-	<div class="card-header"> <h2>Editace Firmy</h2></div>
-
-
 </div>
 
-
-
-
-<div class="card">
-	<div class="card-content">
-		<div class="pl-3 pr-3 pt-3">
-			<h2>Adresář</h2>
-			<ul class="nav nav-tabs">
-			  <li class="nav-item">
-			    <a class="nav-link active" href="#">Lidé</a>
-			  </li>
-			  <li class="nav-item">
-			    <a class="nav-link" href="#">Firmy</a>
-			  </li>
-			</ul>
-		</div>
-	</div>
-	<div>
-		<table id="table_users" class="table">
-			<thead>
-				<tr>
-					<th>Login</th>
-					<th>Jméno</th>
-					<th>E-mail</th>
-				</tr>
-			</thead>
-			<tbody>
-				
-			</tbody>
-		</table>
-	</div>
-	<div>
-		<table id="table_comp" class="table">
-			<thead>
-				<tr>
-					<th>Firma</th>
-					<th>Osoby</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				
-			</tbody>
-		</table>
-	</div>
-	<p>Zobrazeno <span>0</span> položek <span id="">0</span>, Počet položek na stránku <select id="table_limit"><option>10</option></select>. Stránka <input type="number" id="table_page" value="0"></p>
-</div>
-</div>
-
-
-
-
-
-
-{#{{parent.__dict__}}#}
-{% if users %}
-	<h2>Uživatelské účty</h2>
-	<table>
-	<tr>
-		<th>Login</th>
-		<th>Name</th>
-		<th>Zbytek</th>
-	</tr>
-	{% for user in users%}
-		<tr><td>{{user['user']}}</td><td>{{user['name']}}</td><td>{{user}}</td></tr>
-	{% end %}
-	</table>
-{%end%}
-
-<hr>
-<h2>Nastavení mého účtu</h2>
-{{me}}
-<hr>
-<h2>Záznam mých operací</h2>
-<table>
-	<tr><th>Datetime</th><th>Uživatel</th><th>Modul</th><th>Operace</th><th>Data</th></tr>
-	{% for activity in my_activity %}
-	<tr>
-		<td>{{activity['_id'].generation_time}}</td>
-		<td>{{activity['user']}}</td>
-		<td>{{activity['module']}}</td>
-		<td>{{activity['operation']}}</td>
-		<td>{{activity['data']}}</td>
-	</tr>
-	{% end %}
-</table>
 
 <script type="text/javascript">
   var selected_user = {}
   $(document).ready(function(){
-	draw_users();
+
+	$('.form-hide').hide();
+	$('#form-none').show();
+	drawUsers();
+	clearUserForm();
 	$('#placement_role').select2({
 		width: '100%',
 		tags: true,
 		multiple: true,
 	});
-	clear_user_placement();
-
+	
   });
 
 
-	function draw_users() {
+  	//
+  	//   Funkce nacte data z webu a zobrazi je jako tabulku
+  	//
+	function drawUsers() {
+		var table = new Tabulator("#users-table", {
+		width: '100%',
+		columns:[
+	        {title:"ID", field:"id", width:100},
+	        {title:"Uživatel", field:"user", sorter:"string"},
+	        {title:"Jméno", field:"name", sorter:"string"},,
+	        {title:"Email", field:"email", sorter:"string"},
+	    ],
+	    rowClick:function(e, row){
+	    	var event_id = row._row.cells[0].value
+	    	drawUser(event_id);
+	    },
+	    ajaxURL:"users/api/get_users", //ajax URL
+	    ajaxConfig:{
+	        method:"POST", //set request type to Position
+	        headers: {
+	            "Content-type": 'application/json; charset=utf-8', //set specific content type
+	        },
+	    }
+	});
+	}
+
+	//
+	//	Vycisteni formulare
+	//
+	function clearUserForm(){
+		$('#userFormId').val(null);
+		$('#userFormUser').val(null);
+		$('#userFormName').val(null);
+		$('#userFormEmail').val(null);
+		$('#userFormRole').val(null);
+
+		$('.form-hide').hide();
+		$('#form-none').show();
+	}
+
+	//
+	//	Nacteni informaci o uzivateli. Nasledne vyplneni jeho tabulky.
+	//
+	function drawUser(id){
+		$('.form-hide').hide();
+		$('#form-loadig').show();
 		$.ajax({
           type: "POST",
-          url: "/users/api/get_users/",
-          data: {
-          	'skip': $('#table_page').val()*$('#table_limit').val(),
-          	'limit': $('#table_limit').val()
-          },
+          url: "/users/api/get_users/"+id+"/",
           success: function( data, textStatus, jQxhr ){
-            console.log(data);
-            //Lobibox.notify('success', {msg: 'Data nactena'});
-            for(row in data){
-            	var a = data[row];
-            	console.log(a);
-            	console.log('<tr>'+a['user']+'</tr><tr>'+a['name']+'</tr><tr>'+a['email']+'</tr>');
-	            $('#table_users > tbody').append('<tr><td onClick="UserDetails(this)">'+a['user']+'</td><td>'+a['name']+'</td><td>'+a['email']+'</td></tr>'); 
-    		}
+            renderUserForm(data);
           },
           error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
  	       	Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+ 	       	clearUserForm();
           }
       }); 
 	}
 
+	//
+	//	Vyplneni tobulky o uzivateli
+	//
+	function renderUserForm(data){
+		console.log(data);
+		clearUserForm();
+		$('#userFormId').val(data['id']);
+		$('#userFormUser').val(data['user']);
+		$('#userFormName').val(data['name']);
+		$('#userFormEmail').val(data['email']);
+		$('#userFormRole').val(data['role_text']);
 
-	function clear_user_placement(){
-		$('#placement_user').val(null);
-		$('#placement_name').val(null);
-		$('#placement_email').val(null);
-		$('#placement_telephone').val(null)
-;        $('#placement_role').val(null).trigger('change');
-        $('#placement_address').empty();
+		$('.form-hide').hide();
+		$('#form-form').show();
 	}
 
-	function fill_user_placement(){
-		clear_user_placement();
-
-		$('#placement_user').val(selected_user['user']);
-		$('#placement_name').val(selected_user['name']);
-		$('#placement_email').val(selected_user['email']);
-		$('#placement_telephone').val(selected_user['telephone']);
-
-		$('#placement_role').val(null).trigger('change');
-		for (i in selected_user['role']){
-			console.log(i, selected_user['role'][i]);
-			var newOption = new Option(selected_user['role'][i], selected_user['role'][i], true, true);
-			$('#placement_role').append(newOption).trigger('change');
-		}
-
-		for (i in selected_user.addresses){
-			var addr = selected_user.addresses[i];
-			$('#placement_address').append(JSON.stringify(addr));
-		}
+function userFormSave(){
+	$('.form-hide').hide();
+	$('#form-loadig').show();
+	var uid = $('#userFormId').val();
+	var data = {
+		id: uid,
+		user: $('#userFormUser').val(),
+		name: $('#userFormName').val(),
+		email: $('#userFormEmail').val(),
+		role_text: $('#userFormRole').val(),
 	}
+	$.ajax({
+        url: "/users/api/user/"+uid+"/save",
+        type: "post",
+        data: data,
+        success: function (response) {
+           console.log(response);
+           drawUser(response);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log(textStatus, errorThrown);
+			$('.form-hide').hide();
+			$('#form-none').show();
+        }
+    });
+
+	$('.form-hide').hide();
+	$('#form-form').show();
+	drawUsers();	
+}
 
 
-	function UserDetails(el){
-		console.log(el);
-		console.log(el.innerText);
-
-
-		$.ajax({
-          type: "POST",
-          url: "/users/api/get_users/"+el.innerText+"/",
-          data: {
-          },
-          success: function( data, textStatus, jQxhr ){
-            data = data[0];
-            selected_user = data;
-            fill_user_placement()
-          },
-          error: function( jqXhr, textStatus, errorThrown ){
-            console.log( errorThrown );
- 	       	Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
- 	       	clear_user_placement();
-          }
-      }); 
-	}
-
-
-
-
-	function draw_comps() {
-		$.ajax({
-          type: "POST",
-          url: "/users/api/get_comps/",
-          data: {
-          	'skip': $('#table_page').val()*$('#table_limit').val(),
-          	'limit': $('#table_limit').val()
-          },
-          success: function( data, textStatus, jQxhr ){
-            console.log(data);
-            //Lobibox.notify('success', {msg: 'Data nactena'});
-            for(row in data){
-            	var a = data[row];
-            	console.log(a);
-            	console.log('<tr>'+a['user']+'</tr><tr>'+a['name']+'</tr><tr>'+a['email']+'</tr>');
-	            $('#table_users > tbody').append('<tr><td>'+a['user']+'</td><td>'+a['name']+'</td><td>'+a['email']+'</td></tr>'); 
-    		}
-          },
-          error: function( jqXhr, textStatus, errorThrown ){
-            console.log( errorThrown );
- 	       	Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
-          }
-      }); 
-	}
 
 
 </script>

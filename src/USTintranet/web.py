@@ -32,7 +32,6 @@ class home(BaseHandler):
     def get(self, arg=None):
         print("GET home")
         err = []
-        #err = self.get_arguments('err', [])
         self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err, Repo = Repo)
 
     def post(self, arg=None):

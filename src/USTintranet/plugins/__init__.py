@@ -208,8 +208,7 @@ class BaseHandler(tornado.web.RequestHandler):
             if  bool(intersection):
                 return intersection
             else:
-                print("Uzivatel nema dostatecna opravneni k pristupu", required)
-                raise tornado.web.HTTPError(403)
+                return False
         else:
             self.redirect('/login')
 

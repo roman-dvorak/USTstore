@@ -84,15 +84,14 @@ function stocktakingLoadEvents(){
         {title:"status", field:"status", sorter:"string", align:"center"},
     ],
     rowClick:function(e, row){
-    	//e - the click event object, row - row component
     	var event_id = row._row.cells[0].value
     	stocktakingLoadEvent(event_id);
     },
-    ajaxURL:"/stocktaking/events", //ajax URL
+    ajaxURL:"/stocktaking/events",
     ajaxConfig:{
-        method:"POST", //set request type to Position
+        method:"POST",
         headers: {
-            "Content-type": 'application/json; charset=utf-8', //set specific content type
+            "Content-type": 'application/json; charset=utf-8',
         },
     }
 });
