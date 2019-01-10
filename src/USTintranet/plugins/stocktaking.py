@@ -24,6 +24,7 @@ def make_handlers(module, plugin):
              (r'/{}/get_item/'.format(module), plugin.load_item),
              (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
              (r'/{}/event/(.*)/save'.format(module), plugin.stocktaking_eventsave),
+             (r'/{}/event/lock'.format(module), plugin.stocktaking_eventlock),
              (r'/{}/event/(.*)'.format(module), plugin.stocktaking_event),
              (r'/{}/events'.format(module), plugin.stocktaking_events),
              (r'/{}/view/categories'.format(module), plugin.view_categories),
@@ -42,7 +43,8 @@ def plug_info():
 class home(BaseHandler):
     def get(self):
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
-        stocktaking_info = self.mdb.stock_taking.find_one({'_id': current})
+        if current: stocktaking_info = self.mdb.stock_taking.find_one({'_id': current})
+        else: stocktaking_info = None
 
         self.render('stocktaking.home.hbs', stocktaking = stocktaking_info)
 
@@ -145,43 +147,44 @@ class save_stocktaking(BaseHandler):
         item = self.get_argument('_id', None)
 
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
-
-        print("service_push >>", item, stock, description, bilance, absolute)
-        data = {
-                '_id': bson.ObjectId(),
-                'stock': stock,
-                'operation': 'inventory',
-                'bilance': float(bilance),
-                'absolute': float(absolute),
-                'inventory': current,
-                'description': description,
-                'user':self.logged,
-                }
-        print(data)
-        out = self.mdb.stock.update(
-                {'_id': item},
-                {
-                    '$push': {'history':data}
-                }
-            )
-        out = self.mdb.stock.update(
-                {'_id': item},
-                {
-                    '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
-                }
-            )
-        print(out)
-        #self.mdb.stock.update(
-        #    {"_id": item},
-        #    {'$set':{"tags.inventura2019":
-        #        {'date': datetime.datetime.utcnow() }
-        #    }}
-        #)
-        
-        self.write(bson.json_util.dumps(data))
+        if not current:
+            raise tornado.web.HTTPError(500)
+        else:
+            print("service_push >>", item, stock, description, bilance, absolute)
+            data = {
+                    '_id': bson.ObjectId(),
+                    'stock': stock,
+                    'operation': 'inventory',
+                    'bilance': float(bilance),
+                    'absolute': float(absolute),
+                    'inventory': current,
+                    'description': description,
+                    'user':self.logged,
+                    }
+            
+            out = self.mdb.stock.update(
+                    {'_id': item},
+                    {
+                        '$push': {'history':data}
+                    }
+                )
+            
+            #TODO: remove TAG creation
+            out = self.mdb.stock.update(
+                    {'_id': item},
+                    {
+                        '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
+                    }
+                )
+            
+            self.write(bson.json_util.dumps(data))
 
 
 class stocktaking_events(BaseHandler):
+    '''
+        Slouzi k ziskani prehledu o vsech Vytvorenych kampanich. 
+
+    '''
     def get(self):
         self.render('stocktaking.events.hbs')
 
@@ -220,6 +223,14 @@ class stocktaking_event(BaseHandler):
         out = bson.json_util.dumps(event)
         self.write(out)
 
+
+class stocktaking_eventlock(BaseHandler):
+    '''
+        Uzamkne otevrenou kampan. Nepujde provadet inventura.
+    '''
+    def post(self):
+        self.mdb.intranet.update({'_id': 'stock_taking'}, {'$set':{'current': None}})
+        self.write("OK")
 
 class stocktaking_eventsave(BaseHandler):
     '''

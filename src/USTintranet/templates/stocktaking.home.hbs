@@ -83,9 +83,15 @@
         <div class="col-6 col-md-12 col-lg-5">
             <div class="card">
                 <div class="card-body row">
-                    <div class="form-group row col pl-5">
+                    {% if stocktaking %}
+                    <div class="form-group row col pl-5 bg-success">
                       Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
                     </div>
+                    {% else %}
+                    <div class="form-group row col pl-5 bg-danger text-white">
+                      Není odemčená žádná kampaň inventury. Inventuru nelze nyní provádět. O její otevření požádejte správce inventur.
+                    </div>
+                    {% end %}
 
                     <div class="form-group row col-lg-12 col-md-6">
                         <label class="col-sm-2 col-form-label">SKU</label>
@@ -121,10 +127,12 @@
                         <label>Poznámka</label>
                         <input class="form-control form-control-lg" type="text" name="count" id="note" autofocus>
                     </div>
+
+                    {% if stocktaking %}
                     <div class="row form-group col-lg-12 col-md-6">
-                        {#<button id="btn_accept" class="col-6 btn form-control" >Potvrdit data</button>#}
                         <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
                     </div>
+                    {% end %}
 
                 </div>
             </div>
@@ -223,13 +231,6 @@
     $("#new_count").on("change", function(){
         after_count_edit();
     });
-
-
-    // potvrzeni spravnosti zadanych dat
-    //$("#btn_accept").on("click", function(){
-    //    $("#btn_send").prop('disabled', false);
-    //    $("#btn_send").focus();
-    //});
 
 
     // ulozit data o inventure...

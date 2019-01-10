@@ -9,9 +9,14 @@ import datetime
 from bson import ObjectId
 
 
+##
+##    Tento skript doplní do starých inventur (z r. 2018) absolutní počet. 
+##    Ten slouží k tomu, aby se nemusel počet skladových zásob vždy přepočítávat.
+##
+
+
 client = pymongo.MongoClient('localhost', 27017)
 db = client.USTintranet
-
 
 components = db.stock.find()
 

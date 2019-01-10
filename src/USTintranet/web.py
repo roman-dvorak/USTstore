@@ -14,6 +14,8 @@ import time
 import datetime
 import calendar
 import os
+import git
+from git import Repo, Actor
 
 
 #from handlers import admin, auth
@@ -31,7 +33,7 @@ class home(BaseHandler):
         print("GET home")
         err = []
         #err = self.get_arguments('err', [])
-        self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err)
+        self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err, Repo = Repo)
 
     def post(self, arg=None):
         self.write("ACK")
