@@ -103,6 +103,7 @@ function stoctakingClearTable(){
 	$('#eventFormId').val(null);
 	$('#eventFormName').val(null);
 	$('#eventFormStatus').val(null);
+	$('#eventFormAuthors').val(null);
 	$('#eventFormFrom').val(null);
 	$('#eventFormTo').val(null);
 
@@ -112,6 +113,7 @@ function stocktakingRenderTable(data){
 	$('#eventFormId').val(data['id']);
 	$('#eventFormName').val(data['name']);
 	$('#eventFormStatus').val(data['status']);
+	$('#eventFormAuthors').val(data['author']);
 	$('#eventFormFrom').val(data['opened_from']);
 	$('#eventFormTo').val(data['opened_to']);
 
@@ -179,6 +181,7 @@ function stocktakingSave(){
 		name: $('#eventFormName').val(),
 		status: $('#eventFormStatus').val(),
 		from: $('#eventFormFrom').val(),
+		author: $('#eventFormAuthors').val(),
 		to: $('#eventFormTo').val(),
 	}
 	$.ajax({

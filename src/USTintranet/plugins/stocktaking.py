@@ -241,7 +241,7 @@ class stocktaking_eventsave(BaseHandler):
                 'opened': datetime.datetime.strptime(self.get_argument('from'), '%Y-%m-%d'),
                 'closed': datetime.datetime.strptime(self.get_argument('to'), '%Y-%m-%d'),
                 'status': self.get_argument('status'),
-                'author': '',
+                'author': self.get_argument('author'),
                 }
 
         if id == 'new':
