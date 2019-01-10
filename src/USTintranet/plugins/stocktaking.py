@@ -54,7 +54,7 @@ class home(BaseHandler):
 ##
 class view_categories(BaseHandler):
     def get(self):
-
+        self.authorized(['inventory'])
         categories = list(self.mdb.category.aggregate([]))
 
         # seradit kategorie tak, aby to odpovidalo adresarove strukture
@@ -116,6 +116,7 @@ class view_categories(BaseHandler):
 
 class load_item(BaseHandler):
     def post(self):
+        self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
         item = self.get_argument('_id', None)
         print("ARGUMENT JE....", item)
@@ -138,7 +139,7 @@ class load_item(BaseHandler):
 
 class save_stocktaking(BaseHandler):
     def post(self):
-        
+        self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
         stock = self.get_argument('stock', 'pha01')
         description = self.get_argument('description', None)
@@ -148,7 +149,7 @@ class save_stocktaking(BaseHandler):
 
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
         if not current:
-            raise tornado.web.HTTPError(500)
+            raise tornado.web.HTTPError(403)
         else:
             print("service_push >>", item, stock, description, bilance, absolute)
             data = {
@@ -186,9 +187,11 @@ class stocktaking_events(BaseHandler):
 
     '''
     def get(self):
+        self.authorized(['inventory-sudo'], True)
         self.render('stocktaking.events.hbs')
 
     def post(self):
+        self.authorized(['inventory-sudo'], True)
         self.set_header('Content-Type', 'application/json')
         events = list(self.mdb.stock_taking.find())
         stocktaking = self.mdb.intranet.find_one({'_id': 'stock_taking'})
@@ -210,7 +213,7 @@ class stocktaking_event(BaseHandler):
         Slouzi k ziskani informaci o jedne inventurovaci kampani.
     '''
     def post(self, id):
-        print(id)
+        self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
         stocktaking = self.mdb.intranet.find_one({'_id': 'stock_taking'})
         event = self.mdb.stock_taking.find_one({"_id": bson.ObjectId(id)})
@@ -229,6 +232,8 @@ class stocktaking_eventlock(BaseHandler):
         Uzamkne otevrenou kampan. Nepujde provadet inventura.
     '''
     def post(self):
+
+        self.authorized(['inventory-sudo'], True)
         self.mdb.intranet.update({'_id': 'stock_taking'}, {'$set':{'current': None}})
         self.write("OK")
 
@@ -237,6 +242,7 @@ class stocktaking_eventsave(BaseHandler):
         Slouzi k ulozeni dat o inventure. Zaloven zapise globalni parametr s id aktualni invetury.
     '''
     def post(self, id):
+        self.authorized(['inventory-sudo'], True)
         data = {'name': self.get_argument('name'),
                 'opened': datetime.datetime.strptime(self.get_argument('from'), '%Y-%m-%d'),
                 'closed': datetime.datetime.strptime(self.get_argument('to'), '%Y-%m-%d'),
