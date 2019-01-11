@@ -60,6 +60,17 @@
 			      <input type="button" class="form-control" value="Uložit" onclick="stocktakingSave()">
 			    </div>
 			  </div>
+			  <div class="form-group row">
+			    <div class="col-sm-8"></div>
+			    <div class="col-sm-4">
+			      <input type="button" class="form-control" value="Vytvořit sestavu" onclick="generatePDF()">
+			    </div>
+			  </div>
+			  <div class="form-group row">
+			    <div id="eventFormFiles">
+			    	
+			    </div>
+			  </div>
 
 
 			</form>
@@ -171,6 +182,7 @@ function stocktakingLock(){
     });
 }
 
+
 function stocktakingSave(){
 	$('.form-hide').hide();
 	$('#form-loadig').show();
@@ -203,6 +215,27 @@ function stocktakingSave(){
 	stocktakingLoadEvents();
 }
 
+
+function generatePDF(){
+	$('.form-hide').hide();
+	$('#form-loadig').show();
+	var event_id = $('#eventFormId').val();
+    $.ajax({
+        url: "/stocktaking/event/generate/basic/"+event_id,
+        type: "post",
+        success: function (response) {
+            console.log(response);
+            stocktakingLoadEvents();
+           	$('.form-hide').hide();
+           	$('#form-none').show();
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log(textStatus, errorThrown);
+            $('.form-hide').hide();
+            $('#form-form').show();
+        }
+    });	
+}
 
 stoctakingClearTable();
 stocktakingLoadEvents();

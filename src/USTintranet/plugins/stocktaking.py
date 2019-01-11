@@ -5,11 +5,12 @@ import tornado.escape
 import tornado.web
 import tornado.websocket
 from . import Intranet
-from . import BaseHandler
+from . import BaseHandler, BaseHandlerOwnCloud
 #from pyoctopart.octopart import Octopart
 import json
 import urllib
 import bson
+from bson import ObjectId
 import datetime
 import pandas as pd
 from fpdf import FPDF
@@ -25,6 +26,7 @@ def make_handlers(module, plugin):
              (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
              (r'/{}/event/(.*)/save'.format(module), plugin.stocktaking_eventsave),
              (r'/{}/event/lock'.format(module), plugin.stocktaking_eventlock),
+             (r'/{}/event/generate/basic/(.*)'.format(module), plugin.stocktaking_event_generate_basic),
              (r'/{}/event/(.*)'.format(module), plugin.stocktaking_event),
              (r'/{}/events'.format(module), plugin.stocktaking_events),
              (r'/{}/view/categories'.format(module), plugin.view_categories),
@@ -260,3 +262,192 @@ class stocktaking_eventsave(BaseHandler):
         # ulozit aktualni inventuru
         if data['status']: self.mdb.intranet.update({'_id': 'stock_taking'}, {'$set':{'current': bson.ObjectId(id)}})
         self.write(id)
+
+
+
+
+class stocktaking_event_generate_basic(BaseHandlerOwnCloud):
+    def post(self, id):
+        print("AHOJ", id)
+        bid = ObjectId(id)
+        stocktaking = self.mdb.stock_taking.find_one({'_id': bid})
+        file = setava_01(self, stocktaking)
+        print(file)
+        self.write(file.get_link())
+
+
+
+def setava_01(self, stock_taking):
+    comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
+    autori = stock_taking['author'].strip().split(',')
+    datum = str(stock_taking['closed'].date())
+    filename = "{}_{}.pdf".format(stock_taking['_id'], ''.join(stock_taking['name'].split()))
+
+    page = 1
+    money_sum = 0
+    Err = []
+
+    pdf = FPDF('P', 'mm', format='A4')
+    pdf.set_auto_page_break(False)
+
+    pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
+    pdf.add_font('pt_sans-bold', '', 'static/pt_sans/PT_Sans-Web-Bold.ttf', uni=True)
+    pdf.set_font('pt_sans', '', 12)
+    pdf.add_page()
+
+    pdf.set_xy(0, 40)
+    pdf.cell(pdf.w, 0, 'Celkový přehled skladu', align='C', ln=2)
+    pdf.set_xy(0, 46)
+    pdf.cell(pdf.w, 0, 'Universal Scientific Technologies s.r.o.', align='C', ln=2)
+
+    pdf.set_xy(20, 200)
+    pdf.cell(1,0, 'Inventuru provedli:', ln=2)
+    for x in autori:
+        pdf.cell(1,20, x, ln=2)
+
+    pdf.set_font('pt_sans', '', 8)
+    pdf.set_xy(120, 288)
+    pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
+
+    pdf.add_page()
+
+
+    data = self.mdb.stock.aggregate([
+            {'$addFields': {'count': {'$sum': '$history.bilance'}}}
+        ])
+
+
+    gen_time = datetime.datetime(2018, 10, 1)
+    lastOid = ObjectId.from_datetime(gen_time)
+
+
+    for i, component in enumerate(data):
+    #for i, component in enumerate(list(data)[:30]):
+        #print(i, "=============================")
+        print(component['_id'])
+        try:
+            ## Pokud je konec stránky
+            if pdf.get_y() > pdf.h-20:
+                pdf.line(10, pdf.get_y()+0.5, pdf.w-10, pdf.get_y()+0.5)
+
+                pdf.set_font('pt_sans', '', 10)
+                pdf.set_xy(150, pdf.get_y()+1)
+                pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+
+                pdf.add_page()
+
+            ## Pokud je nová strana
+            if page != pdf.page_no():
+                pdf.set_font('pt_sans', '', 8)
+                page = pdf.page_no()
+                pdf.set_xy(120, 288)
+                pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
+
+                pdf.set_font('pt_sans', '', 11)
+                pdf.set_xy(10, 10)
+                pdf.cell(100, 5, 'Skladová položka')
+                pdf.set_x(95)
+                pdf.cell(10, 5, "Počet kusů", align='R')
+                #pdf.set_x(120)
+                #pdf.cell(10, 5, "Cena za 1ks", align='R')
+                pdf.set_x(180)
+                pdf.cell(10, 5, "Cena položky (bez DPH)", align='R', ln=2)
+                pdf.line(10, 15, pdf.w-10, 15)
+                pdf.set_y(18)
+                page_sum = 0
+
+            pdf.set_font('pt_sans', '', 10)
+
+            count = component['count']
+            price = 0
+            price_ks = 0
+            first_price = 0
+
+
+            inventura = False
+            for x in reversed(component.get('history', [])):
+                if x.get('operation', None) == 'inventory':
+                    #TODO: tady porovnávat, jesti to patri do stejne kampane. Ne na zaklade casu ale ID
+                    if x['_id'].generation_time > lastOid.generation_time:
+                        inventura = True
+                        count = x['absolute']
+
+                        pdf.set_x(110)
+                        pdf.cell(1, 5, "i")
+                        break;
+
+            if count > 0:
+                rest = count
+
+                for x in reversed(component.get('history', [])):
+
+                    if x.get('price', 0) > 0:
+                        if first_price == 0: 
+                            first_price = x['price']
+                        if x['bilance'] > 0:
+                            if x['bilance'] <= rest:
+                                price += x['price']*x['bilance']
+                                rest -= x['bilance']
+                            else:
+                                price += x['price']*rest
+                                rest = 0
+                
+                print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+                if(count-rest): price += rest*first_price
+                money_sum += price
+                page_sum +=price
+
+                if price == 0.0 and x.get('count', 0) > 0:
+                    Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
+
+
+                #pdf.set_x(120)
+                #if count > 0: pdf.cell(10, 5, "%6.2f Kč" %(price/count), align='R')
+                #else: pdf.cell(10, 5, "%6.2f Kč" %(0), align='R')
+
+                pdf.set_font('pt_sans', '', 10)
+                pdf.set_x(95)
+                pdf.cell(10, 5, "{} j".format(count), align='R')
+
+                pdf.set_x(10)
+                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['_id']))
+
+                pdf.set_font('pt_sans-bold', '', 10)
+                pdf.set_x(180)
+                pdf.cell(10, 5, "%6.2f Kč" %(price), align='R')
+
+
+        except Exception as e:
+            Err.append('Err' + repr(e) + component['_id'])
+            print(e)
+
+        if count > 0:
+            pdf.set_y(pdf.get_y()+4)
+
+    pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
+    pdf.set_font('pt_sans', '', 8)
+    pdf.set_x(180)
+    pdf.cell(10, 5, "Konec souhrnu", align='R')
+
+    pdf.set_font('pt_sans', '', 10)
+    pdf.set_xy(150, pdf.get_y()+3)
+    pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+
+    pdf.page = 1
+    pdf.set_xy(20,175)
+    pdf.set_font('pt_sans', '', 12)
+    pdf.cell(20,20, "Cena skladových zásob k %s je %0.2f Kč (bez DPH)" %(datum, money_sum))
+    if len(Err) > 0:
+        pdf.set_xy(30,80)
+        pdf.cell(1,6,"Pozor, chyby ve skladu:", ln=2)
+        pdf.set_x(32)
+        for ch in Err:
+            pdf.cell(1,5,ch,ln=2)
+    pdf.page = page
+
+    pdf.output("static/sestava.pdf")
+
+    #self.oc.mkdir('UST_intranet/stocktaking')
+    self.oc.put_file('UST_intranet/stocktaking/'+filename, 'static/sestava.pdf')
+    file = self.oc.share_file_with_link('UST_intranet/stocktaking/'+filename)
+    return file

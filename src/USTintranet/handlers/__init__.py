@@ -229,7 +229,6 @@ class BaseHandlerJson(BaseHandler):
         self.set_header('Content-Type', 'application/json')
         super(BaseHandlerJson, self).prepare()
 
-
 class home(BaseHandler):
     def get(self, param=None):
         pass

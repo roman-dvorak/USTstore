@@ -7,6 +7,7 @@
 import tornado
 import tornado.web
 import pymongo
+import owncloud
 import hashlib, uuid
 import functools
 import bson
@@ -21,8 +22,8 @@ def make_handlers(module, plugin):
             
 def plug_info():
     return {
-        "module": "__init__",
-        "name": "__init__"
+        "module": "system",
+        "name": "system"
     }
 
 def parametrized(dec):
@@ -228,6 +229,13 @@ class BaseHandlerJson(BaseHandler):
     def prepare(self):
         self.set_header('Content-Type', 'application/json')
         super(BaseHandlerJson, self).prepare()
+
+
+class BaseHandlerOwnCloud(BaseHandler):
+    def prepare(self):
+        self.oc = owncloud.Client(tornado.options.options.owncloud_url)
+        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass) 
+        super(BaseHandlerOwnCloud, self).prepare()
 
 
 class home(BaseHandler):
