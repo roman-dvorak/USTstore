@@ -24,10 +24,10 @@ def make_handlers(module, plugin):
              (r'/{}/invoice/prepare_invoice_row/'.format(module), plugin.prepare_invoice_row),
              (r'/{}/next_state/'.format(module), plugin.invoice_next_state),
              (r'/{}/invoice/(.*)/'.format(module), plugin.invoice),
-             (r'/{}'.format(module), plugin.hand_bi_home),
-             (r'/{}/'.format(module), plugin.hand_bi_home),
-             #(r'/%s' %module, plugin.hand_bi_home),
-             #(r'/%s/' %module, plugin.hand_bi_home),
+             (r'/{}'.format(module), plugin.home),
+             (r'/{}/'.format(module), plugin.home),
+             #(r'/%s' %module, plugin.home),
+             #(r'/%s/' %module, plugin.home),
         ]
 
 def plug_info():
@@ -39,9 +39,9 @@ def plug_info():
     }
 
 
-class hand_bi_home(BaseHandler):
+class home(BaseHandler):
     def get(self, data=None):
-        self.render("invoice_import.home.hbs", parent = self)
+        self.render("order_incoming.home.hbs", parent = self)
 
 class get_invoices(BaseHandler):
     def post(self):

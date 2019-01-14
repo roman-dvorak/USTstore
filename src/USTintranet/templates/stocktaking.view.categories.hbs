@@ -120,6 +120,7 @@
 				<div class="col">Cena za ks</div>
 				<div class="col">Cena celkem</div>
 				<div class="col">Inventura 2018, 2019</div>
+				<div class="col">Operace</div>
 			</div>
 
 		{% for module in cat['modules'] %}
@@ -133,13 +134,65 @@
 				
 				<div class="col" style="flex-grow: 0;">{%if module['inventory_2018'].get('count',None)%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
 				<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+				<div class="col" style=""> 
+					{% if (not module['inventory']) and (module['count'] > 0) %}
+					<div class="input-group input-group-sm">
+					  	<input type="number" class="form-control" id="inventory_count_{{module['_id']}}" input-component="{{module['_id']}}" old={{module['count']}} value={{module['count']}}>
+					  	<div class="input-group-append" value="{{module['count']}}">
+					    	<button class="btn btn-outline-secondary" type="button" id="inventory_btn_{{module['_id']}}" component="{{module['_id']}}" onclick="doStockTaking(this)">Inv</button>
+					  	</div>
+					</div>
+					{% end %}
+				</div>
 			</div>
 			
 		{% end %}
 		</div>
-
 	{% end %}
-
 </div>
+
+
+<script type="text/javascript">
+	
+	function doStockTaking(e) {
+		console.log(e);
+		var id = $(e).attr('component');
+		var new_count = $('[input-component="'+id+'"]').val();
+		var old_count = $('[input-component="'+id+'"]').attr('old');
+
+		console.log(id, new_count, old_count, new_count-old_count);
+
+        $.ajax({
+          type: "POST",
+          url: "/stocktaking/save_item/",
+          data: {
+            '_id': id,
+            'description': "Rychla inventura z prehledu..",
+            'bilance': new_count - old_count,
+            'absolute': new_count
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {
+                title: 'Provedeno',
+                msg: 'U součástky <b>'+id+'</b> byla provedena inventura. <b>' + new_count +' ks</b>.',
+                delay: 3000
+            });
+            },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                title: 'Nebylo možné provést úpravu položky',
+                msg: 'U položky <b>'+id+'</b> nastal neznámý problém. Zkontrolujte log.',
+                delay: 3000
+            });
+          }
+        });
+
+
+	}
+
+
+</script>
 
 {% end %}{# body #}
