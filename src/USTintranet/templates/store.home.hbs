@@ -268,6 +268,8 @@
   <div class="form-inline m-1 row">
     <button type="button" class="btn btn-success col-2" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
     <input type="text" class="form-control col-10" id="filter-search" onchange="update_list()" placeholder="Vyhledavani" value="">
+
+
   </div>
   <div id="filter-collapse" class="collapse m-1 pl-1 pr-1">
     <ul class="nav nav-tabs">
@@ -281,6 +283,7 @@
     <div class="tab-content p-1">
     <div class="tab-pane fade show active" role="tabpanel" id="nav-filter-categories"> <!-- Zacatek zalozky kategorie -->
       <div class="pl-3 pb-3">
+<<<<<<< HEAD
         <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
         <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
         <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
@@ -290,6 +293,24 @@
         <option value="No">Vyskladněno</option>
       </select>
       </div>
+||||||| merged common ancestors
+        <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+        <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+        <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+      </div>
+=======
+      <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+      <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+      <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+      <select id="filter-instock" onchange="update_list()">
+        <option value="All" selected>Vše</option>
+        <option value="Yes">Skladem</option>
+        <option value="No">Vyskladněno</option>
+      </select>     <!--  <span style="display: none;"><span>Filtrování TAGu: </span>
+      <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
+      <small>Inverzní filtr tagu<input type="checkbox" id="tag_polarity" onchange="update_list()"></small></span> -->
+    </div>
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
 
       <div id="filter_block" class="row">
         {% set last = {'path': "/", 'name':""} %}
@@ -308,6 +329,7 @@
         {% end %}
         </div>
       </div>
+    </div>
 
       <div class="pl-3 pb-3">
         <h3>Filtrovani podle tagu</h3>
@@ -334,7 +356,7 @@
     Načteno <span id="item_count"></span> položek
 
 	</div>
-	<div class="product_list_loading list-group">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
+	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
 	<div id="product_list"> </div>                                                <!--  TABULKA S PRODUKTY -->
 
   <div class="page_select_btn p-2">
@@ -629,9 +651,19 @@ function update_view(){
         var element = current_page[i];
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
+<<<<<<< HEAD
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
         tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> (" + element['barcode'].join(',') + ") <small>"+ element['_id'].$oid + "</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
+||||||| merged common ancestors
+        tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id'].$oid+"</small>";
+        tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
+=======
+        tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, ""));
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
+        tmpl.querySelector('.product_list-select').value = element['_id'];
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
         tmpl.querySelector('.product_list-description').innerText = element['description'];
 
         // zaskrtavatko vybaraných polozek
@@ -665,10 +697,18 @@ function update_view(){
               //  tmpl.querySelector('.stock_count').style.color = "#94e991";
             }
 
+<<<<<<< HEAD
             tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
+||||||| merged common ancestors
+            tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
+            //tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
+=======
+            tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id']+'", this.value, "'+$('#display_sklad').val()+'")');
+            //tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
         }
 
-        if(current_detail == element['_id'].$oid){
+        if(current_detail == element['_id']){
             tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
         }
         document.getElementById('product_list').appendChild(tmpl);

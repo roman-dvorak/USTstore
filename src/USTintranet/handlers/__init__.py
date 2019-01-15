@@ -180,22 +180,25 @@ class BaseHandler(tornado.web.RequestHandler):
             return None
         return user_db
 
-    def authorized(self, required = [], sudo = False):
-        print("AUTHORIZED.....")
+    def authorized(self, required = [], sudo = True):
+        print("Authorized.....", required)
         if self.get_current_user():
             if sudo:
                 required = required + ['sudo']
             req = set(required)
             intersection = list(self.role&req)
             if  bool(intersection):
+                print("DOstatecna prava")
                 return intersection
             else:
-                print("Go To ERRRRRR")
-                self.redirect('/?err=authorized')
+                print("Uzivatel nema dostatecna opravneni k pristupu", required)
+                raise tornado.web.HTTPError(403)
+                self.finish()
         else:
+            print("REDIRECT na LOGIN")
             self.redirect('/login')
 
-    def is_authorized(self, required = [], sudo = False):
+    def is_authorized(self, required = [], sudo = True):
         print("AUTHORIZATION.....")
         if self.get_current_user():
             if sudo:
@@ -226,11 +229,9 @@ class BaseHandlerJson(BaseHandler):
         self.set_header('Content-Type', 'application/json')
         super(BaseHandlerJson, self).prepare()
 
-
 class home(BaseHandler):
     def get(self, param=None):
-        self.write("Ahoj :) ")
-
+        pass
 
 class loginHandler(BaseHandler):
     def get(self):

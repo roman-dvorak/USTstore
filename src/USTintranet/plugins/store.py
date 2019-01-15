@@ -49,8 +49,15 @@ class api_products_json(BaseHandler):
 
         polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
+<<<<<<< HEAD
         selected = (self.request.arguments.get('selected[]', []))
         in_stock = self.get_argument('in_stock', 'All')
+||||||| merged common ancestors
+        selected = (self.request.arguments.get('selected[]', []))
+=======
+        selected = self.request.arguments.get('selected[]', [])
+        in_stock = self.get_argument('in_stock', 'All')
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
         search = self.get_argument('search')#.decode('ascii')
@@ -68,8 +75,14 @@ class api_products_json(BaseHandler):
                                 {'description': { '$regex': search, '$options': 'ix'}} ]}
             },{
                 "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+<<<<<<< HEAD
             },{
                 '$addFields': {'count': { '$sum': '$history.bilance'}}
+||||||| merged common ancestors
+=======
+            },{
+                '$addFields': {'count': {'$sum': '$history.bilance'}}
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
             }]
 
         if in_stock == 'Yes':
@@ -86,6 +99,11 @@ class api_products_json(BaseHandler):
             agq += [{
                 "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
             }]
+
+        if in_stock == 'Yes':
+            agq += [{"$match": {'count': {"$gt": 0}}}]
+        elif in_stock == 'No':
+            agq += [{"$match": {'count': {"$eq": 0}}}]
 
         count = len(list(self.mdb.stock.aggregate(agq)))
         
@@ -104,6 +122,7 @@ class api_products_json(BaseHandler):
                 '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
 
             }]
+
 
         dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
         dout = {}
@@ -524,13 +543,13 @@ class print_layout(BaseHandler):
         multiply = int(self.get_argument('multiply', 5))
         layout = self.get_argument('template', '70x40_simple')
         skip = int(self.get_argument('skip', 0))
-        print("Soucastky..",components)
+        #print("Soucastky..",components)
         if len(components) > 0:
             comp = list(self.mdb.stock.find({'_id' : {'$in' : components}}))
         else:
             comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
         page = 0
-        print("Budeme tisknout:", comp)
+        #print("Budeme tisknout:", comp)
 
         if layout == 'souhrn_01':
             autori = self.get_query_argument('autor', None)
@@ -569,14 +588,28 @@ class print_layout(BaseHandler):
             data = self.mdb.stock.aggregate([
                     {'$addFields': {'count': {'$sum': '$history.bilance'}}}
                 ])
+
+
+            gen_time = datetime.datetime(2018, 10, 1)
+            lastOid = ObjectId.from_datetime(gen_time)
+
+
             for i, component in enumerate(data):
+            #for i, component in enumerate(list(data)[:30]):
                 print(i, "=============================")
                 print(component['_id'])
                 try:
+                    ## Pokud je konec stránky
                     if pdf.get_y() > pdf.h-20:
-                        pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
+                        pdf.line(10, pdf.get_y()+0.5, pdf.w-10, pdf.get_y()+0.5)
+
+                        pdf.set_font('pt_sans', '', 10)
+                        pdf.set_xy(150, pdf.get_y()+1)
+                        pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+
                         pdf.add_page()
 
+                    ## Pokud je nová strana
                     if page != pdf.page_no():
                         pdf.set_font('pt_sans', '', 8)
                         page = pdf.page_no()
@@ -594,6 +627,7 @@ class print_layout(BaseHandler):
                         pdf.cell(10, 5, "Cena položky (bez DPH)", align='R', ln=2)
                         pdf.line(10, 15, pdf.w-10, 15)
                         pdf.set_y(18)
+                        page_sum = 0
 
                     pdf.set_font('pt_sans', '', 10)
 
@@ -601,7 +635,9 @@ class print_layout(BaseHandler):
 
                     if count >0:
                         price = 0
-                        price_ks = 0
+                        price_ks = 0 
+                        first_price = 0
+
 
                         pdf.set_x(10)
                         pdf.cell(100, 5, component['_id'])
@@ -609,9 +645,34 @@ class print_layout(BaseHandler):
                         pdf.set_x(95)
                         pdf.cell(10, 5, "%5.d" %(count), align='R')
 
-                        rest = count
-                        for x in reversed(component.get('history', [])):
-                            print(x)
+                    pdf.set_x(10)
+                    pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['_id']))
+
+
+                    inventura = False
+                    for x in reversed(component.get('history', [])):
+                        if x.get('operation', None) == 'inventory':
+                            print("inventura", x)
+                            if x['_id'].generation_time > lastOid.generation_time:
+                                print("#############")
+                                inventura = True
+                                count = x['absolute']
+
+                                pdf.set_x(110)
+                                pdf.cell(1, 5, "i")
+                                break;
+
+                    pdf.set_font('pt_sans', '', 10)
+                    pdf.set_x(95)
+                    pdf.cell(10, 5, "{} j".format(count), align='R')
+
+                    rest = count
+
+                    for x in reversed(component.get('history', [])):
+
+                        if x.get('price', 0) > 0:
+                            if first_price == 0: 
+                                first_price = x['price']
                             if x['bilance'] > 0:
                                 if x['bilance'] <= rest:
                                     price += x['price']*x['bilance']
@@ -619,30 +680,38 @@ class print_layout(BaseHandler):
                                 else:
                                     price += x['price']*rest
                                     rest = 0
-                            print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
-                        money_sum += price
-                        if price == 0.0 and x.get('count', 0) > 0:
-                            Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
+                    
+                    print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+                    if(count-rest): price += rest*first_price
+                    money_sum += price
+                    page_sum +=price
 
-                        price_ks = price/count
+                    if price == 0.0 and x.get('count', 0) > 0:
+                        Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
 
+                    pdf.set_x(120)
+                    if count > 0: pdf.cell(10, 5, "%6.2f Kč" %(price/count), align='R')
+                    else: pdf.cell(10, 5, "%6.2f Kč" %(0), align='R')
 
-                        pdf.set_x(120)
-                        pdf.cell(10, 5, "%6.2f Kč" %(price_ks), align='R')
-
-                        pdf.set_font('pt_sans-bold', '', 10)
-                        pdf.set_x(180)
-                        pdf.cell(10, 5, "%6.2f Kč" %(price), align='R', ln=2)
+                    pdf.set_font('pt_sans-bold', '', 10)
+                    pdf.set_x(180)
+                    pdf.cell(10, 5, "%6.2f Kč" %(price), align='R')
 
 
                 except Exception as e:
                     Err.append('Err' + repr(e) + component['_id'])
                     print(e)
 
+                pdf.set_y(pdf.get_y()+4)
+
             pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
             pdf.set_font('pt_sans', '', 8)
             pdf.set_x(180)
             pdf.cell(10, 5, "Konec souhrnu", align='R')
+
+            pdf.set_font('pt_sans', '', 10)
+            pdf.set_xy(150, pdf.get_y()+3)
+            pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
 
             pdf.page = 1
             pdf.set_xy(20,175)

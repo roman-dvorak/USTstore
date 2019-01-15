@@ -14,7 +14,8 @@ import time
 import datetime
 import calendar
 import os
-
+import git
+from git import Repo, Actor
 
 #from handlers import admin, auth
 from handlers import BaseHandler
@@ -22,16 +23,17 @@ from handlers import BaseHandler
 tornado.options.define("port", default=10020, help="port", type=int)
 tornado.options.define("debug", default=True, help="debug mode", type=bool)
 tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
-#tornado.options.define("mysql_pass", default=None, help="mysql pass")
-#tornado.options.define("mlab_repos", default=None, help="Where is MLAB repository stored")
+
+tornado.options.define("owncloud_url", default=None, help="URL address of owncloud server")
+tornado.options.define("owncloud_user", default=None, help="URL address of owncloud server")
+tornado.options.define("owncloud_pass", default=None, help="URL address of owncloud server")
 
 
 class home(BaseHandler):
     def get(self, arg=None):
         print("GET home")
         err = []
-        #err = self.get_arguments('err', [])
-        self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err)
+        self.render("intranet.home.hbs", title="UST intranet", parent=self, err = err, Repo = Repo)
 
     def post(self, arg=None):
         self.write("ACK")
@@ -93,9 +95,20 @@ class WebApp(tornado.web.Application):
         for plugin in plugins:
             print("", plugin)
         print ("handlers:")
+<<<<<<< HEAD
         #for handler in handlers:
         #    #print("", server_url+handler[0], handler[1])
         #    print(server_url+handler[0])
+||||||| merged common ancestors
+        for handler in handlers:
+            #print("", server_url+handler[0], handler[1])
+            print(server_url+handler[0])
+=======
+        for handler in handlers:
+            pass
+            #print("", server_url+handler[0], handler[1])
+            #print(server_url+handler[0])
+>>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
 
         settings = dict(
             plugins = plugins,
@@ -122,7 +135,7 @@ def main():
     import os
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-    #tornado.options.parse_config_file("/etc/mlab.conf")
+    tornado.options.parse_config_file("/data/ust/intranet.conf")
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(WebApp())
     http_server.listen(tornado.options.options.port)

@@ -2,43 +2,55 @@
 {% block title %} UST intranet | Produkce, uvod{% end %}
 {% block body %}
 
-<div class="container-fluid">
+
+<div class="container">
+<div>
 	<div class="row">
-		<div class="col-4">
-			<div class="card">
-				<div class="card-header"><h3>Seznam výroby</h3></div>
-				<div class="card-body">
-					<a href="/production/new/" class="btn btn-sm btn-primary">Nový produkt</a>
-					<ul>
-					{% for production in production_list %}
-						<li><a href="/production/{{production.get('_id')}}/">{{production.get('name', 'Bez názvu')}}</a></li>
-					{% end %}
-					<ul>
-				</div>
-			</div>
+		<div class="col-12">
+			<div id="production-list-table"></div>
 		</div>
-	</div>	
-
-
-	<h3>Moje TODO ...</h3>
-	<div class="bg-warning">
-		<p>Tady pak bude u každé položky tlačítko - editovat (to nahradí součastný odkaz), vyrobit - <br>
-		to nás dostane do seznamu, kam napíšeme počet KS a pak nám to ukáže počet potřebných položek, zkontroluje to skladové zásoby atd... Dále to může být spojeno s asistentem výroby. Nějaký 'online' osazovací návod...
-
-		poslední tlačítko bude přidat do seznamu</p>
-	</div>
-
-	<div class="bg-danger">
-		V editaci chybí položka výstupní součástka - bude to zase skladová položka...
+		<div class="col-6">
+			
+		</div>
 	</div>
 </div>
 
-<script type="text/javascript">
-	
-	$('#new_production').click(function (){
-		
-	});
+<a href="/production/new/edit/" class="btn btn-sm btn-primary">Nový produkt</a>
+</div>
 
+<script type="text/javascript">
+
+function loadProductionTable() {
+	var table = new Tabulator("#production-list-table", {
+		width: '100%',
+		columns:[
+	        {title:"ID", field:"id", width:100},
+	        {title:"Name", field:"name", sorter:"string"},
+	        {title:"Autor", field:"author_text", sorter:"string"},
+	        {title:"Components", field:"components", sorter:"number", align:"right", width:100},
+	        {title:"Created", field:"created", sorter:"date", align:"center"},
+	        //{title:"status", field:"status", sorter:"string", align:"center"},
+	    ],
+	    rowClick:function(e, row){
+	    	var event_id = row._row.cells[0].value
+	    	stocktakingLoadEvent(event_id);
+	    },
+	    rowDblClick:function(e, row){
+	    	var event_id = row._row.cells[0].value
+	    	window.location.href = "/production/"+event_id+"/edit/";
+	    },
+	    ajaxURL:"/production/api/getProductionList",
+	    ajaxConfig:{
+	        method:"POST",
+	        headers: {
+	            "Content-type": 'application/json; charset=utf-8',
+	        },
+	    }
+	});
+}
+
+
+loadProductionTable();
 
 </script>
 

@@ -83,6 +83,15 @@
         <div class="col-6 col-md-12 col-lg-5">
             <div class="card">
                 <div class="card-body row">
+                    {% if stocktaking %}
+                    <div class="form-group row col pl-5 bg-success">
+                      Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
+                    </div>
+                    {% else %}
+                    <div class="form-group row col pl-5 bg-danger text-white">
+                      Není odemčená žádná kampaň inventury. Inventuru nelze nyní provádět. O její otevření požádejte správce inventur.
+                    </div>
+                    {% end %}
 
                     <div class="form-group row col-lg-12 col-md-6">
                         <label class="col-sm-2 col-form-label">SKU</label>
@@ -118,73 +127,26 @@
                         <label>Poznámka</label>
                         <input class="form-control form-control-lg" type="text" name="count" id="note" autofocus>
                     </div>
+
+                    {% if stocktaking %}
                     <div class="row form-group col-lg-12 col-md-6">
-                        {#<button id="btn_accept" class="col-6 btn form-control" >Potvrdit data</button>#}
                         <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
                     </div>
+                    {% end %}
 
                 </div>
-            </div>
-            <div class="list-group" id="stocktaking_history">
             </div>
         </div>
 
         <div class="col-6 col-md-6 col-lg-7">
 
-
-            <div class="card m-0">
-              <div class="form-inline m-1 row">
-                <button type="button" class="btn btn-success col-2" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
-                <input type="text" class="form-control col-10" id="filter-search" onchange="update_list()" placeholder="Vyhledavani" value="">
-
-
-              </div>
-              <div id="filter-collapse" class="collapse m-1">
-                <div class="pl-3 pb-3">
-                  <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
-                  <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
-                  <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
-                  <span style="display: none;"><span>Filtrování TAGu: </span>
-                  <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
-                  <small>Inverzní filtr tagu<input type="checkbox" id="tag_polarity" onchange="update_list()"></small></span>
-                </div>
-
-              <div id="filter_block" class="row">
-                {% set last = {'path': "/", 'name':""} %}
-                <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
-                {% for cat in category %}
-                  {% if (cat['path']+cat['name']).split('/')[1] != (last['path']+last['name']).split('/')[1]%}
-                    </div>
-                    <div class="col cat_top">
-                  {% end %}
-                  {# {{cat['path'].split('/')}}{{cat}}<br> #}
-                   <a onclick="console.log('{{cat['path']}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
-                     <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
-                     {{cat['name_cs']}}
-                   </a>
-                  {% set last = cat%}
-                {% end %}
-                </div>
-
-              </div>
-              </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <div id="product_list"></div>
-
-                </div>
+            <div class="list-group" id="stocktaking_history">
             </div>
         </div>
     </div>
 
-
-    <h3>Moje TODO ...</h3>
-    <div class="bg-warning">
-
-    </div>
-
+    <a href="/stocktaking/view/categories">Přehled skladu podle kategorií</a>
+    <a href="/stocktaking/events">Úprava inventur</a>
     <div class="bg-danger">
     </div>
 </div>
@@ -235,6 +197,7 @@
                   });
                 }
                 $("#val_old").text(item.count);
+		//$("#new_count").val(item.count);
                 $("#new_count").focus();
 
             }else{
@@ -250,22 +213,24 @@
         });
     });
 
-    $("#new_count").on("change", function(){
+
+    function after_count_edit(){
+        if ($("#new_count").val() == ""){
+            $("#new_count").val(item.count);
+        }
         //$("#val_percent").text(item.count / $("#new_count").val());
-        delta = $("#new_count").val() - item.count;
-        $("#val_delta").text(delta);
-        //$("#btn_accept").focus();
+        $("#val_delta").text($("#new_count").val() - item.count);
         $("#btn_send").prop('disabled', false);
         $("#btn_send").focus();
+    }
 
+    $('#new_count').on('keypress', (event)=> {
+        if(event.which === 13){after_count_edit();}
     });
 
-
-    // potvrzeni spravnosti zadanych dat
-    //$("#btn_accept").on("click", function(){
-    //    $("#btn_send").prop('disabled', false);
-    //    $("#btn_send").focus();
-    //});
+    $("#new_count").on("change", function(){
+        after_count_edit();
+    });
 
 
     // ulozit data o inventure...
