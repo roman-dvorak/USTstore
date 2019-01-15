@@ -50,12 +50,13 @@ class api_products_json(BaseHandler):
         polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
         selected = (self.request.arguments.get('selected[]', []))
+        in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
         search = self.get_argument('search')#.decode('ascii')
         tag_search = self.get_argument('tag_search')#.decode('ascii')
         print("SEARCH", search)
-        print("tag polarity", tag_polarity)
+        print("tag polarity", tag_polarity, in_stock)
         dout = []
 
         agq = [
@@ -67,7 +68,14 @@ class api_products_json(BaseHandler):
                                 {'description': { '$regex': search, '$options': 'ix'}} ]}
             },{
                 "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+            },{
+                '$addFields': {'count': { '$sum': '$history.bilance'}}
             }]
+
+        if in_stock == 'Yes':
+            agq += [{'$match': {'count': {'$gt': 0}}}]
+        elif in_stock == 'No':
+            agq += [{'$match': {'count': {'$eq': 0}}}]
 
         if len(tag_search) > 1 and not tag_polarity:
             agq += [{
@@ -94,9 +102,6 @@ class api_products_json(BaseHandler):
                 }
             },{
                 '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-
-            },{
-                '$addFields': {'count': { '$sum': '$history.bilance'}}
 
             }]
 
