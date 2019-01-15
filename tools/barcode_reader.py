@@ -37,6 +37,7 @@ con = []
 
 qcon = Queue()
 
+# With shift
 sh = {
     '0':')',
     '1':'!',
@@ -49,15 +50,18 @@ sh = {
     '8':'*',
     '9':'(',
     'MINUS':'_',
+    'EQUAL':'+'
 }
 
 
+# Without shift
 sl = {
     'SPACE':' ',
     'MINUS':'-',
     'SLASH':'/',
-    'DOT': '.',
-    'COMMA': ','
+    'DOT':  '.',
+    'COMMA':',',
+    'EQUAL':'='
 }
 
 def build_string(pole):
