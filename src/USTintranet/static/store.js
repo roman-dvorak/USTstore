@@ -27,6 +27,28 @@ function get_supplier_url(element_supplier){
 }
 
 
+function cleanSimpleCode(tag){
+  var val = $(tag).val();
+  val = val.toLoverCase();
+  val = val.replace(' ','_');
+  val = val.replace('__','_');
+  val = val.replace('__','_');
+  val = val.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g,'');
+  $(tag).val(val)
+}
+
+$('#inputNAME_edit').on('change', function(e){
+  if ($('#inputBARCODE_edit').val() == null){
+    $('#inputBARCODE_edit').val($('#inputNAME_edit').val());
+    cleanSimpleCode('#inputBARCODE_edit');
+  }
+})
+
+
+$('#inputBARCODE_edit').onchange(function(e){
+  console.log(e); 
+  cleanSimpleCode('#inputBARCODE_edit');
+})
 
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
 // nacneni polozky dle jmena
@@ -117,12 +139,14 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   $('#inputSELLABLE_edit').prop('checked', element['sellable'] || false);
                   $('#inputDESCRIPTION_edit').val(element['description'] || "");
                   $('#inputCATEGORY_edit').val(element['category']).trigger('change');
-
+                  $('#inputBARCODE_edit').val(element['barcode'][0]);
+                  $('#inputSNREQUIED_list').val(element['sn_requied']||false);
 
                   draw_parameters();
                   draw_supplier();
                   draw_stock(element);
                   draw_tags();
+                  draw_barcodes(element['barcode']);
                   draw_history(element['_id'].$oid);
                 }
 
@@ -143,7 +167,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
 
 function ClearArticleEdit(){
     $('#inputID_edit').val(null);
-    $("#inputID_edit").attr('disabled', false);
+    $("#inputID_edit").attr('disabled', true);
     $('#inputNAME_edit').val(null);
     $('#inputPRICE_edit').val(0);
     $('#inputPRICEp_edit').val(0);
@@ -151,6 +175,7 @@ function ClearArticleEdit(){
     $('#inputDESCRIPTION_edit').val(null);
     $('#inputCATEGORY_edit').val(null).trigger('change');
     $('#inputTAG_edit').val(null).trigger('change');
+    $('#inputBARCODE_edit').val(null);
 
     $('#inputSTOCK_list').empty();
     $('#inputHISTORY_edit').empty();
@@ -175,12 +200,14 @@ function ClearArticleEdit(){
 
 function UpdateFromForm(){
     if(element === undefined){element = {}}
-    element['_id'] =$('#inputID_edit').val();
+    element['_id'] = $('#inputID_edit').val();
     element['name'] = $('#inputNAME_edit').val();
     element['description'] = $('#inputDESCRIPTION_edit').val();
     element['sellable'] = $('#inputSELLABLE_edit').prop('checked');
     element['price_sell'] = Number($('#inputPRICEp_edit').val());
     element['category'] = $('#inputCATEGORY_edit').val();
+    element['barcode'] = [$('#inputBARCODE_edit').val()];
+    element['sn_required'] = false;
 
     tags = [];
     for (tag in $('#inputTAG_edit').val()){
@@ -254,7 +281,6 @@ function draw_parameters(){
   // }
   $("#param_table_body").empty();
   console.log("All", parameters);
-
 
   var table = new Tabulator("#edit-parameters-table",{
     layout:"fitColumns",
@@ -418,7 +444,6 @@ function draw_tags(){
               };
           }
         }
-        //tokenSeparators: [',', ' '],
     });
     $('#inputTAG_edit').val(null).trigger('change');
     for (i in element.tags || []){
@@ -427,6 +452,21 @@ function draw_tags(){
     }
 }
 
+
+function draw_barcodes(codes){
+  /*
+  TODO...
+  $('#inputBARCODE_edit').select2({
+    tags: true,
+    multiple: true,
+    width: '100%',
+    data: codes
+  });
+  $('#inputBARCODE_edit').val(codes);
+  $('#inputBARCODE_edit').toggle('change');
+  */
+  $('#inputBARCODE_edit').val(codes[0]);
+}
 
 function draw_history(id){
     $('#inputHISTORY_edit').empty();
@@ -447,7 +487,6 @@ function draw_history(id){
 
 
 function new_component(){
-
     element = {};
     //$('#modal-edit-component').modal('hide');
     $('#modal-edit-component').modal('show');

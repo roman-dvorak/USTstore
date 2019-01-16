@@ -28,6 +28,7 @@ for comp in components:
         
         comp['barcode'] = [comp['_id']]
         comp['_id'] = ObjectId(dummy_id)
+        comp['sn_required'] = False
 
         print("----------")
         pprint(comp)

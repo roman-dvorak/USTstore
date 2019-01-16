@@ -95,20 +95,10 @@ class WebApp(tornado.web.Application):
         for plugin in plugins:
             print("", plugin)
         print ("handlers:")
-<<<<<<< HEAD
-        #for handler in handlers:
-        #    #print("", server_url+handler[0], handler[1])
-        #    print(server_url+handler[0])
-||||||| merged common ancestors
-        for handler in handlers:
-            #print("", server_url+handler[0], handler[1])
-            print(server_url+handler[0])
-=======
         for handler in handlers:
             pass
             #print("", server_url+handler[0], handler[1])
             #print(server_url+handler[0])
->>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
 
         settings = dict(
             plugins = plugins,

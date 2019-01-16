@@ -1,5 +1,3 @@
-
-
 <div id="modal-edit-component"  class="modal hide fade" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -9,6 +7,7 @@
 	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 	          <span aria-hidden="true">&times;</span>
 	        </button>
+          {% if permis %}Mam prava{%else%}NEmam prava{%end%}
 	        {% if permis %}<button type="button mr-0" class="close" onclick="WriteToDb()">{%end%}
 	          <span aria-hidden="true"><i class="material-icons">save</i></span>
           
@@ -27,40 +26,48 @@
       </div> -->
       <div class="modal-body">
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">ID</label>
-              <div class="col-sm-9 input-group">
+              <div class="col-sm-9 input-group input-group-sm">
                 <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky"> 
                 <div class="input-group-append">
-			    	<button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button>
-			  	</div>
+			    	      <button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button>
+			  	      </div>
                 <div style="height: 43pt; padding: 0pt; margin-top: 1rem;" class="col-12"><svg id="edit_barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
               </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Name</label>
               <div class="col-sm-9">
-                <input type="text" class="form-control" id="inputNAME_edit" placeholder="Jméno">
+                <input type="text" class="form-control form-control-sm" id="inputNAME_edit" placeholder="Jméno">
               </div>
             </div>
+
+            <div class="form-group row mb-1">
+              <label class="col-sm-3 col-form-label">Barcodes</label>
+              <div class="input-group input-group-sm col-sm-9">
+                <input type="text" class="form-control form-control-sm" id="inputBARCODE_edit">
+              </div>
+            </div>
+
             {#
-            {% if permis %}<div class="form-group row bg-danger">
+            {% if permis %}<div class="form-group row mb-1 bg-danger">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena slouží k určení ceny výrobku. Měla by odpovídat středu nákupních hodnot.">Cena (oceňovací) <i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
-                <input type="number" class="form-control" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value='0' disabled>
+              <div class="input-group input-group-sm col-sm-9">
+                <input type="number" class="form-control form-control-sm" id="inputPRICE_edit" placeholder="Cena (oceňovací)" value='0' disabled>
                 <div class="input-group-append">
                   <div class="input-group-text">Czk</div>
                 </div>
               </div>
             </div>{%end%}#}
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Tato cena je určena jako základní pro samostatný prodej. Zaškrtávátko určuje, jestli tato položka je samostatně prodejná.">Cena (prodejní) <i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
+              <div class="input-group input-group-sm col-sm-9">
               	<div class="input-group-prepend">
-				    <div class="input-group-text">
-				      <input id="inputSELLABLE_edit" type="checkbox" aria-label="Checkbox for following text input">
-				    </div>
-				  </div>
+      				    <div class="input-group-text">
+      				      <input class="form-control" id="inputSELLABLE_edit" type="checkbox" aria-label="Checkbox for following text input">
+      				    </div>
+				        </div>
                 <input type="number" class="form-control" id="inputPRICEp_edit" placeholder="Cena (prodejní)" value="0" min="0" step="0.001">
                 <div class="input-group-append">
                   <div class="input-group-text">Czk</div>
@@ -68,25 +75,31 @@
               </div>
             </div>
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Skladové zásoby</label>
               <div class="col-sm-9">
                   <div class="d-flex flex-row" id="inputSTOCK_list">
-
                   </div>
               </div>
             </div>
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
+              <label class="col-sm-3 col-form-label">Vyžadováno seriové číslo</label>
+              <div class="col-sm-9">
+                  <input type="checkbox"id="inputSNREQUIED_list">
+              </div>
+            </div>
+
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Popis</label>
               <div class="input-group col-sm-9">
                 <textarea class="form-control" aria-label="With textarea" rows="5" id="inputDESCRIPTION_edit"></textarea>
               </div>
             </div>
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
                <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Pokud nebude kategorie zadána, položka bude zařazena do 'Nezařazeno'.">Kategorie<i class="material-icons">help</i></label>
-              <div class="input-group col-sm-9">
+              <div class="input-group input-group-sm col-sm-9">
                 <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
                 {% for cat in category %}
                     <option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
@@ -96,23 +109,22 @@
               </div>
             </div>
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Tagy</label>
-              <div class="input-group col-sm-9">
-              	<select id="inputTAG_edit" class="form-control" multiple="multiple"></select>
+              <div class="input-group input-group-sm col-sm-9">
+                <select id="inputTAG_edit" class="form-control" multiple="multiple" name="inputTAG_edit"></select>
               </div>
             </div>
 
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label bg-warning">Operace</label>
-              <div class="input-group col-sm-9">
-                
+              <div class="input-group input-group-sm col-sm-9">
                 <div id="selected_operations">
                   <div class="btn-group btn-group-justified">
                     <div class="btn-group" role="group">
                         <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Do košíku</button>
-                        <div class="dropdown-menu form-group p-0" aria-labelledby="btnGroupDrop1">
+                        <div class="dropdown-menu form-group p-0 mb-1" aria-labelledby="btnGroupDrop1">
                           <input class="form-control" type="number" id="add_to_cart_count" min="0" value="0">
                           <button class="form-control btn btn-success" onclick="add_to_cart_count(null, '#add_to_cart_count')">Přidat</button>
                         </div>
@@ -130,7 +142,7 @@
             </div>
 
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Parametry</label>
               <div class="col-sm-9">
                   <div class="card m-0">
@@ -146,7 +158,7 @@
               </div>
             </div>
 
-            <div class="form-group row">
+            <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Dodavatelé</label>
               <div class="col-sm-9">
               	  <div class="card m-0">
@@ -184,7 +196,7 @@
                   </div>
               </div>
             </div>
-            {% if permis %}<div class="form-group row">
+            {% if permis %}<div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">Historie operací</label>
               <div class="col-sm-9">
                   <div class="" id="inputHISTORY_edit" style="max-height: 60vh; overflow-y: auto;"></div>

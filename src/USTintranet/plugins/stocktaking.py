@@ -124,19 +124,27 @@ class load_item(BaseHandler):
         print("ARGUMENT JE....", item)
         #self.write(item)
         out = {}
-        out['item'] = self.mdb.stock.find_one({'_id': item})
-        out['history'] = list(self.mdb.stock.aggregate([
+        out['item'] = self.mdb.stock.find_one({'barcode.0': item})
+        print(out)
+        d = self.mdb.stock.aggregate([
                 {
-                    '$match':{'_id': item}
+                    '$match': {'barcode.0': item}
                 },{
                     '$unwind': '$history'
                 },{
                     '$group' : {
                         '_id' : '$history.stock',
-                        'bilance': { '$sum': '$history.bilance' },
+                        'bilance': { '$sum': '$history.bilance'}
                     }
-                }]))
+                }])
+        d = list(d)
+        print(">>>>>")
+        print(d)
+
+        out['history'] = d
+        print(out)
         out = bson.json_util.dumps(out)
+        #out = json.dumps(out)
         self.write(out)
 
 class save_stocktaking(BaseHandler):
@@ -166,7 +174,7 @@ class save_stocktaking(BaseHandler):
                     }
             
             out = self.mdb.stock.update(
-                    {'_id': item},
+                    {'_id': bson.ObjectId(item)},
                     {
                         '$push': {'history':data}
                     }
@@ -174,7 +182,7 @@ class save_stocktaking(BaseHandler):
             
             #TODO: remove TAG creation
             out = self.mdb.stock.update(
-                    {'_id': item},
+                    {'_id': bson.ObjectId(item)},
                     {
                         '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
                     }

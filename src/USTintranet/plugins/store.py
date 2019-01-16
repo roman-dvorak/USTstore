@@ -8,6 +8,7 @@ from . import Intranet
 from . import BaseHandler
 #from pyoctopart.octopart import Octopart
 import json
+import bson
 import bson.json_util
 from bson import *
 from bson import ObjectId
@@ -49,15 +50,8 @@ class api_products_json(BaseHandler):
 
         polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
-<<<<<<< HEAD
         selected = (self.request.arguments.get('selected[]', []))
         in_stock = self.get_argument('in_stock', 'All')
-||||||| merged common ancestors
-        selected = (self.request.arguments.get('selected[]', []))
-=======
-        selected = self.request.arguments.get('selected[]', [])
-        in_stock = self.get_argument('in_stock', 'All')
->>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
         search = self.get_argument('search')#.decode('ascii')
@@ -75,14 +69,8 @@ class api_products_json(BaseHandler):
                                 {'description': { '$regex': search, '$options': 'ix'}} ]}
             },{
                 "$match": {'category': {polarity: ascii_list_to_str(selected)}}
-<<<<<<< HEAD
             },{
                 '$addFields': {'count': { '$sum': '$history.bilance'}}
-||||||| merged common ancestors
-=======
-            },{
-                '$addFields': {'count': {'$sum': '$history.bilance'}}
->>>>>>> a539fbe6d01df9f85e2de590131dbb7aacaa87ff
             }]
 
         if in_stock == 'Yes':
@@ -244,6 +232,7 @@ class api(BaseHandler):
                     dout = {'done': True}
 
         elif data == 'update_product':
+            #TODO: udelat zde nejake overeni spravnosti dat. Alespon, jestli odpovida struktura.
             print(self.get_argument('json', [None]))
             false = False
             true = True
@@ -258,12 +247,16 @@ class api(BaseHandler):
                 new_json['category'] += ['Nezařazeno']
 
             id = new_json.pop('_id')
-            dout = (self.mdb.stock.update(
+            if bson.ObjectId.is_valid(id):
+                dout = self.mdb.stock.update(
                         {
                             "_id": ObjectId(id)
                         },{
                             '$set': new_json
-                        },upsert=True))
+                        },upsert=True)
+            else:
+                dout = self.mdb.stock.insert(new_json)
+
 
         elif data == 'update_tag':
             component = self.get_argument('component')
@@ -288,7 +281,7 @@ class api(BaseHandler):
         elif data == 'get_history':
             output_type = self.get_argument('output', 'json')
             dbcursor = self.mdb.stock.aggregate([
-                    {"$match": {"_id": self.get_argument('key')}},
+                    {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
                     {"$unwind": '$history'},
                     {"$sort" : {"history._id": -1}},
                     {"$limit": 500}
@@ -371,10 +364,10 @@ class operation(BaseHandler):
         if data == 'service':
             comp = self.get_argument('component')
 
-            article = list(self.mdb.stock.find({'_id': comp}))[0]
+            article = list(self.mdb.stock.find({'_id': bson.ObjectId(comp)}))[0]
             counts = list(self.mdb.stock.aggregate([
                     {
-                        '$match':{ "_id": comp}
+                        '$match':{ "_id": bson.ObjectId(comp)}
                     },{
                         '$unwind': '$history'
                     },{
@@ -393,7 +386,7 @@ class operation(BaseHandler):
 
             print("service_push >>", comp, stock, description, bilance)
             out = self.mdb.stock.update(
-                    {'_id': comp},
+                    {'_id': bson.ObjectId(comp)},
                     {'$push': {'history':
                         {'_id': bson.ObjectId(), 'stock': stock, 'operation': 'service', 'bilance': float(bilance),  'description':description, 'user':self.logged}
                     }}
@@ -405,10 +398,10 @@ class operation(BaseHandler):
         #nakup jedne polozky do skladu. Musi obsahovat: cena za ks, pocet ks, obchod, faktura, ...
         elif data == 'buy':
             comp = self.get_argument('component')
-            article = list(self.mdb.stock.find({'_id': comp}))[0]
+            article = list(self.mdb.stock.find({'_id': bson.ObjectId(comp)}))[0]
             counts = list(self.mdb.stock.aggregate([
                     {
-                        '$match':{ "_id": comp}
+                        '$match':{ "_id": bson.ObjectId(comp)}
                     },{
                         '$unwind': '$history'
                     },{
@@ -436,7 +429,7 @@ class operation(BaseHandler):
 
             print("buy_push >>", comp, stock, description, bilance, invoice, price)
             out = self.mdb.stock.update(
-                    {'_id': comp},
+                    {'_id': bson.ObjectId(comp)},
                     {'$push': {'history':
                         {'_id': id, 'stock': stock, 'operation':'buy', 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged}
                     }}
