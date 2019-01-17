@@ -20,7 +20,7 @@ def make_handlers(module, plugin):
             (r'/logout', plugin.logoutHandler),
             (r'/registration', plugin.regHandler),
             (r'/api/backup', plugin.doBackup),
-            (r'/', plugin.home)]
+            (r'{}/'.format(module), plugin.home)]
             
 def plug_info():
     return {
@@ -349,6 +349,12 @@ class home(BaseHandler):
         self.write('home')
 
 
-class doBackup(BaseHandler):
+class doBackup(BaseHandlerOwnCloud):
     def get(self):
-        pass
+        remote =  os.path.join(tornado.options.options.owncloud_root, 'backup', '2018', 'mdb')
+        remote = os.path.join(tornado.options.options.owncloud_root, 'accounting')
+        import subprocess
+        subprocess.run(["mongodump", "--out=static/tmp/mdb/"])
+        self.oc.put_directory(remote, 'static/tmp/mdb')
+        #os.remove('static/tmp/mdb')
+        self.write("OK")

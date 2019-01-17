@@ -188,7 +188,6 @@ class save_stocktaking(BaseHandler):
                         '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
                     }
                 )
-            
             self.write(bson.json_util.dumps(data))
 
 
