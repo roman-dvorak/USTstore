@@ -41,12 +41,3 @@ for comp in components:
                         print(comp['_id'])
     except Exception as e:
         print('err', comp['_id'], e)
-
-'''
-update({ 
-       _id: 7, 
-       "comments._id": ObjectId("4da4e7d1590295d4eb81c0c7")
-   },{
-       $set: {"comments.$.type": abc}
-   }, false, true
-);'''
