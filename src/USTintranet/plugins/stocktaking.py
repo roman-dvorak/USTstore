@@ -6,6 +6,7 @@ import tornado.web
 import tornado.websocket
 from . import Intranet
 from . import BaseHandler, BaseHandlerOwnCloud
+from . import save_file, upload_file
 #from pyoctopart.octopart import Octopart
 import json
 import urllib
@@ -14,7 +15,7 @@ from bson import ObjectId
 import datetime
 import pandas as pd
 from fpdf import FPDF
-
+import os
 import sys
 sys.path.append("..")
 from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
@@ -38,7 +39,7 @@ def plug_info():
     #class base_info(object):
     return {
         "module": "stocktaking",
-        "name": "Stack taking"
+        "name": "Stock taking"
     }
 
 
@@ -279,17 +280,16 @@ class stocktaking_event_generate_basic(BaseHandlerOwnCloud):
         print("AHOJ", id)
         bid = ObjectId(id)
         stocktaking = self.mdb.stock_taking.find_one({'_id': bid})
-        file = setava_01(self, stocktaking)
+        file = sestava_01(self, stocktaking)
         print(file)
         self.write(file.get_link())
 
 
 
-def setava_01(self, stock_taking):
+def sestava_01(self, stock_taking):
     comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
     autori = stock_taking['author'].strip().split(',')
     datum = str(stock_taking['closed'].date())
-    filename = "{}_{}.pdf".format(stock_taking['_id'], ''.join(stock_taking['name'].split()))
 
     page = 1
     money_sum = 0
@@ -365,7 +365,6 @@ def setava_01(self, stock_taking):
                 page_sum = 0
 
             pdf.set_font('pt_sans', '', 10)
-
             count = component['count']
             price = 0
             price_ks = 0
@@ -379,16 +378,11 @@ def setava_01(self, stock_taking):
                     if x['_id'].generation_time > lastOid.generation_time:
                         inventura = True
                         count = x['absolute']
-
-                        pdf.set_x(110)
-                        pdf.cell(1, 5, "i")
                         break;
 
             if count > 0:
                 rest = count
-
                 for x in reversed(component.get('history', [])):
-
                     if x.get('price', 0) > 0:
                         if first_price == 0: 
                             first_price = x['price']
@@ -400,7 +394,7 @@ def setava_01(self, stock_taking):
                                 price += x['price']*rest
                                 rest = 0
                 
-                print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+                #print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
                 if(count-rest): price += rest*first_price
                 money_sum += price
                 page_sum +=price
@@ -409,16 +403,12 @@ def setava_01(self, stock_taking):
                     Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
 
 
-                #pdf.set_x(120)
-                #if count > 0: pdf.cell(10, 5, "%6.2f Kč" %(price/count), align='R')
-                #else: pdf.cell(10, 5, "%6.2f Kč" %(0), align='R')
-
                 pdf.set_font('pt_sans', '', 10)
                 pdf.set_x(95)
                 pdf.cell(10, 5, "{} j".format(count), align='R')
 
                 pdf.set_x(10)
-                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['_id']))
+                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['name']))
 
                 pdf.set_font('pt_sans-bold', '', 10)
                 pdf.set_x(180)
@@ -453,9 +443,10 @@ def setava_01(self, stock_taking):
             pdf.cell(1,5,ch,ln=2)
     pdf.page = page
 
-    pdf.output("static/sestava.pdf")
+    pdf.output("static/tmp/sestava.pdf")
+    year = datum[:4]
 
-    #self.oc.mkdir('UST_intranet/stocktaking')
-    self.oc.put_file('UST_intranet/stocktaking/'+filename, 'static/sestava.pdf')
-    file = self.oc.share_file_with_link('UST_intranet/stocktaking/'+filename)
-    return file
+    filename = "{}.pdf".format(''.join(stock_taking['name'].split(' ')))
+    foldername = os.path.join(tornado.options.options.owncloud_root, 'accounting', year, 'stocktaking', filename)
+    foldername = save_file(self.mdb, foldername)
+    return upload_file(self.oc, 'static/tmp/sestava.pdf', foldername)

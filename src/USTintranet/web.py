@@ -27,6 +27,7 @@ tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
 tornado.options.define("owncloud_url", default=None, help="URL address of owncloud server")
 tornado.options.define("owncloud_user", default=None, help="URL address of owncloud server")
 tornado.options.define("owncloud_pass", default=None, help="URL address of owncloud server")
+tornado.options.define("owncloud_root", default='/OpenIntranet/', help="URL address of owncloud server")
 
 
 class home(BaseHandler):

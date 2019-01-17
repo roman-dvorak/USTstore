@@ -12,13 +12,15 @@ import hashlib, uuid
 import functools
 import bson
 import datetime
-
+import os
 
 def make_handlers(module, plugin):
         return [
             (r'/login', plugin.loginHandler),
             (r'/logout', plugin.logoutHandler),
-            (r'/registration', plugin.regHandler)]
+            (r'/registration', plugin.regHandler),
+            (r'/api/backup', plugin.doBackup),
+            (r'/', plugin.home)]
             
 def plug_info():
     return {
@@ -42,6 +44,36 @@ def perm_validator(fn, permissions = [], sudo=True):
 
     return fn
 '''
+
+def save_file(db, original_filename):
+    path = os.path.dirname(original_filename)
+    file = os.path.basename(original_filename)
+
+    record = db.owncloud.find_one({'original_filename': file, 'path': path})
+    if record:
+        db.owncloud.update({'_id': record['_id']},{
+                '$inc': {'revision': 1},
+                '$set': {'update': datetime.datetime.now()}
+            })
+        return os.path.join(path, str(record['_id'])+"_"+file)
+    else:
+        out = db.owncloud.insert({
+                'path': path, 
+                'original_filename': file,
+                'revision': 1,
+                'author': 'autor',
+                'type': 'file',
+                'update': datetime.datetime.now()
+            })
+        print("....", out)
+        return os.path.join(path, str(out)+"_"+file)
+
+def upload_file(oc, local, remote, earse = True):
+    oc.put_file(remote, local)
+    os.remove(local)
+    file = oc.share_file_with_link(remote)
+    return file
+
 
 @parametrized
 def perm_validator(method, permissions = [], sudo = True):
@@ -311,3 +343,12 @@ class regHandler(BaseHandler):
 
         print(user, email, psw, pswc, agree)
         self.redirect('/')
+
+class home(BaseHandler):
+    def get(self):
+        self.write('home')
+
+
+class doBackup(BaseHandler):
+    def get(self):
+        pass
