@@ -330,9 +330,9 @@ def setava_01(self, stock_taking):
             if pdf.get_y() > pdf.h-20:
                 pdf.line(10, pdf.get_y()+0.5, pdf.w-10, pdf.get_y()+0.5)
 
-                pdf.set_font('pt_sans', '', 10)
-                pdf.set_xy(150, pdf.get_y()+1)
-                pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+                #pdf.set_font('pt_sans', '', 10)
+                #pdf.set_xy(150, pdf.get_y()+1)
+                #pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
 
                 pdf.add_page()
 
@@ -371,9 +371,8 @@ def setava_01(self, stock_taking):
                     if x['_id'].generation_time > lastOid.generation_time:
                         inventura = True
                         count = x['absolute']
-
-                        pdf.set_x(110)
-                        pdf.cell(1, 5, "i")
+                        #pdf.set_x(110)
+                        #pdf.cell(1, 5, "i")
                         break;
 
             if count > 0:
@@ -429,9 +428,9 @@ def setava_01(self, stock_taking):
     pdf.set_x(180)
     pdf.cell(10, 5, "Konec souhrnu", align='R')
 
-    pdf.set_font('pt_sans', '', 10)
-    pdf.set_xy(150, pdf.get_y()+3)
-    pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+    #pdf.set_font('pt_sans', '', 10)
+    #pdf.set_xy(150, pdf.get_y()+3)
+    #pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
 
     pdf.page = 1
     pdf.set_xy(20,175)
