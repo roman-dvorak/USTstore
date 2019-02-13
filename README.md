@@ -94,6 +94,6 @@ Systém využívá NoSQL databázi MongoDB.
 #Instalace
 ```
 sudo apt install python3-mongoengine 
-sudo pip3 install pyooclient
+sudo pip3 install pyooclient fpdf python-barcode code128
 ```
 
