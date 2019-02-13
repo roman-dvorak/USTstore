@@ -46,7 +46,7 @@ $('#inputNAME_edit').on('change', function(e){
 
 
 $('#inputBARCODE_edit').onchange(function(e){
-  console.log(e); 
+  console.log(e);
   cleanSimpleCode('#inputBARCODE_edit');
 })
 
@@ -140,6 +140,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   $('#inputDESCRIPTION_edit').val(element['description'] || "");
                   $('#inputCATEGORY_edit').val(element['category']).trigger('change');
                   $('#inputBARCODE_edit').val(element['barcode'][0]);
+                  $("#inputBARCODE_edit").attr('disabled', true);
                   $('#inputSNREQUIED_list').val(element['sn_requied']||false);
 
                   draw_parameters();
@@ -176,6 +177,7 @@ function ClearArticleEdit(){
     $('#inputCATEGORY_edit').val(null).trigger('change');
     $('#inputTAG_edit').val(null).trigger('change');
     $('#inputBARCODE_edit').val(null);
+    $("#inputBARCODE_edit").attr('disabled', true);
 
     $('#inputSTOCK_list').empty();
     $('#inputHISTORY_edit').empty();
@@ -250,7 +252,7 @@ function add_parameter(){
 
   element.parameters.push({'name': $('#select-component-parameters-edit').val(),
                             'value': $('#value-component-parameters-edit').val()})
-  
+
   draw_parameters();
 }
 
@@ -267,7 +269,7 @@ function move_param(id, dir){
 }
 
 
-function draw_parameters(){  
+function draw_parameters(){
   if (element.parameters == undefined){
     element['parameters'] = [];
   }
@@ -288,7 +290,7 @@ function draw_parameters(){
         {title:"#", field:"id", sorter:"number", width: 25, editable:false},
         {title:"Parametr", field: "name", editable:false},
         {title:"Hodnota", field: "value", editable:false},
-        {title:"Veličina", field:"unitn", editable:true, sorter:"string"},    
+        {title:"Veličina", field:"unitn", editable:true, sorter:"string"},
     ],
     addRowPos:"bottom",
     cellEdited:function(cell){
@@ -309,7 +311,7 @@ function draw_parameters(){
 
 
 function clear_supplier(){
-    var id = 
+    var id =
     $('#new_supplier_name').val(null).trigger('change');
     $('#new_supplier_id').val((element.supplier || []).length+1);
     $('#new_supplier_symbol').val('');
@@ -384,7 +386,7 @@ function draw_supplier(){
                 "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
                 "</div>";
     var $html = $('<div />',{html:html});
-    
+
     if((p.disabled || 0) == 1){
         $html.find('.card').addClass('text-muted');
         $html.find('.card').addClass('bg-light');

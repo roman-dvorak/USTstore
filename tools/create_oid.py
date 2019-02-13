@@ -17,16 +17,17 @@ db = client.USTintranet
 
 components = db.stock.find()
 
-for comp in components:
+for i, comp in enumerate(components):
     try:
         print("====================================")
 
         pprint(comp)
-        
+
         oldid = comp['_id']
         dummy_id = ObjectId()
-        
-        comp['barcode'] = [comp['_id']]
+        main_code = "USTa{:x}".format(i)
+        comp['barcode'] = [main_code, comp['_id']]
+        comp['primary_barcode'] = 0
         comp['_id'] = ObjectId(dummy_id)
         comp['sn_required'] = False
 
@@ -38,4 +39,5 @@ for comp in components:
 
     except Exception as e:
         print(e)
-    
+
+    print(i, "celkem mame tolik polozek, to je tedy posledni Barcode ID")

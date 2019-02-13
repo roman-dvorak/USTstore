@@ -82,7 +82,7 @@ class api_products_json(BaseHandler):
             agq += [{
                 "$match": {'tags': { '$not': {'$elemMatch': {'id': tag_search}}}}
             }]
-        
+
         elif len(tag_search) > 1 and tag_polarity:
             agq += [{
                 "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
@@ -94,7 +94,7 @@ class api_products_json(BaseHandler):
             agq += [{"$match": {'count': {"$eq": 0}}}]
 
         count = len(list(self.mdb.stock.aggregate(agq)))
-        
+
         agq += [{
                 '$skip' : int(page_len)*int(page)
             },{
@@ -144,7 +144,7 @@ class api_parameters_list(BaseHandler):
             'items': dout,
         }
         self.write(bson.json_util.dumps(data))
-        
+
 class api(BaseHandler):
     def post(self, data=None):
         self.set_header('Content-Type', 'application/json')
@@ -245,6 +245,10 @@ class api(BaseHandler):
             ## Pokud neni zarazen do zadne kategorie dat ho do Nezarazeno
             if len(new_json['category']) == 0:
                 new_json['category'] += ['Nezařazeno']
+            if new_json['barcode'][0] == "":
+                self.mdb.intranet.update_one({"_id": "artikl_barcode"},{"$inc":{"last":1}})
+                code = self.mdb.intranet.find_one({"_id": "artikl_barcode"})
+                new_json['barcode'][0] = code['format'].format(code['last'])
 
             id = new_json.pop('_id')
             if bson.ObjectId.is_valid(id):
@@ -628,7 +632,7 @@ class print_layout(BaseHandler):
 
                     if count >0:
                         price = 0
-                        price_ks = 0 
+                        price_ks = 0
                         first_price = 0
 
 
@@ -664,7 +668,7 @@ class print_layout(BaseHandler):
                     for x in reversed(component.get('history', [])):
 
                         if x.get('price', 0) > 0:
-                            if first_price == 0: 
+                            if first_price == 0:
                                 first_price = x['price']
                             if x['bilance'] > 0:
                                 if x['bilance'] <= rest:
@@ -673,7 +677,7 @@ class print_layout(BaseHandler):
                                 else:
                                     price += x['price']*rest
                                     rest = 0
-                    
+
                     print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
                     if(count-rest): price += rest*first_price
                     money_sum += price
