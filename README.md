@@ -89,3 +89,11 @@ Systém využívá NoSQL databázi MongoDB.
   "operation": "operace",                       // Co je s položkou provedeno ["buy", "sell", "use", "inventura"]
 }
 ```
+
+
+#Instalace
+```
+sudo apt install python3-mongoengine 
+sudo pip3 install pyooclient
+```
+
