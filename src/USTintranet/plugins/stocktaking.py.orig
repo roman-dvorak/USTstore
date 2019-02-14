@@ -6,7 +6,10 @@ import tornado.web
 import tornado.websocket
 from . import Intranet
 from . import BaseHandler, BaseHandlerOwnCloud
+<<<<<<< HEAD
 from . import save_file, upload_file
+=======
+>>>>>>> master
 #from pyoctopart.octopart import Octopart
 import json
 import urllib
@@ -20,12 +23,13 @@ import sys
 sys.path.append("..")
 from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
 
+import sys
+sys.path.append("..")
+from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
+
 
 def make_handlers(module, plugin):
         return [
-             #(r'/{}/(.*)/upload/bom/ust/'.format(module), plugin.ust_bom_upload),
-             #(r'/{}/(.*)/print/'.format(module), plugin.print_bom),
-
              (r'/{}/get_item/'.format(module), plugin.load_item),
              (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
              (r'/{}/event/(.*)/save'.format(module), plugin.stocktaking_eventsave),
@@ -36,8 +40,6 @@ def make_handlers(module, plugin):
              (r'/{}/view/categories'.format(module), plugin.view_categories),
              (r'/{}'.format(module), plugin.home),
              (r'/{}/'.format(module), plugin.home),
-             #(r'/{}/(.*)/'.format(module), plugin.edit),
-             #(r'/{}/(.*)'.format(module), plugin.edit),
         ]
 
 def plug_info():
@@ -48,7 +50,6 @@ def plug_info():
     }
 
 
-
 class home(BaseHandler):
     def get(self):
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
@@ -57,6 +58,8 @@ class home(BaseHandler):
 
         self.render('stocktaking.home.hbs', stocktaking = stocktaking_info)
 
+<<<<<<< HEAD
+=======
 
 ##
 ##  Trida, pro prehled skladu rozrazeny do kategorii
@@ -74,7 +77,65 @@ class view_categories(BaseHandler):
 
         data = []
         data = list(data)
+        
+        for i, path in enumerate(paths):
+            data += [{}]
+            data[i]['path'] = path
+            print(path.split('/')[-1])
+            data[i]['level'] = len(path.split('/'))-2
+            data[i]['category'] = path
 
+            cat_modules = self.mdb.stock.aggregate([
+                {'$match': {'category.0': path.split('/')[-1]}},
+                {'$addFields': {'count': {'$sum': '$history.bilance'}}},
+                {'$sort': {'name': 1}}
+            ])
+            data[i]['modules'] = list(cat_modules)
+            cat_elements = 0
+            cat_sum = 0
+            cat_sum_bilance = 0
+            inventura = True
+
+            for module in data[i]['modules']:
+                #module['inventory'] = getInventory(module, datetime.datetime(2018, 10, 1), None, False)
+                module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
+                if module['inventory']:
+                    module['count'] = module['inventory']
+                module['inventory'] = bool(module['inventory'])
+                module['price_sum'] = getPrice(module)
+                if module['count'] > 0:
+                    module['price'] = module['price_sum']/module['count']
+                else:
+                    module['price'] = 0
+
+                module['inventory_2018'] = {'bilance_count': None, 'bilance_price': None}
+                (module['inventory_2018']['count'], module['inventory_2018']['price']) = getInventory(module, datetime.datetime(2018, 1, 1), datetime.datetime(2018, 10, 1), False)
+                module['inventory_2018']['bilance_count'] = module['count'] - module['inventory_2018']['count']
+                module['inventory_2018']['bilance_price'] = module['price_sum'] - module['inventory_2018']['price']*module['inventory_2018']['count']
+
+                cat_sum += module['price_sum']
+                cat_elements += module['count']
+                cat_sum_bilance += module['inventory_2018']['bilance_price']
+                inventura &= (module['inventory'] or (module['count']==0))
+>>>>>>> master
+
+##
+##  Trida, pro prehled skladu rozrazeny do kategorii
+##
+class view_categories(BaseHandler):
+    def get(self):
+        self.authorized(['inventory'])
+        categories = list(self.mdb.category.aggregate([]))
+
+        # seradit kategorie tak, aby to odpovidalo adresarove strukture
+        paths = set()
+        for x in categories:
+            paths.add(x['path']+x['name'])
+        paths = sorted(list(paths))
+
+        data = []
+        data = list(data)
+        
         for i, path in enumerate(paths):
             data += [{}]
             data[i]['path'] = path
@@ -122,6 +183,12 @@ class view_categories(BaseHandler):
             data[i]['cat_inventura'] = inventura
         self.render("stocktaking.view.categories.hbs", data=data, category = data)
 
+            data[i]['cat_sum'] = cat_sum
+            data[i]['cat_sum_bilance'] = cat_sum_bilance
+            data[i]['cat_elements'] = cat_elements
+            data[i]['cat_inventura'] = inventura
+        self.render("stocktaking.view.categories.hbs", data=data, category = data)
+
 
 class load_item(BaseHandler):
     def post(self):
@@ -151,6 +218,7 @@ class load_item(BaseHandler):
         out['history'] = d
         print(out)
         out = bson.json_util.dumps(out)
+        #out = json.dumps(out)
         self.write(out)
 
 class save_stocktaking(BaseHandler):
@@ -178,27 +246,39 @@ class save_stocktaking(BaseHandler):
                     'description': description,
                     'user':self.logged,
                     }
-
+            
             out = self.mdb.stock.update(
+<<<<<<< HEAD
                     {'_id': bson.ObjectId(item)},
+=======
+                    {'_id': item},
+>>>>>>> master
                     {
                         '$push': {'history':data}
                     }
                 )
-
+            
             #TODO: remove TAG creation
             out = self.mdb.stock.update(
+<<<<<<< HEAD
                     {'_id': bson.ObjectId(item)},
+=======
+                    {'_id': item},
+>>>>>>> master
                     {
                         '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
                     }
                 )
+<<<<<<< HEAD
+=======
+            
+>>>>>>> master
             self.write(bson.json_util.dumps(data))
 
 
 class stocktaking_events(BaseHandler):
     '''
-        Slouzi k ziskani prehledu o vsech Vytvorenych kampanich.
+        Slouzi k ziskani prehledu o vsech Vytvorenych kampanich. 
 
     '''
     def get(self):
@@ -271,61 +351,41 @@ class stocktaking_eventsave(BaseHandler):
             id = str(self.mdb.stock_taking.insert(data))
         else: #TODO: dodelat overeni, ze se jedna o legitimni ObjectID
             self.mdb.stock_taking.update({'_id': bson.ObjectId(id)}, {'$set':data}, False, True)
-
+        
         # ulozit aktualni inventuru
         if data['status']: self.mdb.intranet.update({'_id': 'stock_taking'}, {'$set':{'current': bson.ObjectId(id)}})
         self.write(id)
 
 
 
-class edit(BaseHandler):
-    def get(self, name):
-        print("Vyhledavam polozku", name)
-        if name == 'new':
-            product = self.mdb.production.insert({
-                    'name': 'Without name',
-                    'created': datetime.datetime.now(),
-                    'state': 0,
-                    'info':{},
-                    'author': [],
-                    'tags': [],
-                    'priority': 0,
-                    'type': 'module',
-                    'components': []
-                })
-            print(product)
-            self.redirect('/production/{}/'.format(product))
 
 class stocktaking_event_generate_basic(BaseHandlerOwnCloud):
     def post(self, id):
         print("AHOJ", id)
         bid = ObjectId(id)
         stocktaking = self.mdb.stock_taking.find_one({'_id': bid})
+<<<<<<< HEAD
+        file = sestava_01(self, stocktaking)
+=======
         file = setava_01(self, stocktaking)
+>>>>>>> master
         print(file)
         self.write(file.get_link())
 
-    def post(self, name):
-        self.set_header('Content-Type', 'application/json')
-        op = self.get_argument('operation', 'get_production')
-        print("POST....", op)
-        print(name)
 
-        if op == 'get_production':
-            #print("get_production")
-            dout = list(self.mdb.production.aggregate([
-                    {'$match': {'_id': bson.ObjectId(name)}},
-                    {'$sort': {'components.Ref': 1}}
-                ]))
-            print(dout[0])
-            output = bson.json_util.dumps(dout[0])
-            self.write(output)
 
+<<<<<<< HEAD
+def sestava_01(self, stock_taking):
+    comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
+    autori = stock_taking['author'].strip().split(',')
+    datum = str(stock_taking['closed'].date())
+=======
 def setava_01(self, stock_taking):
     comp = list(self.mdb.stock.find().sort([("category", 1), ("_id",1)]))
     autori = stock_taking['author'].strip().split(',')
     datum = str(stock_taking['closed'].date())
     filename = "{}_{}.pdf".format(stock_taking['_id'], ''.join(stock_taking['name'].split()))
+>>>>>>> master
 
     page = 1
     money_sum = 0
@@ -355,56 +415,11 @@ def setava_01(self, stock_taking):
 
     pdf.add_page()
 
-    ref = self.get_argument('ref')
-    value = self.get_argument('value')
-    c_name = self.get_argument('name')
-    package = self.get_argument('package')
-    ust_id = self.get_argument('ust_id')
-    price_predicted = self.get_argument('price_predicted', 0.0)
-    price_store = self.get_argument('price_store', 0.0)
-    price_final = self.get_argument('price_final', 0.0)
-    description = self.get_argument('description', '')
-    print(ref.split(','))
 
     data = self.mdb.stock.aggregate([
             {'$addFields': {'count': {'$sum': '$history.bilance'}}}
         ])
 
-    if exist.count() > 0:
-        update = self.mdb.production.update(
-            {
-                '_id': bson.ObjectId(name),
-                "components.Ref": c
-            },{
-                "$set": {
-                "components.$.Ref": c,
-                "components.$.Value": value,
-                "components.$.Package": package,
-                "components.$.UST_ID": ust_id,
-                "components.$.price_predicted": price_predicted,
-                "components.$.price_store": price_store,
-                "components.$.price_final": price_final,
-                "components.$.Note": description,
-            }
-        }, upsert = True)
-    else:
-        print("NOVA POLOZKA")
-        update = self.mdb.production.update(
-            {
-                '_id': bson.ObjectId(name)
-            },{
-                "$push": {'components': {
-                    "Ref": c,
-                    "Package": package,
-                    "Value": value,
-                    "UST_ID": ust_id,
-                    "price_predicted": price_predicted,
-                    "price_store": price_store,
-                    "price_final": price_final,
-                    "Note": description
-                    }
-                }
-            })
 
     gen_time = datetime.datetime(2018, 10, 1)
     lastOid = ObjectId.from_datetime(gen_time)
@@ -446,20 +461,15 @@ def setava_01(self, stock_taking):
                 page_sum = 0
 
             pdf.set_font('pt_sans', '', 10)
+<<<<<<< HEAD
+=======
 
+>>>>>>> master
             count = component['count']
             price = 0
             price_ks = 0
             first_price = 0
 
-            ref = self.get_argument('Ref')
-            val = self.get_argument('Val')
-            package = self.get_argument('Package')
-            posx = self.get_argument('PosX')
-            posy = self.get_argument('PosY')
-            rot = self.get_argument('Rot')
-            side = self.get_argument('Side')
-            tstep = self.get_argument('Tstep')
 
             inventura = False
             for x in reversed(component.get('history', [])):
@@ -468,18 +478,25 @@ def setava_01(self, stock_taking):
                     if x['_id'].generation_time > lastOid.generation_time:
                         inventura = True
                         count = x['absolute']
+<<<<<<< HEAD
+=======
 
                         pdf.set_x(110)
                         pdf.cell(1, 5, "i")
+>>>>>>> master
                         break;
 
             if count > 0:
                 rest = count
+<<<<<<< HEAD
+                for x in reversed(component.get('history', [])):
+=======
 
                 for x in reversed(component.get('history', [])):
 
+>>>>>>> master
                     if x.get('price', 0) > 0:
-                        if first_price == 0:
+                        if first_price == 0: 
                             first_price = x['price']
                         if x['bilance'] > 0:
                             if x['bilance'] <= rest:
@@ -488,8 +505,12 @@ def setava_01(self, stock_taking):
                             else:
                                 price += x['price']*rest
                                 rest = 0
-
+                
+<<<<<<< HEAD
+                #print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+=======
                 print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+>>>>>>> master
                 if(count-rest): price += rest*first_price
                 money_sum += price
                 page_sum +=price
@@ -498,16 +519,23 @@ def setava_01(self, stock_taking):
                     Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
 
 
+<<<<<<< HEAD
+=======
                 #pdf.set_x(120)
                 #if count > 0: pdf.cell(10, 5, "%6.2f Kč" %(price/count), align='R')
                 #else: pdf.cell(10, 5, "%6.2f Kč" %(0), align='R')
 
+>>>>>>> master
                 pdf.set_font('pt_sans', '', 10)
                 pdf.set_x(95)
                 pdf.cell(10, 5, "{} j".format(count), align='R')
 
                 pdf.set_x(10)
+<<<<<<< HEAD
                 pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['name']))
+=======
+                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['_id']))
+>>>>>>> master
 
                 pdf.set_font('pt_sans-bold', '', 10)
                 pdf.set_x(180)
@@ -542,6 +570,7 @@ def setava_01(self, stock_taking):
             pdf.cell(1,5,ch,ln=2)
     pdf.page = page
 
+<<<<<<< HEAD
     pdf.output("static/tmp/sestava.pdf")
     year = datum[:4]
 
@@ -549,3 +578,11 @@ def setava_01(self, stock_taking):
     foldername = os.path.join(tornado.options.options.owncloud_root, 'accounting', year, 'stocktaking', filename)
     foldername = save_file(self.mdb, foldername)
     return upload_file(self.oc, 'static/tmp/sestava.pdf', foldername)
+=======
+    pdf.output("static/sestava.pdf")
+
+    #self.oc.mkdir('UST_intranet/stocktaking')
+    self.oc.put_file('UST_intranet/stocktaking/'+filename, 'static/sestava.pdf')
+    file = self.oc.share_file_with_link('UST_intranet/stocktaking/'+filename)
+    return file
+>>>>>>> master

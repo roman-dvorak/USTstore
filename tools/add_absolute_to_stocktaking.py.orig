@@ -1,0 +1,55 @@
+from pprint import pprint
+import csv
+import pymongo
+import json
+import urllib.request
+import re
+import sys
+import datetime
+from bson import ObjectId
+
+
+##
+##    Tento skript doplní do starých inventur (z r. 2018) absolutní počet. 
+##    Ten slouží k tomu, aby se nemusel počet skladových zásob vždy přepočítávat.
+##
+
+
+client = pymongo.MongoClient('localhost', 27017)
+db = client.USTintranet
+
+components = db.stock.find()
+
+for comp in components:
+    try:
+        if not comp.get('history', None):
+            db.stock.update({'_id': comp['_id']},{
+                    '$set':{"history":[]}
+                }, False, True)
+
+        for h in comp['history']:
+            if h['operation'] == 'inventory':
+                date = h['_id'].generation_time.date()
+                if date < datetime.datetime(2018, 10, 1).date():
+                    if not h.get('absolute', None):
+                        db.stock.update({
+                                '_id': comp['_id'],
+                                'history._id': h['_id']
+                            },{
+                                '$set':{"history.$.absolute": h['bilance']}
+                            }, False, True)
+                        print(comp['_id'])
+    except Exception as e:
+        print('err', comp['_id'], e)
+<<<<<<< HEAD
+=======
+
+'''
+update({ 
+       _id: 7, 
+       "comments._id": ObjectId("4da4e7d1590295d4eb81c0c7")
+   },{
+       $set: {"comments.$.type": abc}
+   }, false, true
+);'''
+>>>>>>> master

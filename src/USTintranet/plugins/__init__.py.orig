@@ -237,7 +237,7 @@ class BaseHandler(tornado.web.RequestHandler):
             req = set(required)
             intersection = list(self.role&req)
             if  bool(intersection):
-                print("Dostatecna prava")
+                print("DOstatecna prava")
                 return intersection
             else:
                 print("Uzivatel nema dostatecna opravneni k pristupu", required)
@@ -282,7 +282,11 @@ class BaseHandlerJson(BaseHandler):
 class BaseHandlerOwnCloud(BaseHandler):
     def prepare(self):
         self.oc = owncloud.Client(tornado.options.options.owncloud_url)
+<<<<<<< HEAD
         self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
+        super(BaseHandlerOwnCloud, self).prepare()
+=======
+        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass) 
         super(BaseHandlerOwnCloud, self).prepare()
 
 
@@ -290,6 +294,7 @@ class home(BaseHandler):
     def get(self, param=None):
         self.write("Ahoj :) ")
 
+>>>>>>> master
 
 class loginHandler(BaseHandler):
     def get(self):

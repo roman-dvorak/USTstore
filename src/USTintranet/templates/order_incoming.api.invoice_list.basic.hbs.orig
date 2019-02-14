@@ -1,0 +1,6 @@
+{% for invoice in invoices %}
+<div>
+  <a href="#{{invoice.get('_id', 'Err')}}" onclick="load_invoice('{{invoice.get('_id', 'Err')}}')">{{invoice.get("_id", 'Err')}}</a><br>
+  {%raw invoice %}<hr>
+</div>
+{%end%}
