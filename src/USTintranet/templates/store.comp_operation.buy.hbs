@@ -4,7 +4,7 @@ Součastné počty:<br>
 </ul>
 
 <div class="container">
-	
+
 
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Počet ks</label>
@@ -34,8 +34,12 @@ Součastné počty:<br>
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Sklad </label>
 		<select class="form-control table_style col-sm-10" id="compo_stock">
-		   <option value="pha01">Praha (pha01)</option>
-		   <option value="sob01">Soběslav (sob01)</option>
+		   <!-- <option value="pha01">Praha (pha01)</option>
+		   <option value="sob01">Soběslav (sob01)</option> -->
+           <option value="none">Virtuální položka (none)</option>
+           {% for place in places %}
+            <option value="{{place['_id']}}">{{place['text']}} ({{place['_id']}})</option>
+           {% end %}
 		</select>
 	</div>
 	<div class="form-group row">
@@ -50,7 +54,7 @@ Součastné počty:<br>
 
 	function compo_update() {
 		for(c in compo_counts){
-			if(compo_counts[c]['_id'] === $('#compo_stock').val()){	
+			if(compo_counts[c]['_id'] === $('#compo_stock').val()){
 				compo_new_count = Number(compo_counts[c]['count']) + Number($("#compo_offset").val());
 				break;
 			}

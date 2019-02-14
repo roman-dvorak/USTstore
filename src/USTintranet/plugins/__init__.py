@@ -15,13 +15,15 @@ import datetime
 import os
 
 def make_handlers(module, plugin):
-        return [
+        handlers = [
             (r'/login', plugin.loginHandler),
             (r'/logout', plugin.logoutHandler),
             (r'/registration', plugin.regHandler),
             (r'/api/backup', plugin.doBackup),
-            (r'{}/'.format(module), plugin.home)]
-            
+            (r'/system', plugin.system_handler),
+            (r'/system/', plugin.system_handler)]
+        return handlers
+
 def plug_info():
     return {
         "module": "system",
@@ -58,7 +60,7 @@ def save_file(db, original_filename):
         return os.path.join(path, str(record['_id'])+"_"+file)
     else:
         out = db.owncloud.insert({
-                'path': path, 
+                'path': path,
                 'original_filename': file,
                 'revision': 1,
                 'author': 'autor',
@@ -199,6 +201,20 @@ class BaseHandler(tornado.web.RequestHandler):
             self.logged = False
             return None
 
+    def base(num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
+        if not b:
+            b = len(symbols)
+        return ((num == 0) and symbols[0]) or (base(num // b, symbols, b).lstrip(symbols[0]) + symbols[num % b])
+
+    def barcode(hex):
+        print(int(hex, 16))
+        code = blake2s(bytes(hex, 'utf-8'), digest_size=6)
+        code = int(code.hexdigest(), 16)
+        print(code)
+        code = base(code, b=62)
+        code += code[1]
+        code += code[0]
+        return code
 
     def get_current_user(self):
         login = self.get_secure_cookie("user", None)
@@ -266,14 +282,8 @@ class BaseHandlerJson(BaseHandler):
 class BaseHandlerOwnCloud(BaseHandler):
     def prepare(self):
         self.oc = owncloud.Client(tornado.options.options.owncloud_url)
-        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass) 
+        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
         super(BaseHandlerOwnCloud, self).prepare()
-
-
-class home(BaseHandler):
-    def get(self, param=None):
-        self.write("Ahoj :) ")
-
 
 class loginHandler(BaseHandler):
     def get(self):
@@ -282,7 +292,7 @@ class loginHandler(BaseHandler):
     def post(self):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
-        
+
         username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
         print("USERNAME:", username)
         if username:
@@ -294,7 +304,7 @@ class loginHandler(BaseHandler):
                 self.set_secure_cookie('user', userdb['user'])
                 self.redirect('/')
                 self.finish()
-        
+
         self.redirect('/login?msg=badlogin')
 
 class logoutHandler(BaseHandler):
@@ -344,11 +354,6 @@ class regHandler(BaseHandler):
         print(user, email, psw, pswc, agree)
         self.redirect('/')
 
-class home(BaseHandler):
-    def get(self):
-        self.write('home')
-
-
 class doBackup(BaseHandlerOwnCloud):
     def get(self):
         remote =  os.path.join(tornado.options.options.owncloud_root, 'backup', '2018', 'mdb')
@@ -358,3 +363,10 @@ class doBackup(BaseHandlerOwnCloud):
         self.oc.put_directory(remote, 'static/tmp/mdb')
         #os.remove('static/tmp/mdb')
         self.write("OK")
+
+
+
+class system_handler(BaseHandler):
+    def get(self):
+        print("BASE ... SYSTEM")
+        self.write("BASE HANDLER...")

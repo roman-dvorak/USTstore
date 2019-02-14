@@ -169,20 +169,6 @@ class api(BaseHandler):
                     }
                 ]))
 
-            '''
-            dout[0]['stock'] = list(self.mdb.stock.aggregate([
-                {
-                    '$match':{'_id': self.get_argument('value', '')}
-                },{
-                    '$unwind': '$history'
-                },{
-                    '$group' : {
-                        '_id' : '$history.stock',
-                        'bilance': { '$sum': '$history.bilance' },
-                    }
-                }]))
-            '''
-
         elif data == "get_tags":
             dout = list(self.mdb.stock.distinct('tags.id'))
 
@@ -242,24 +228,32 @@ class api(BaseHandler):
             print("Update product with parameters:")
             print(new_json)
 
+            id =new_json.pop("_id")
+            new_item = not bson.ObjectId.is_valid(id)
+            if new_item:
+                id = ObjectId()
+                print("NOVA POLOZKA", id)
+            else:
+                id = ObjectId(id)
+                print("EXISTUJICI POLOZKA", id)
+
+
             ## Pokud neni zarazen do zadne kategorie dat ho do Nezarazeno
             if len(new_json['category']) == 0:
                 new_json['category'] += ['Nezařazeno']
-            if new_json['barcode'][0] == "":
-                self.mdb.intranet.update_one({"_id": "artikl_barcode"},{"$inc":{"last":1}})
-                code = self.mdb.intranet.find_one({"_id": "artikl_barcode"})
-                new_json['barcode'][0] = code['format'].format(code['last'])
 
-            id = new_json.pop('_id')
-            if bson.ObjectId.is_valid(id):
-                dout = self.mdb.stock.update(
-                        {
-                            "_id": ObjectId(id)
-                        },{
-                            '$set': new_json
-                        },upsert=True)
-            else:
-                dout = self.mdb.stock.insert(new_json)
+            if not 'barcode' in new_json:
+                new_json['Barcode'] = [self.barcode(str(id))]
+
+
+            dout = self.mdb.stock.update(
+                    {
+                        "_id": ObjectId(id)
+                    },{
+                        '$set': new_json
+                    },upsert=True)
+            #else:
+            #    dout = self.mdb.stock.insert(new_json)
 
 
         elif data == 'update_tag':
@@ -403,6 +397,8 @@ class operation(BaseHandler):
         elif data == 'buy':
             comp = self.get_argument('component')
             article = list(self.mdb.stock.find({'_id': bson.ObjectId(comp)}))[0]
+            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            print("Skladovj pozice", places)
             counts = list(self.mdb.stock.aggregate([
                     {
                         '$match':{ "_id": bson.ObjectId(comp)}
@@ -415,18 +411,18 @@ class operation(BaseHandler):
                         }
                     }]))
 
-            self.render("store.comp_operation.{}.hbs".format(data), article = article, counts = counts)
+            self.render("store.comp_operation.{}.hbs".format(data), article = article, counts = counts, places = places)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
             ctype = self.get_argument('type', None)
             supplier = self.get_argument('supplier', None)
-            stock = self.get_argument('stock')
-            description = self.get_argument('description', '');
-            bilance = self.get_argument('count', 0);
-            bilance_plan = self.get_argument('count_planned', None);
-            invoice = self.get_argument('invoice', None);
-            price = self.get_argument('price');
+            stock = ObjectId(self.get_argument('stock'))
+            description = self.get_argument('description', '')
+            bilance = self.get_argument('count', 0)
+            bilance_plan = self.get_argument('count_planned', None)
+            invoice = self.get_argument('invoice', None)
+            price = self.get_argument('price')
 
             invoice = bson.ObjectId(invoice)
             id = bson.ObjectId()
@@ -439,12 +435,28 @@ class operation(BaseHandler):
                     }}
                 )
             self.LogActivity('store', 'operation_service')
-            self.write(out);
+            self.write(out)
 
+        ## Move components from place to place...
+        elif data == 'move':
+            id = bson.ObjectId(self.get_argument('component'))
+            current = self.mdb.stock.aggregate([
+                {"$match": {"_id": id}},
+                {"$unwind": "$history"},
+                {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
+                {"$lookup":
+                    {
+                        "from": "store_positions",
+                        "localField": '_id',
+                        "foreignField" : '_id',
+                        "as": "position"
+            }}])
+            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            self.render('store.comp_operation.move.hbs', current_places = list(current), all_places=places)
 
         else:
             self.write('''
-                <h2>AAA {} {}</h2>
+                <h2>Zatim nepodporovana operace {} s polozkou {}</h2>
             '''.format(data, self.get_argument('component')))
 
 

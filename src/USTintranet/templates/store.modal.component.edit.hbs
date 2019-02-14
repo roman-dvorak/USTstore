@@ -10,7 +10,7 @@
           {% if permis %}Mam prava{%else%}NEmam prava{%end%}
 	        {% if permis %}<button type="button mr-0" class="close" onclick="WriteToDb()">{%end%}
 	          <span aria-hidden="true"><i class="material-icons">save</i></span>
-          
+
 	        </button>
 	    </span>
       </div>
@@ -29,9 +29,10 @@
             <div class="form-group row mb-1">
               <label class="col-sm-3 col-form-label">ID</label>
               <div class="col-sm-9 input-group input-group-sm">
-                <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky"> 
+                <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky">
                 <div class="input-group-append">
 			    	      <button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button>
+                          <button class="btn btn-outline-secondary material-icons">share</button>
 			  	      </div>
                 <div style="height: 43pt; padding: 0pt; margin-top: 1rem;" class="col-12"><svg id="edit_barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
               </div>
@@ -130,9 +131,10 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-primary" onclick="load_modal_operation('buy', '#modal_oper_place')">Nákup</button>
-                    <button type="button" class="btn btn-primary">Prodej</button>
+                    <button type="button" class="btn btn-primary bnt-disabled" disabled>Prodej</button>
                     <button type="button" class="btn btn-primary" onclick="load_modal_operation('service', '#modal_oper_place')">Servisní odběr</button>
-                </div> 
+                    <button type="button" class="btn btn-primary" onclick="load_modal_operation('move', '#modal_oper_place')">Přesun</button>
+                </div>
                 </div>
 
               </div>

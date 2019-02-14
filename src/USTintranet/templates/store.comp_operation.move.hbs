@@ -1,0 +1,75 @@
+<div class="bg-danger"> Zatim nepouzivat PRESUN polozek. </div>
+
+Součastné pozice ve skladech:<br>
+<ul>
+{%for current in current_places %} <li>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</small>{%end%}
+</ul>
+
+<div class="container">
+
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Staré umístění</label>
+		<select class="form-control table_style col-sm-9">
+            {%for current in current_places %} <option id="{{current['position'][0]['text']}}" count={{current['count']}}>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</option>{%end%}
+		</select>
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Počet ks</label>
+		<input class="form-control table_style col-sm-9" type="number" id="compo_count" min="0" value="0">
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Nové umístění</label>
+		<select class="form-control table_style col-sm-9">
+            {%for place in all_places %} <option id="{{place['_id']}}">{{place['text']}}</option>{%end%}
+		</select>
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Poznámka </label>
+		<input class="form-control table_style col-sm-9" type="text" id="compo_description" value="">
+	</div>
+
+	<div class="form-group row">
+		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()">Uložit</button>
+	</div>
+</div><hr>
+<small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+
+<script type="text/javascript">
+
+
+	function compo_update_push(){
+	    $.ajax({
+	      type: "POST",
+	      url: "/store/operation/buy_push/",
+	      data: {
+	        'component': current_detail,
+	        'stock': $("#compo_stock").val(),
+	        'count': $("#compo_count").val(),
+	        'price': $("#compo_price").val(),
+	        'invoice': $("#compo_invoice").val(),
+	        'description': $('#compo_description').val()
+	      },
+	      success: function( data, textStatus, jQxhr ){
+	      	console.log(data);
+	      	$('#modal_operation').modal('hide');
+            Lobibox.notify('success', {msg: 'Polozka ulozena'});
+
+	        $("#modal-operation-content").modal('hide');
+        	$("#modal_oper_place").hide();
+
+	      },
+	      error: function( jqXhr, textStatus, errorThrown ){
+	        console.log( errorThrown );
+			Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+	      }
+	    });
+	}
+
+	$("#compo_offset").change(compo_update);
+	$("#compo_stock").change(compo_update);
+	compo_update();
+</script>
