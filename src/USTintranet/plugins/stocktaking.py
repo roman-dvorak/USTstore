@@ -23,9 +23,6 @@ from plugins.store_data.stock_counting import getLastInventory, getPrice, getInv
 
 def make_handlers(module, plugin):
         return [
-             #(r'/{}/(.*)/upload/bom/ust/'.format(module), plugin.ust_bom_upload),
-             #(r'/{}/(.*)/print/'.format(module), plugin.print_bom),
-
              (r'/{}/get_item/'.format(module), plugin.load_item),
              (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
              (r'/{}/event/(.*)/save'.format(module), plugin.stocktaking_eventsave),
@@ -36,8 +33,6 @@ def make_handlers(module, plugin):
              (r'/{}/view/categories'.format(module), plugin.view_categories),
              (r'/{}'.format(module), plugin.home),
              (r'/{}/'.format(module), plugin.home),
-             #(r'/{}/(.*)/'.format(module), plugin.edit),
-             #(r'/{}/(.*)'.format(module), plugin.edit),
         ]
 
 def plug_info():
@@ -46,7 +41,6 @@ def plug_info():
         "module": "stocktaking",
         "name": "Stock taking"
     }
-
 
 
 class home(BaseHandler):
@@ -74,7 +68,7 @@ class view_categories(BaseHandler):
 
         data = []
         data = list(data)
-
+        
         for i, path in enumerate(paths):
             data += [{}]
             data[i]['path'] = path
@@ -131,25 +125,18 @@ class load_item(BaseHandler):
         print("ARGUMENT JE....", item)
         #self.write(item)
         out = {}
-        out['item'] = self.mdb.stock.find_one({'barcode.0': item})
-        print(out)
-        d = self.mdb.stock.aggregate([
+        out['item'] = self.mdb.stock.find_one({'_id': item})
+        out['history'] = list(self.mdb.stock.aggregate([
                 {
-                    '$match': {'barcode.0': item}
+                    '$match':{'_id': item}
                 },{
                     '$unwind': '$history'
                 },{
                     '$group' : {
                         '_id' : '$history.stock',
-                        'bilance': { '$sum': '$history.bilance'}
+                        'bilance': { '$sum': '$history.bilance' },
                     }
-                }])
-        d = list(d)
-        print(">>>>>")
-        print(d)
-
-        out['history'] = d
-        print(out)
+                }]))
         out = bson.json_util.dumps(out)
         self.write(out)
 
@@ -178,14 +165,14 @@ class save_stocktaking(BaseHandler):
                     'description': description,
                     'user':self.logged,
                     }
-
+            
             out = self.mdb.stock.update(
                     {'_id': bson.ObjectId(item)},
                     {
                         '$push': {'history':data}
                     }
                 )
-
+            
             #TODO: remove TAG creation
             out = self.mdb.stock.update(
                     {'_id': bson.ObjectId(item)},
@@ -193,6 +180,7 @@ class save_stocktaking(BaseHandler):
                         '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
                     }
                 )
+            
             self.write(bson.json_util.dumps(data))
 
 
@@ -271,7 +259,7 @@ class stocktaking_eventsave(BaseHandler):
             id = str(self.mdb.stock_taking.insert(data))
         else: #TODO: dodelat overeni, ze se jedna o legitimni ObjectID
             self.mdb.stock_taking.update({'_id': bson.ObjectId(id)}, {'$set':data}, False, True)
-
+        
         # ulozit aktualni inventuru
         if data['status']: self.mdb.intranet.update({'_id': 'stock_taking'}, {'$set':{'current': bson.ObjectId(id)}})
         self.write(id)
@@ -468,9 +456,8 @@ def setava_01(self, stock_taking):
                     if x['_id'].generation_time > lastOid.generation_time:
                         inventura = True
                         count = x['absolute']
-
-                        pdf.set_x(110)
-                        pdf.cell(1, 5, "i")
+                        #pdf.set_x(110)
+                        #pdf.cell(1, 5, "i")
                         break;
 
             if count > 0:
@@ -479,7 +466,7 @@ def setava_01(self, stock_taking):
                 for x in reversed(component.get('history', [])):
 
                     if x.get('price', 0) > 0:
-                        if first_price == 0:
+                        if first_price == 0: 
                             first_price = x['price']
                         if x['bilance'] > 0:
                             if x['bilance'] <= rest:
@@ -488,7 +475,7 @@ def setava_01(self, stock_taking):
                             else:
                                 price += x['price']*rest
                                 rest = 0
-
+                
                 print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
                 if(count-rest): price += rest*first_price
                 money_sum += price
@@ -507,7 +494,7 @@ def setava_01(self, stock_taking):
                 pdf.cell(10, 5, "{} j".format(count), align='R')
 
                 pdf.set_x(10)
-                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['name']))
+                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['_id']))
 
                 pdf.set_font('pt_sans-bold', '', 10)
                 pdf.set_x(180)
@@ -526,9 +513,9 @@ def setava_01(self, stock_taking):
     pdf.set_x(180)
     pdf.cell(10, 5, "Konec souhrnu", align='R')
 
-    pdf.set_font('pt_sans', '', 10)
-    pdf.set_xy(150, pdf.get_y()+3)
-    pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
+    #pdf.set_font('pt_sans', '', 10)
+    #pdf.set_xy(150, pdf.get_y()+3)
+    #pdf.cell(100, 5, 'Součet strany: {:6.2f} Kč'.format(page_sum))
 
     pdf.page = 1
     pdf.set_xy(20,175)
