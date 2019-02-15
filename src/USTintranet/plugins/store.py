@@ -442,7 +442,7 @@ class operation(BaseHandler):
                 {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
                 {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
             ])
-            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            places = self.get_warehouseses()
             self.render('store/store.comp_operation.move.hbs', current_places = list(current), all_places=places)
 
         elif data == 'move_push':
@@ -471,15 +471,45 @@ class operation(BaseHandler):
                 }}
             )
 
+        ##
+        ## Funkce pro nastaveni vychozich pozic ve skladech.
+        ##
+        elif data == 'setposition':
+            id = bson.ObjectId(self.get_argument('component'))
+            current = self.component_get_positions(id)
+            print(bson.json_util.dumps(current))
+            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            self.render("store/store.comp_operation.setposition.hbs", counts = current, all_places = places, stock_positions = [])
+
+        elif data == 'setposition_push':
+            id = bson.ObjectId(self.get_argument('component'))
+            type = self.get_argument('type')
+            position = bson.ObjectId(self.get_argument('position'))
+
+            if type == 'add':
+                self.component_set_position(id, position)
+
+            # if type == 'add':
+            #     data = self.mdb.stock.find_one({'_id': id})
+            #     if not data.get('position', False):
+            #         self.mdb.stock.update({'_id': id},{"$set":{"position": []}})
+            #
+            #     if not (position in data.get('position', [])):
+            #         print("UPDATE....")
+            #         self.mdb.stock.update(
+            #                 {'_id': id},
+            #                 {'$push': {'position': position}}
+            #             , True, True)
+            else:
+                self.write("Err")
+
+            self.LogActivity('store', 'operation_setposition')
+            self.write("ACK");
 
         else:
             self.write('''
                 <h2>Zatim nepodporovana operace {} s polozkou {}</h2>
             '''.format(data, self.get_argument('component')))
-
-
-
-
 
 class newprint(BaseHandler):
     def post(self, data=None):

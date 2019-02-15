@@ -206,6 +206,56 @@ class BaseHandler(tornado.web.RequestHandler):
             b = len(symbols)
         return ((num == 0) and symbols[0]) or (base(num // b, symbols, b).lstrip(symbols[0]) + symbols[num % b])
 
+
+    def get_warehouseses(self):
+        return list(self.mdb.warehouse.find().sort([('code',1)]))
+
+
+    def component_set_position(self, id, position, primary = False):
+        pass
+        #
+        # # Zjisti, jestli v DB uz je zaznam o pozici polozky, popripade vytvoř
+        # data = self.mdb.stock.find_one({'_id': id})
+        # if not data.get('position', False):
+        #     self.mdb.stock.update({'_id': id},{"$set":{"position": []}})
+        #     primary = True
+        #
+        # exist = self.mdb.stock.aggregate({"$match": {'_id': id, 'position.posid': position}})
+        # print(">.....")
+        # print(bson.json_util.dumps(exist))
+        #
+        # # zjisti, jestli se tam uz toto ID pozice uz nachazi a uprav ho
+        # for i, pos in enumerate(data.get('position', [])):
+        #     print("Position:", pos)
+        #     if pos['posid'] == id:
+        #         self.mdb.stock.update({'_id': id}, {"$set": {"position.{}.primary".format(i): primary}})
+        #         return True
+
+        # Bude to urcite novy zaznam teto pozice
+        self.mdb.stock.update({'_id': id}, {"$push": {"position": {'posid':position, 'primary': primary}}})
+        return True
+
+    def component_get_positions(self, id, stock = None, primary = False):
+        q =[{"$match": {"_id": id}},
+            {"$unwind": "$position"},
+            {"$lookup": {"from": "store_positions", "localField": 'position.posid', "foreignField" : '_id', "as": "position.info"}},
+            {"$project" : {"pos":1, "position":1}},
+            {"$replaceRoot": {"newRoot": "$position"}
+        }]
+        if stock:
+            q += [{"$match": {"info.warehouse": stock}}]
+        if primary:
+            q += [{"$match": {"primary": primary}}]
+        data = list(self.mdb.stock.aggregate(q))
+        return data
+
+        # zjisti, jestli se tam uz toto ID pozice uz nachazi a uprav ho
+        for i, position in enumerate(data.get('position', [])):
+            if position['_id'] == id:
+                self.mdb.stock.update({'_id': id}, {"$set": {"position.{}.primary".format(i): primary}})
+                return True
+
+
     def barcode(hex):
         print(int(hex, 16))
         code = blake2s(bytes(hex, 'utf-8'), digest_size=6)
