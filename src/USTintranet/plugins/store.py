@@ -111,10 +111,9 @@ class api_products_json(BaseHandler):
 
             }]
 
-
         dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
         dout = {}
-        dout['count'] = count
+        dout['count'] = (count)
         dout['data'] = list(dbcursor)
 
         dout = bson.json_util.dumps(dout)
@@ -155,19 +154,22 @@ class api(BaseHandler):
             print(self.request.arguments.get('selected[]', None))
 
             dout = list(self.mdb.stock.aggregate([
-                    {
-                        '$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}
-                    },{
-                        '$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
+                    {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
+                    {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
                         # tady avg je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
-                    },{
-                        '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-
-                    },{
-                        '$addFields': {'count': {'$sum': '$history.bilance'}}
-
-                    }
+                    },
+                    {'$addFields': {'price_buy_avg': {'$avg': '$history.price'}}},
+                    {'$addFields': {'count': {'$sum': '$history.bilance'}}}
                 ]))
+
+            counta = self.mdb.stock.aggregate([
+                {"$match": {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
+                {"$unwind": "$history"},
+                {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
+                {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
+            ])
+
+            dout[0]['count_part'] = counta
 
         elif data == "get_tags":
             dout = list(self.mdb.stock.distinct('tags.id'))
@@ -228,7 +230,7 @@ class api(BaseHandler):
             print("Update product with parameters:")
             print(new_json)
 
-            id =new_json.pop("_id")
+            id = new_json.pop("_id")
             new_item = not bson.ObjectId.is_valid(id)
             if new_item:
                 id = ObjectId()
@@ -242,8 +244,10 @@ class api(BaseHandler):
             if len(new_json['category']) == 0:
                 new_json['category'] += ['Nezařazeno']
 
-            if not 'barcode' in new_json:
-                new_json['Barcode'] = [self.barcode(str(id))]
+            if not 'barcode' in new_json.keys():
+                new_json['barcode'] = [self.barcode(str(id))]
+            else:
+                new_json.pop('barcode')
 
 
             dout = self.mdb.stock.update(
@@ -290,7 +294,7 @@ class api(BaseHandler):
             if output_type == "html_tab":
                 self.set_header('Content-Type', 'text/html; charset=UTF-8')
                 print(dout)
-                self.render('store.api.history_tab_view.hbs', dout = dout)
+                self.render('store/store.api.history_tab_view.hbs', dout = dout)
                 return None
 
         elif data == 'update_category':
@@ -350,9 +354,9 @@ class hand_bi_home(BaseHandler):
         cat = sorted(cat, key = lambda x: x['path']+x['name'])
         permis = self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
         if permis:
-            self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+            self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
         else:
-            self.render("store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+            self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
 
 
 class operation(BaseHandler):
@@ -360,21 +364,17 @@ class operation(BaseHandler):
 
         # emtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
         if data == 'service':
-            comp = self.get_argument('component')
+            id = bson.ObjectId(self.get_argument('component'))
 
-            article = list(self.mdb.stock.find({'_id': bson.ObjectId(comp)}))[0]
-            counts = list(self.mdb.stock.aggregate([
-                    {
-                        '$match':{ "_id": bson.ObjectId(comp)}
-                    },{
-                        '$unwind': '$history'
-                    },{
-                        '$group':{
-                            '_id': '$history.stock',
-                            'count': {"$sum": '$history.bilance'}
-                        }
-                    }]))
-            self.render("store.comp_operation.{}.hbs".format(data), last = article, counts = counts)
+            article = list(self.mdb.stock.find_one({'_id': id}))
+            counts = self.mdb.stock.aggregate([
+                {"$match": {"_id": id}},
+                {"$unwind": "$history"},
+                {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
+                {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
+            ])
+            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            self.render("store/store.comp_operation.{}.hbs".format(data), last = article, counts = counts, all_places=places)
 
         elif data == 'service_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
@@ -395,23 +395,19 @@ class operation(BaseHandler):
 
         #nakup jedne polozky do skladu. Musi obsahovat: cena za ks, pocet ks, obchod, faktura, ...
         elif data == 'buy':
-            comp = self.get_argument('component')
-            article = list(self.mdb.stock.find({'_id': bson.ObjectId(comp)}))[0]
+
+            id = bson.ObjectId(self.get_argument('component'))
+            article = list(self.mdb.stock.find({'_id': id}))[0]
             places = list(self.mdb.store_positions.find().sort([('name', 1)]))
             print("Skladovj pozice", places)
-            counts = list(self.mdb.stock.aggregate([
-                    {
-                        '$match':{ "_id": bson.ObjectId(comp)}
-                    },{
-                        '$unwind': '$history'
-                    },{
-                        '$group':{
-                            '_id': '$history.stock',
-                            'count': {"$sum": '$history.bilance'}
-                        }
-                    }]))
+            counts = self.mdb.stock.aggregate([
+                {"$match": {"_id": id}},
+                {"$unwind": "$history"},
+                {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
+                {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
+            ])
 
-            self.render("store.comp_operation.{}.hbs".format(data), article = article, counts = counts, places = places)
+            self.render("store/store.comp_operation.{}.hbs".format(data), article = article, counts = counts, places = places)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
@@ -444,15 +440,37 @@ class operation(BaseHandler):
                 {"$match": {"_id": id}},
                 {"$unwind": "$history"},
                 {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
-                {"$lookup":
-                    {
-                        "from": "store_positions",
-                        "localField": '_id',
-                        "foreignField" : '_id',
-                        "as": "position"
-            }}])
+                {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
+            ])
             places = list(self.mdb.store_positions.find().sort([('name', 1)]))
-            self.render('store.comp_operation.move.hbs', current_places = list(current), all_places=places)
+            self.render('store/store.comp_operation.move.hbs', current_places = list(current), all_places=places)
+
+        elif data == 'move_push':
+
+            comp = self.get_argument("component")
+            source = self.get_argument("source")
+            target = self.get_argument("target")
+            count = self.get_argument("count")
+            description = self.get_argument("description")
+
+
+            ida = bson.ObjectId()
+            idb = bson.ObjectId()
+
+            print("move_push >>", comp, source, target, count, description)
+            out = self.mdb.stock.update(
+                {'_id': bson.ObjectId(comp)},
+                {'$push': {'history':
+                    {'_id': ida, 'stock': bson.ObjectId(source), 'operation':'move', 'bilance': -float(count), 'price': 0, 'description':description, 'user':self.logged},
+                }}
+            )
+            out = self.mdb.stock.update(
+                {'_id': bson.ObjectId(comp)},
+                {'$push': {'history':
+                    {'_id': idb, 'stock': bson.ObjectId(target), 'operation':'move', 'bilance': float(count), 'price': 0, 'description':description, 'user':self.logged},
+                }}
+            )
+
 
         else:
             self.write('''

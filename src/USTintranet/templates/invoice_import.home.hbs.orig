@@ -5,13 +5,13 @@
 
 <!-- <script type="text/javascript"  src="/static/store.js" charset="utf-8"></script> -->
 <script type="text/javascript">
-  
+
  var elements = [];
 
 </script>
 
 <style type="text/css">
-  
+
   .table tbody td{
     padding: 0.2rem;
     vertical-align: middle;;
@@ -26,13 +26,13 @@
   <div class="col-md-3 col-sm-12 col-12 bg-faded sidebar">
     <button class="btn btn-warning" onclick="load_invoice(null)">Nová faktura</button>
     <div id="invoice_list">
-      
+
     </div>
   </div> <!-- Konec levého sloupce, Pravy sloupec -->
   <div class="col-md-9 col-sm-12 offset-sm-0 pt-3">
 
     <div class="card">
-      
+
       <div class="card-body">
         <h3>Stage 1: Příprava faktury</h3>
         <p>V prvním kroku tvorby faktury je potřeba kliknout na tlačítko <span class="btn btn-warning btn-sm">Nová faktura</span>, kterým se vytvoří unikátní ID pro novou objednávku/fakturu.</p>
@@ -82,7 +82,7 @@
         <label>Datum vytvoření</label>
         <input class="form-control" type="date" name="" id="invoice_created" disabled>
         </div>
-        
+
         <div class="form-group col">
           <label>Datum splatnosti</label>
           <input class="form-control" type="date" name="" id="invoice_duedate">
@@ -120,7 +120,7 @@
           </div>
         </div>
       </div>
-      
+
       <button class="form-control btn btn-success" onclick="save_invoice()">Uložit</button>
       <button class="form-control btn btn-warning" id="btn_next-stage" onclick="next_stage_invoice()" style="display: none;">Další krok: <span id="invoice_next_stage_name">Odeslat k validaci</span></button>
       <button class="form-control btn btn-warning" id="btn_export" onclick="export_invoice()" style="display: none;">Exportovat objednavku</button>
@@ -187,7 +187,7 @@
   $(document).ready(function(){
     load_invoices_list();
     prepare_invoice_new_form();
-  
+
     $("#invoice_partner").select2({
           width: '100%',
           ajax: {
@@ -456,7 +456,7 @@
             //'elements': []
         },
         success: function(data, textStatus, jQxhr){
-            
+
         },
         error: function(jqXhr, textStatus, errorThrown){
           console.log(errorThrown);
@@ -525,7 +525,7 @@
             console.log( errorThrown, textStatus);
             Lobibox.notify('error', {msg: errorThrown});
           }
-      }); 
+      });
       load_invoice($('#invoice_id').val());
       $('#new_external_id').val(-1);
   }

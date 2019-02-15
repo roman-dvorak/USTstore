@@ -1,8 +1,7 @@
-Součastné počty:<br>
+Součastné pozice ve skladech:<br>
 <ul>
-{%for sklad in counts %} <li>{{sklad['_id']}}: {{sklad['count']}}{%end%}
+{%for current in counts %} <li>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</small>{%end%}
 </ul>
-
 <div class="container">
 
 

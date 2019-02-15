@@ -45,7 +45,7 @@ $('#inputNAME_edit').on('change', function(e){
 })
 
 
-$('#inputBARCODE_edit').onchange(function(e){
+$('#inputBARCODE_edit').on('change',function(e){
   console.log(e);
   cleanSimpleCode('#inputBARCODE_edit');
 })
@@ -325,7 +325,6 @@ function add_supplier(){
         "supplier":$('#new_supplier_name').val()[0],
         "symbol": $('#new_supplier_symbol')[0].value,
         "barcode":$('#new_supplier_code')[0].value,
-        "bartype":$('#new_supplier_bartype')[0].value,
         "url":$('#new_supplier_url')[0].value
   };
   if(element === undefined){
@@ -407,22 +406,31 @@ function draw_stock(count){
   //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
   $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count + ' u </div>');
 
-  for (param in count.stock){
-    var c = count.stock[param];
-    console.log(c);
-    var num = c.bilance || 'Ndef';
-    if (permis == 0){
-        if(num > 100){
-            num = '100+';
-        } else if(num > 10){
-            num = '10+';
-        } else {
-            num = num;
-        }
-      }
-      var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
+  for (lci in count.count_part){
+      var lc = count.count_part[lci];
+
+      console.log("TEST...", lc)
+      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position[0].name + "<br>" + lc.count +" units </div>";
       $("#inputSTOCK_list").append(html);
-    }
+  }
+
+
+  // for (param in count.stock){
+  //   var c = count.stock[param];
+  //   console.log(c);
+  //   var num = c.bilance || 'Ndef';
+  //   if (permis == 0){
+  //       if(num > 100){
+  //           num = '100+';
+  //       } else if(num > 10){
+  //           num = '10+';
+  //       } else {
+  //           num = num;
+  //       }
+  //     }
+  //     var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
+  //     $("#inputSTOCK_list").append(html);
+  //   }
 }
 
 function draw_tags(){

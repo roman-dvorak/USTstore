@@ -1,4 +1,4 @@
-{% extends "base.hbs" %}
+{% extends "../base.hbs" %}
 {% block title %}UST intranet | Home{%end%}
 {% block body %}
 {% set permis = parent.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']) %}
@@ -156,7 +156,7 @@
             <button type="button" class="btn btn-primary">Prodej</button>
             <button type="button" class="btn btn-primary" onclick="load_modal_operation('service')">Servisní odběr</button>
             <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
-				</div> 
+				</div>
 	  	  </div>
 	  </div>
   </div>
@@ -391,8 +391,8 @@
 </div></div>                                                              <!-- Konec divu WRPPPER a ROW -->
 
 
-{% module Template('store.modal.component.edit.hbs', permis=permis, category=category) %}
-{% module Template('store.modal.component.edit.scripts.hbs') %}
+{% module Template('store/store.modal.component.edit.hbs', permis=permis, category=category) %}
+{% module Template('store/store.modal.component.edit.scripts.hbs') %}
 
 
 <!-- Modal - pro produktove operace -->
@@ -412,7 +412,7 @@
 </div>
 
 <script type="text/javascript">
-  
+
   function load_modal_operation(type, placeholder = null) {
     if(placeholder == null){
       $('#modal-operation-content').empty();
@@ -448,7 +448,7 @@
 
 
 <script type="text/javascript">
-	
+
   // Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna
   {% if permis %}function mcat_update_push(){
     if ( $('#mcat_cat_name').val() && $('#mcat_cat_name_cs').val() && $('#mcat_cat_path').val() ){
@@ -519,7 +519,7 @@
 
 
     <template id="products-template_table">
-       {% module Template('store.api.template.component.row.hbs') %}
+       {% module Template('store/store.api.template.component.row.hbs') %}
     </template>
 
   	<template id="supplier-template">
@@ -530,7 +530,7 @@
   	</template>
 
     <template id="filter_tab_template">
-       {% module Template('store.api.template.filter_tab.hbs') %}
+       {% module Template('store/store.api.template.filter_tab.hbs') %}
     </template>
 
 
@@ -827,7 +827,7 @@ function load_product(id){
 					$('#selected-category-name').html("("+element['category']+")");
 
 					$('#selected-category').val(element['category']).trigger('change');
-				
+
 
 					if(element.price_sell === undefined) element['price_sell'] = null;
 					$('#selected-price').val(element['price_sell']);

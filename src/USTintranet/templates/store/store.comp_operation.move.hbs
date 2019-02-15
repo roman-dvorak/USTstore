@@ -1,5 +1,3 @@
-<div class="bg-danger"> Zatim nepouzivat PRESUN polozek. </div>
-
 Součastné pozice ve skladech:<br>
 <ul>
 {%for current in current_places %} <li>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</small>{%end%}
@@ -10,8 +8,8 @@ Součastné pozice ve skladech:<br>
 
 	<div class="form-group row">
 		<label class="col-sm-3 col-form-label">Staré umístění</label>
-		<select class="form-control table_style col-sm-9">
-            {%for current in current_places %} <option id="{{current['position'][0]['text']}}" count={{current['count']}}>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</option>{%end%}
+		<select class="form-control table_style col-sm-9" id="compo_source">
+            {%for current in current_places %} <option value="{{current['_id']}}" count={{current['count']}}>{{current['position'][0]['text']}} <small>({{current['count']}} ks) {{current['_id']}}</option>{%end%}
 		</select>
 	</div>
 
@@ -22,8 +20,8 @@ Součastné pozice ve skladech:<br>
 
 	<div class="form-group row">
 		<label class="col-sm-3 col-form-label">Nové umístění</label>
-		<select class="form-control table_style col-sm-9">
-            {%for place in all_places %} <option id="{{place['_id']}}">{{place['text']}}</option>{%end%}
+		<select class="form-control table_style col-sm-9" id="compo_target">
+            {%for place in all_places %} <option value="{{place['_id']}}">{{place['text']}}</option>{%end%}
 		</select>
 	</div>
 
@@ -44,19 +42,18 @@ Součastné pozice ve skladech:<br>
 	function compo_update_push(){
 	    $.ajax({
 	      type: "POST",
-	      url: "/store/operation/buy_push/",
+	      url: "/store/operation/move_push/",
 	      data: {
 	        'component': current_detail,
-	        'stock': $("#compo_stock").val(),
+	        'source': $("#compo_source").val(),
+	        'target': $("#compo_target").val(),
 	        'count': $("#compo_count").val(),
-	        'price': $("#compo_price").val(),
-	        'invoice': $("#compo_invoice").val(),
 	        'description': $('#compo_description').val()
 	      },
 	      success: function( data, textStatus, jQxhr ){
-	      	console.log(data);
+	      	//console.log(data);
 	      	$('#modal_operation').modal('hide');
-            Lobibox.notify('success', {msg: 'Polozka ulozena'});
+            Lobibox.notify('success', {msg: 'Operace provedena'});
 
 	        $("#modal-operation-content").modal('hide');
         	$("#modal_oper_place").hide();
@@ -64,7 +61,7 @@ Součastné pozice ve skladech:<br>
 	      },
 	      error: function( jqXhr, textStatus, errorThrown ){
 	        console.log( errorThrown );
-			Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+			Lobibox.notify('error', {msg: 'Operace nebyla provedena'});
 	      }
 	    });
 	}

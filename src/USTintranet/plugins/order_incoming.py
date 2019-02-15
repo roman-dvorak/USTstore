@@ -17,6 +17,7 @@ import codecs
 import datetime
 
 def make_handlers(module, plugin):
+        module = 'invoice_import'
         return [
              (r'/{}/get_invoices/'.format(module), plugin.get_invoices),
              (r'/{}/get_invoice/'.format(module), plugin.get_invoice),
@@ -41,18 +42,18 @@ def plug_info():
 
 class home(BaseHandler):
     def get(self, data=None):
-        self.render("order_incoming.home.hbs", parent = self)
+        self.render("invoice_import.home.hbs", parent = self)
 
 class get_invoices(BaseHandler):
     def post(self):
         out = self.get_argument('out', 'html')
         data = self.mdb.invoice.find({})
-            
+
         if 'json' in out:
             self.set_header('Content-Type', 'application/json')
             output = bson.json_util.dumps(list(data))
             self.write(output)
-        
+
         elif 'html' in out:
             self.render("invoice_import.api.invoice_list.basic.hbs", invoices = list(data))
 
@@ -146,7 +147,7 @@ class prepare_invoice_row(BaseHandler):
                     { "_id": bson.ObjectId(invoice)},
                     { "$set": { 'history.{}'.format(element_id): push_json }}, upsert=True)
         else:
-            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")      
+            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")
 
         self.LogActivity('store', 'prepare_invoice_row')
         self.write('ACK-prepare_invoice_row');
@@ -180,4 +181,4 @@ class invoice_next_state(BaseHandler):
             self.write('OK')
         else:
             print("AUTHORIZED PROBLEM ....", self.role)
-            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")      
+            raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")
