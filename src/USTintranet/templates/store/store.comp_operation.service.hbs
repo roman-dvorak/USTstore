@@ -1,6 +1,8 @@
 Součastné pozice ve skladech:<br>
 <ul>
-{%for current in counts %} <li>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</small>{%end%}
+    {%for current in counts["by_warehouse"] %}
+        <li>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks)</small>
+    {%end%}
 </ul>
 
 <div class="container">
@@ -11,7 +13,7 @@ Součastné pozice ve skladech:<br>
 	<div class="form-group row">
 		<div class="col-sm-3">Sklad</div>
 		<select class="form-control col-sm-9 table_style" id="compo_stock">
-            {%for place in all_places %} <option value="{{place['_id']}}">{{place['text']}}</option>{%end%}
+            {%for current in counts['by_warehouse'] %} <option value="{{current['warehouse'][0]['_id']}}" count={{current['count']}}>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks) {{current['warehouse'][0]['_id']}}</option>{%end%}
         </select>
 	</div>
 	<div class="form-group row">

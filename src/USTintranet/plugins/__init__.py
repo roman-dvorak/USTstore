@@ -211,6 +211,28 @@ class BaseHandler(tornado.web.RequestHandler):
         return list(self.mdb.warehouse.find().sort([('code',1)]))
 
 
+    def component_get_counts(self, id):
+        out = self.mdb.stock.aggregate([{
+            "$facet":{
+                "suma":[
+                    {"$match": {"_id": id}},
+                    {"$unwind": "$history"},
+                    {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
+                    {"$project": {"count": 1, "_id":0}}
+                ],
+                 "by_warehouse":[
+                     {"$match": {"_id": id}},
+                     {"$unwind": "$history"},
+                     {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
+                     {"$lookup": {"from": "warehouse", "localField": '_id', "foreignField" : '_id', "as": "warehouse"}},
+                     {"$project": {"_id":0,"warehouse":1, "count": 1}},
+                 ]
+            }
+        }])
+        return list(out)[0]
+
+
+
     def component_set_position(self, id, position, primary = False):
         pass
         #

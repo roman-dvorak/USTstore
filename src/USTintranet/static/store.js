@@ -404,13 +404,14 @@ function draw_stock(count){
   console.log("Count>>", count);
   $("#inputSTOCK_list").empty();
   //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
-  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count + ' u </div>');
+  console.log(count.count_part);
+  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count_part.suma[0].count + ' u </div>');
 
-  for (lci in count.count_part){
-      var lc = count.count_part[lci];
+  for (lci in count.count_part.by_warehouse){
+      var lc = count.count_part.by_warehouse[lci];
 
       console.log("TEST...", lc)
-      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position[0].name + "<br>" + lc.count +" units </div>";
+      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.warehouse[0].name + "<br>" + lc.count +" units </div>";
       $("#inputSTOCK_list").append(html);
   }
 

@@ -50,8 +50,8 @@ for i, comp in enumerate(components):
         comp['sn_required'] = False
 
         print(main_code)
-        #db.stock.insert(comp)
-        #db.stock.remove({'_id': oldid})
+        db.stock.insert(comp)
+        db.stock.remove({'_id': oldid})
 
     except Exception as e:
         print(e)

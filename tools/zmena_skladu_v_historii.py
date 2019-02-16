@@ -28,14 +28,14 @@ for i, comp in enumerate(components):
                 print(j,"PRAHA")
                 db.stock.update(
                     {"_id": ObjectId(comp['_id'])},
-                    {"$set": {"history.{}.stock".format(j): ObjectId("5c6550847e875154440be93e")}}
+                    {"$set": {"history.{}.stock".format(j): ObjectId("5c67444e7e875154440cc28f")}}
                 )
 
             elif h['stock'] == 'sob01':
                 print(j,'SOBESLAV')
                 db.stock.update(
                     {"_id": ObjectId(comp['_id'])},
-                    {"$set": {"history.{}.stock".format(j): ObjectId("5c6550197e875154440be8f8")}}
+                    {"$set": {"history.{}.stock".format(j): ObjectId("5c67445b7e875154440cc297")}}
                 )
 
 
