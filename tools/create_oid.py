@@ -43,7 +43,7 @@ for i, comp in enumerate(components):
         #pprint(comp)
         oldid = comp['_id']
         dummy_id = ObjectId()
-        main_code = barcode(str(dummy_id))
+        main_code = str(int(str(dummy_id), 16))
         comp['barcode'] = [main_code, comp['_id']]
         comp['primary_barcode'] = 0
         comp['_id'] = ObjectId(dummy_id)

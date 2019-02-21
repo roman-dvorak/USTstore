@@ -515,12 +515,20 @@
 <script type="text/javascript">
 var list_page = 0;
 $(document).ready(function() {
+
+    let barr = new barcode_reader();
+    barr.addCallback('OpenArticleEdit', BC_store_OpenArticleEdit, codetype = 'ObjectId');
+    barr.addCallback('load_product', BC_store_LoadProduct);
+
+
+
     $('#selected-category').select2({width: '100%'});
     update_list();
     var hash = location.hash.substr(1);
     if(hash.length>2){
 	    load_product(hash);
 	}
+
 });
 
 function page(value, relative=false){
@@ -558,7 +566,7 @@ function active_categories(name = false){
 		for (var i = selected.length - 1; i >= 0; i--) {
 			list.push(selected[i].name)
 		}
-		console.log('selected', list)
+		//console.log('selected', list)
 		return(list)
 	}
 }
@@ -609,7 +617,8 @@ function update_view(){
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
-        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> ("+ element['barcode'].join(', ') +")<small>"+ element['_id'].$oid+"</small>";
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b>";
+        tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
 
@@ -626,13 +635,13 @@ function update_view(){
         tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
 
         if ($('#display_select').val() == 'table'){
-            tmpl.querySelector('.stock_count').value = element.count;
+            tmpl.querySelector('.stock_count').innerText = element.count + " u";
             if (element.tags){
               //console.log("Tag",_.get(element, 'tags.id'));
               if(_.findKey(element.tags, { 'id': "inventura2019"})){
                 tmpl.querySelector('.stock_count').style.background = "#94e991";
               }
-              console.log(element.tags);
+              //console.log(element.tags);
               //for (var i = element.tags.length - 1; i >= 0; i--) {
                 //if (element.tags[i].id == 'inventura2019'){
                 //  tmpl.querySelector('.stock_count').style.background = "#94e991";

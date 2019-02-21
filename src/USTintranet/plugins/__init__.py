@@ -214,7 +214,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
     def component_get_counts(self, id):
-        out = self.mdb.stock.aggregate([{
+        out = list(self.mdb.stock.aggregate([{
             "$facet":{
                 "suma":[
                     {"$match": {"_id": id}},
@@ -227,13 +227,22 @@ class BaseHandler(tornado.web.RequestHandler):
                      {"$unwind": "$history"},
                      {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
                      {"$sort": {"warehouse": 1}},
-                     {"$lookup": {"from": "warehouse", "localField": '_id', "foreignField" : '_id', "as": "warehouse"}},
-                     {"$project": {"_id":0,"warehouse":1, "count": 1}},
+                     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
+                     {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
+                     {"$project": {
+                        "_id":0,
+                        "warehouse":1,
+                        "count": 1,
+                        "position": { "$arrayElemAt": [ "$position", 0 ] },
+                        "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
+                        }},
                  ]
             }
-        }])
+        }]))
 
-        return list(out)[0]
+        print("GET Component COUNTS....", out)
+
+        return out[0]
 
     def component_get_suppliers(self, id):
         out = self.mdb.stock.aggregate([

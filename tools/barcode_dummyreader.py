@@ -8,6 +8,7 @@ import tornado.ioloop
 import tornado.web
 import socket
 import sys
+import bson
 
 keys = []
 global connections
@@ -23,18 +24,25 @@ def blocking_func():
     try:
 
         c = sys.stdin.read(1)
-        print(repr(c))
         keys += [c]
-        print(keys)
 
         if str(keys[-1]) == '\n':
             print("Nalezen konec")
             code = "".join(keys[:-1])
+            oid = None
+            group = None
+            codetype = None
+            try:
+                oid = bson.ObjectId("{:x}".format(int(code, 10)))
+                code = str(oid)
+                codetype = 'ObjectId'
+            except Exception as e:
+                print("NOT")
             keys = []
             for x in connections:
                 print("Posilam na", x)
                 try:
-                    data = {'code': code, 'codetype': None, 'date': None, 'source': 'barcode_reader'}
+                    data = {'code': code, 'codetype': codetype, 'group': group, 'date': None, 'source': 'barcodereader_dummy'}
                     print(data)
                     x.write_message(json.dumps(data))
                 except Exception as e:
