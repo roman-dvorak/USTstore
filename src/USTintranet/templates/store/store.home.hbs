@@ -172,28 +172,7 @@
     </div>
   </div>
 </div>
-{#
-  <div class="col-12 row form-group" style="margin: 0pt;">
-    <label class="col-12">Sklad</label>
-	    <label class="col-2">PHA01 <small id="bilance_count_pha01_old"></small></label>
-    	<input type="number" onchange="update_product('stock_bilance', this, 'pha01')" onkeypress="call_change(event, this)" class="stock_bilance_count col-4 form-control" id="bilance_count_pha01" value="0" step="1">
-    	<label class="col-2">SOB01 <small id="bilance_count_sob01_old"></small></label>
-    	<input type="number" onchange="update_product('stock_bilance', this, 'sob01')" class="stock_bilance_count col-4 form-control" id="bilance_count_sob01" value="0" step="1">
-  </div>
-#}
 
-{#
-    <div class="col-12 row form-group" style="margin: 0pt; margin-top: 10pt;">
-		<div class="form-group">
-			<button class="btn btn-success" onclick="update_product('save')">Ulozit</button>
-			<label>Pokrocile funkce</label>
-      <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-edit-component">OtevritEditor</button>
-			<select id="selected_advance_function">
-				<option value="none">Žádná</option>
-				<option value="inventura">Inventura</option>
-			</select>
-		</div>
-	</div> #}
 
 	<button class="btn btn-success" onclick="new_component()"><i class="material-icons">add</i></button>
 
@@ -431,10 +410,8 @@
       success: function( data, textStatus, jQxhr ){
         if(placeholder == null){
           $("#modal-operation-content").html(data);
-          //$("#modal-operation-content").modal('hide');
-        }else{
+          }else{
           $(placeholder).html(data);
-          //$(placeholder).hide();
         }
       },
       error: function( jqXhr, textStatus, errorThrown ){

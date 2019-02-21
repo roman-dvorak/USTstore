@@ -47,6 +47,7 @@ ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
 class api_products_json(BaseHandler):
     def post(self):
         self.set_header('Content-Type', 'application/json')
+        dout = {}
 
         polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
@@ -58,7 +59,7 @@ class api_products_json(BaseHandler):
         tag_search = self.get_argument('tag_search')#.decode('ascii')
         print("SEARCH", search)
         print("tag polarity", tag_polarity, in_stock)
-        dout = []
+        dout = {}
 
         agq = [
             {"$unwind": "$_id"},
@@ -108,13 +109,21 @@ class api_products_json(BaseHandler):
                 }
             },{
                 '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-
             }]
 
-        dbcursor = self.mdb.stock.aggregate(agq, useCursor=True)
-        dout = {}
-        dout['count'] = (count)
+        # agq += [{
+        #     "$lookup":{
+        #         "from": "",
+        #         "localField": "category",
+        #         "foreignField": "name",
+        #         "as": "category"
+        #     }
+        # }]
+
+        dbcursor = self.mdb.stock.aggregate(agq)
         dout['data'] = list(dbcursor)
+        print(dout['data'])
+        dout['count'] = (count)
 
         dout = bson.json_util.dumps(dout)
         self.write(dout)
@@ -155,7 +164,7 @@ class api(BaseHandler):
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
                     {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
-                        # tady avg je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
+                        # tady 'avg' je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
                     },
                     {'$addFields': {'price_buy_avg': {'$avg': '$history.price'}}},
                     {'$addFields': {'count': {'$sum': '$history.bilance'}}}
@@ -169,8 +178,9 @@ class api(BaseHandler):
             # ])
 
             print("COUNT.....ID", id)
-            print(id)
             dout[0]['count_part'] = self.component_get_counts(id)
+            dout[0]['positions_local'] = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
+            #dout[0]['positions_local'] = self.component_get_positions(id, stock = bson.ObjectId("5c67445b7e875154440cc297"))
             print(dout[0]['count_part'])
             print("===================")
 
@@ -229,8 +239,12 @@ class api(BaseHandler):
             true = True
             new_json = json.loads(self.request.arguments.get('json', [None])[0].decode())
             new_json.pop('history', None)
-            new_json.pop('count')
-            new_json.pop('count_part')
+            new_json.pop('count', None)
+            new_json.pop('count_part', None)
+            new_json.pop('position', None)
+            new_json.pop('positions_local', None)
+            #new_json.pop('barcode', None)
+
 
             print("Update product with parameters:")
             print(json.dumps(new_json, indent=4))
@@ -249,12 +263,16 @@ class api(BaseHandler):
             if len(new_json['category']) == 0:
                 new_json['category'] += ['Nezařazeno']
 
-            if not 'barcode' in new_json.keys():
-                new_json['barcode'] = [self.barcode(str(id))]
+            if new_json.get('barcode', [False])[0] == "":
+                print("BARCODE id", id, str(int(str(id), 16)))
+                #new_json['barcode'] = [self.barcode(str(id))]
+                new_json['barcode'] = [str(int(str(id), 16))]
             else:
                 new_json.pop('barcode')
 
 
+            print("Update product with parameters:", ObjectId(id))
+            print(json.dumps(new_json, indent=4))
             dout = self.mdb.stock.update(
                     {
                         "_id": ObjectId(id)
@@ -367,6 +385,9 @@ class hand_bi_home(BaseHandler):
 class operation(BaseHandler):
     def post(self, data=None):
 
+        id_wh = bson.ObjectId(self.get_cookie('warehouse', False))
+        id = bson.ObjectId(self.get_argument('component', False))
+
         # emtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
         if data == 'service':
             id = bson.ObjectId(self.get_argument('component'))
@@ -374,7 +395,7 @@ class operation(BaseHandler):
             article = list(self.mdb.stock.find_one({'_id': id}))
             counts= self.component_get_counts(id)
             places = self.get_warehouseses()
-            self.render("store/store.comp_operation.{}.hbs".format(data), last = article, counts = counts, all_places=places)
+            self.render("store/store.comp_operation.service.hbs", last = article, counts = counts, all_places=places)
 
         elif data == 'service_push': # vlozeni 'service do skladu'
             id = bson.ObjectId(self.get_argument('component'))
@@ -397,17 +418,18 @@ class operation(BaseHandler):
         elif data == 'buy':
 
             id = bson.ObjectId(self.get_argument('component'))
-            article = list(self.mdb.stock.find({'_id': id}))[0]
-            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
-            print("Skladovj pozice", places)
-            counts = self.mdb.stock.aggregate([
-                {"$match": {"_id": id}},
-                {"$unwind": "$history"},
-                {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
-                {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
-            ])
+            article = self.mdb.stock.find_one({'_id': id})
+            # places = list(self.mdb.store_positions.find().sort([('name', 1)]))
+            # print("Skladovj pozice", places)
+            # counts = self.mdb.stock.aggregate([
+            #     {"$match": {"_id": id}},
+            #     {"$unwind": "$history"},
+            #     {"$group": { "_id": "$history.stock", "count": { "$sum": "$history.bilance" }}},
+            #     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
+            # ])
 
-            self.render("store/store.comp_operation.{}.hbs".format(data), article = article, counts = counts, places = places)
+            places = self.component_get_positions(id, stock = id_wh)
+            self.render("store/store.comp_operation.buy.hbs", article = article, places = places)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
@@ -437,11 +459,14 @@ class operation(BaseHandler):
         elif data == 'move':
             id = bson.ObjectId(self.get_argument('component'))
 
-            current = self.component_get_counts(id)
+            current_places = self.component_get_counts(id)
             print("CURRENT...")
-            print(bson.json_util.dumps(current))
+            print(bson.json_util.dumps(current_places))
             places = self.get_warehouseses()
-            self.render('store/store.comp_operation.move.hbs', current_places = current, all_places=places)
+
+            current_places = self.component_get_positions(id, stock = id_wh)
+            print("PLACES...", current_places)
+            self.render('store/store.comp_operation.move.hbs', current_places = current_places, all_places=places)
 
         elif data == 'move_push':
             comp = self.get_argument("component")
@@ -472,10 +497,10 @@ class operation(BaseHandler):
         ##
         elif data == 'setposition':
             id = bson.ObjectId(self.get_argument('component'))
-            current = self.component_get_positions(id)
-            print(bson.json_util.dumps(current))
-            places = list(self.mdb.store_positions.find().sort([('name', 1)]))
-            self.render("store/store.comp_operation.setposition.hbs", counts = current, all_places = places, stock_positions = [])
+            current_places = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
+            print(bson.json_util.dumps(current_places))
+            places = list(self.mdb.store_positions.find({'warehouse': bson.ObjectId(self.get_cookie('warehouse', False))}).sort([('name', 1)]))
+            self.render("store/store.comp_operation.setposition.hbs", current_places = current_places, all_places = places, stock_positions = [])
 
         elif data == 'setposition_push':
             id = bson.ObjectId(self.get_argument('component'))
@@ -483,12 +508,38 @@ class operation(BaseHandler):
             position = bson.ObjectId(self.get_argument('position'))
 
             if type == 'add':
-                self.component_set_position(id, position)
+                self.component_set_position(id, position, False)
+            elif type == 'remove':
+                self.component_remove_position(id, position)
             else:
                 self.write("Err")
 
             self.LogActivity('store', 'operation_setposition')
             self.write("ACK");
+
+        ## Nastaveni dodavatelu pro polozku
+        elif data == 'supplier':
+            suppliers = self.component_get_suppliers(id)
+            self.render('store/store.comp_operation.supplier.hbs', suppliers = suppliers)
+
+        elif data == 'supplier_push':
+            id = bson.ObjectId(self.get_argument('component'))
+            order = int(self.get_argument('supplier_id'))
+            supplier = self.get_argument('supplier')
+            symbol = self.get_argument('symbol')
+            code = self.get_argument('code')
+            url = self.get_argument('symbol')
+
+            if order < 0:
+                # nova polozka
+                out = self.mdb.stock.update({'_id': id}, {
+                    "$push": {"supplier": {'supplier':supplier, 'symbol':symbol, 'barcode':code, 'url':url}}
+                })
+            else:
+                out = self.mdb.stock.update({'_id': id}, {
+                    "$set": {"supplier.{}".format(order): {'supplier':supplier, 'symbol':symbol, 'barcode':code, 'url':url}}
+                })
+            self.write(out)
 
         else:
             self.write('''

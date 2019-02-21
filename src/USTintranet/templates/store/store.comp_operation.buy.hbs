@@ -1,7 +1,7 @@
-Součastné pozice ve skladech:<br>
+{#Součastné pozice ve skladech:<br>
 <ul>
 {%for current in counts %} <li>{{current['position'][0]['text']}} <small>({{current['count']}} ks)</small>{%end%}
-</ul>
+</ul>#}
 <div class="container">
 
 
@@ -23,7 +23,7 @@ Součastné pozice ve skladech:<br>
 	</div>
 	<div class="form-group row .bg-danger">
 		<label class="col-sm-2 col-form-label">Faktura </label>
-		<select class="form-control table_style col-sm-10" distabled></select>
+		<select class="form-control table_style col-sm-10" disabled></select>
 	</div>
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Poznámka </label>
@@ -35,9 +35,9 @@ Součastné pozice ve skladech:<br>
 		<select class="form-control table_style col-sm-10" id="compo_stock">
 		   <!-- <option value="pha01">Praha (pha01)</option>
 		   <option value="sob01">Soběslav (sob01)</option> -->
-           <option value="none">Virtuální položka (none)</option>
+
            {% for place in places %}
-            <option value="{{place['_id']}}">{{place['text']}} ({{place['_id']}})</option>
+            <option value="{{place['posid']}}">{{place['info'][0]['name']}} - {{place['info'][0]['text']}} <small>({{place['posid']}})</samll></option>
            {% end %}
 		</select>
 	</div>
@@ -48,7 +48,7 @@ Součastné pozice ve skladech:<br>
 <small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
-	var compo_counts = {% raw counts %};
+	var compo_counts = 0;
 	var compo_new_count = 0;
 
 	function compo_update() {

@@ -44,7 +44,7 @@
 
     <link href="/static/material-design-icons/iconfont/material-icons.css" rel="stylesheet">
 
-    
+
 
     <script type="text/javascript">
         Lobibox.base.DEFAULTS = $.extend({}, Lobibox.base.DEFAULTS, {
@@ -57,7 +57,7 @@
 
         $.fn.select2.defaults.set( "theme", "bootstrap" );
       </script>
-      
+
       <script type="text/javascript" src="/static/cart_tools.js"></script>
 
 
@@ -100,7 +100,7 @@
     }
 
     .table_style {
-      border: 1pt gray solid; 
+      border: 1pt gray solid;
     }
 
 	</style>
@@ -113,7 +113,7 @@
   <a href="/"><img src="https://www.ust.cz/include/Logo_UST.png" alt="Logo" style="height:4em;"></a>
 
   <span>
-      {%if current_user %}<span class="current_cart"></span> <i class="material-icons">account_circle</i>{{current_user['user']}} <a href="/logout">Odhlásit</a> {%else%} <a href="/login">přihlásit se</a>{%end%}
+      {%if current_user %}<span class="current_cart"></span> <i class="material-icons">account_circle</i>{{current_user['user']}} <a href="/logout">Odhlásit</a><br> Sklad: {{current_user['param']['warehouse']}}{%else%} <a href="/login">přihlásit se</a>{%end%}
   </span>
 
 </nav>

@@ -1,3 +1,47 @@
+{% extends "base.hbs" %}
+{% block title %}UST intranet | TME catalog{%end%}
+{% block body %}
 <select class="" name="">
 
 </select>
+
+
+<h2> Vybraný sklad</h2>
+{{warehouses}}
+
+<select class="" name="" id="select_actual_store">
+    <option selected disabled>Původní</option>
+    {% for warehouse in warehouses %}
+    <option value="{{warehouse['_id']}}">{{warehouse['name']}}, {{warehouse['_id']}}</option>
+    {% end %}
+</select>
+<button onclick="push_actual_store()">Nastav</button>
+
+
+<script>
+
+function push_actual_store() {
+    var store = $("#select_actual_store").val();
+    console.log(store);
+
+    $.ajax({
+      type: "POST",
+      url: "/system/",
+      data: {
+        'operation': 'set_warehouse',
+        'warehouse': store
+      },
+      success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        Lobibox.notify('success', {msg: 'Sklad nastaven'});
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+      }
+    });
+
+}
+
+</script>
+
+{% end %}

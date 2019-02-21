@@ -53,21 +53,23 @@ $('#inputBARCODE_edit').on('change',function(e){
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
 // nacneni polozky dle jmena
 function OpenArticleEdit(name = null, clear = true, show = true){
-    console.log('OpenArticleEdit', name, clear);
+    console.log('OpenArticleEdit', name, clear, show);
     if (clear == true){ClearArticleEdit();}
 
-    $('#modal_oper_place').empty();
-    $('#modal_oper_place').hide();
+    //$('#modal-edit-component').modal('show');
 
     var table = new Tabulator("#edit-parameters-table");
     table.clearData();
 
-
-    if (name === null){name = product_json['_id'].$oid}
-    element = undefined;
-    if(show){
-        $('#modal-edit-component').modal('show');
+    if (name === null){
+        name = product_json['_id'].$oid;
+        console.log("nebylo zadano jmeno. Pouziji:", name);
     }
+    element = undefined;
+     if(show){
+          console.log("SHOW MODAL...");
+          $('#modal-edit-component').modal('show');
+     }
     $('#inputCATEGORY_edit').select2({ width: '100%' });
     $('#new_supplier_name').select2({
         width: '100%',
@@ -129,9 +131,12 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                         'description':'',
                         'category': [],
                     }
-                    element = product_json;
+                    //element = product_json;
+                    $('.hide-on-new').hide();
                     return 0;
                 }else{
+
+                  $('.hide-on-new').show();
                   $('#inputID_edit').val(element['_id'].$oid);
                   $("#inputID_edit").attr('disabled', true);
                   $('#inputNAME_edit').val(element['name'] || "Bez názvu");
@@ -146,9 +151,12 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   draw_parameters();
                   draw_supplier();
                   draw_stock(element);
+                  draw_warehouse_positions(element);
                   draw_tags();
                   draw_barcodes(element['barcode']);
                   draw_history(element['_id'].$oid);
+
+                  //$('#modal-edit-component').modal('show');
                 }
 
             },
@@ -162,6 +170,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
         });
 
     }catch(err){
+        console.log("CHYBA ..... nacitani se nepovedl...");
         alert("načítání se nezdařilo. Pro více informací navštivte konzoli... :-( Omlouvám se...");
     }
 }
@@ -190,7 +199,8 @@ function ClearArticleEdit(){
     $('#new_supplier_symbol').val(null);
     $('#new_supplier_url').val(null);
 
-
+    $('.hide-on-new').show();
+    
     $('#modal_oper_place').empty();
     $('#modal_oper_place').hide();
 }
@@ -223,7 +233,7 @@ function UpdateFromForm(){
 //
 // Ulozit soucastku z karty produktu
 //
-function WriteToDb(){
+function WriteToDb(close = true){
     UpdateFromForm();
     $.ajax({
         type: "POST",
@@ -236,7 +246,17 @@ function WriteToDb(){
                 msg: 'Polozka uspesne ulozena: ' + textStatus,
                 icon: false,
             });
-            $('#modal-edit-component').modal('hide');
+
+            if('upserted' in data){
+                load_product(name = data['upserted']['$oid']);
+            }else{
+                load_product(name = product_json['_id'].$oid);
+            }
+
+            if(close == true){
+                $('#modal-edit-component').modal('hide');
+            }
+
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -305,13 +325,7 @@ function draw_parameters(){
 
 
 
-
-
-
-
-
 function clear_supplier(){
-    var id =
     $('#new_supplier_name').val(null).trigger('change');
     $('#new_supplier_id').val((element.supplier || []).length+1);
     $('#new_supplier_symbol').val('');
@@ -404,35 +418,33 @@ function draw_stock(count){
   console.log("Count>>", count);
   $("#inputSTOCK_list").empty();
   //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
-  console.log(count.count_part);
-  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count_part.suma[0].count + ' u </div>');
+  console.log(count.count_part || 0);
+  if( count.count_part.suma[0] != undefined){
+    $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count_part.suma[0].count || -999 + ' u </div>');
+  }
 
   for (lci in count.count_part.by_warehouse){
       var lc = count.count_part.by_warehouse[lci];
 
       console.log("TEST...", lc)
-      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.warehouse[0].name + "<br>" + lc.count +" units </div>";
+      var html = "<div class='card m-0 p-2 mr-2'>"+ /*lc.warehouse[0].name*/ + "<br>" + lc.count +" units </div>";
       $("#inputSTOCK_list").append(html);
   }
-
-
-  // for (param in count.stock){
-  //   var c = count.stock[param];
-  //   console.log(c);
-  //   var num = c.bilance || 'Ndef';
-  //   if (permis == 0){
-  //       if(num > 100){
-  //           num = '100+';
-  //       } else if(num > 10){
-  //           num = '10+';
-  //       } else {
-  //           num = num;
-  //       }
-  //     }
-  //     var html = "<div class='card m-0 p-2 mr-2'>"+ c._id + "<br>" + num +" units </div>";
-  //     $("#inputSTOCK_list").append(html);
-  //   }
 }
+
+function draw_warehouse_positions(positions){
+    $("#inputPOSITION_list").empty();
+    for (pos in positions.positions_local){
+        //console.log((positions.positions_local[pos]));
+        var html = "<div class='card m-0 p-2 mr-2";
+        if (positions.positions_local[pos]['primary'] == true){
+            html += ' bg-warning';
+        }
+        html +="'>"+ positions.positions_local[pos]['info'][0]['text'] +" </div>";
+        $("#inputPOSITION_list").append(html);
+    }
+}
+
 
 function draw_tags(){
     $("#inputTAG_edit").select2({
@@ -500,8 +512,9 @@ function draw_history(id){
 function new_component(){
     element = {};
     //$('#modal-edit-component').modal('hide');
-    $('#modal-edit-component').modal('show');
-    $('#inputCATEGORY_edit').select2({ width: '100%' });
+    $('#inputCATEGORY_edit').select2({ width: '100%'});
 
     ClearArticleEdit();
+    $('.hide-on-new').hide();
+    $('#modal-edit-component').modal('show');
 }

@@ -18,7 +18,7 @@ def make_handlers(module, plugin):
             (r'/login', plugin.loginHandler),
             (r'/logout', plugin.logoutHandler),
             (r'/registration', plugin.regHandler)]
-            
+
 def plug_info():
     return {
         "module": "__init__",
@@ -178,6 +178,10 @@ class BaseHandler(tornado.web.RequestHandler):
         if not user_db:
             print("NIC", user_db)
             return None
+
+        user_db['param'] = {}
+        user_db['param']['warehouse'] = self.get_cookie('warehouse', None)
+
         return user_db
 
     def authorized(self, required = [], sudo = True):
@@ -240,7 +244,7 @@ class loginHandler(BaseHandler):
     def post(self):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
-        
+
         username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]}).get('user', None)
         print("USERNAME:", username)
         if username:
@@ -250,7 +254,7 @@ class loginHandler(BaseHandler):
             if userdb:
                 self.set_secure_cookie('user', userdb['user'])
                 self.redirect('/')
-        
+
         self.redirect('/login')
 
 class logoutHandler(BaseHandler):
