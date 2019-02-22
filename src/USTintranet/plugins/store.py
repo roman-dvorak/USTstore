@@ -26,6 +26,7 @@ def make_handlers(module, plugin):
              (r'/%s/print/' %module, plugin.print_layout),
              (r'/{}/api/products/'.format(module), plugin.api_products_json),
              (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
+             (r'/{}/api/get_positions/list/'.format(module), plugin.api_positions_list),
              (r'/%s/newprint' %module, plugin.newprint),
              (r'/%s/api/(.*)/' %module, plugin.api),
              (r'/{}/operation/(.*)/'.format(module), plugin.operation)
@@ -153,6 +154,19 @@ class api_parameters_list(BaseHandler):
         }
         self.write(bson.json_util.dumps(data))
 
+# list of positions in current stock
+class api_positions_list(BaseHandler):
+    def post(self):
+        oid = bson.ObjectId(self.get_cookie("warehouse", None))
+        self.set_header('Content-Type', 'application/json')
+        print(oid)
+
+        dbcursor = self.warehouse_get_positions(oid)
+        dout = list(dbcursor)
+        output = bson.json_util.dumps(dout)
+        self.write(output)
+
+
 class api(BaseHandler):
     def post(self, data=None):
         self.set_header('Content-Type', 'application/json')
@@ -201,7 +215,7 @@ class api(BaseHandler):
             dout = list(dbcursor)
 
         elif data == 'add_supplier':
-            id = self.get_argument('id')
+            id = self.get_argument('id', None)
 
             out = self.mdb.update({'_id': id},{
                 '$push':{'supplier':{

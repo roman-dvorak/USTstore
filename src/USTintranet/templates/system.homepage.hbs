@@ -7,18 +7,47 @@
 
 
 <h2> Vybraný sklad</h2>
-{{warehouses}}
-
 <select class="" name="" id="select_actual_store">
-    <option selected disabled>Původní</option>
+    <option selected disabled>-- Not changed --</option>
     {% for warehouse in warehouses %}
-    <option value="{{warehouse['_id']}}">{{warehouse['name']}}, {{warehouse['_id']}}</option>
+        <option value="{{warehouse['_id']}}">{{warehouse['name']}}, {{warehouse['_id']}}</option>
     {% end %}
 </select>
 <button onclick="push_actual_store()">Nastav</button>
 
+<div id="positions-table"></div>
+<button id="add-row">Add</button>
 
 <script>
+//<!-- Prehled skladovych pozit -->
+var positions_table = new Tabulator("#positions-table", {
+    height:"311px",
+    layout:"fitColumns",
+    placeholder:"No Data Set",
+    columns:[
+        {title:"id", field:"_id.$oid", sorter:"string"},
+        {title:"name", field:"name", sorter:"string", editor:"input"},
+        {title:"text", field:"text", sorter:"string", editor:"input"},
+    ],
+    //ajaxURL:
+    //ajaxParams:{key1:"value1", key2:"value2"}, //ajax parameters
+    ajaxType:"post",
+});
+positions_table.setData("/store/api/get_positions/list/", {}, 'POST');
+
+$("#add-row").click(function(){
+    positions_table.addRow({}).then(function(row){
+        console.log(row);
+        row._row.cells[0].value = '-1'
+        console.log(row._row.cells[0]);
+        positions_table.redraw();
+
+    })
+    .catch(function(error){
+        //handle error updating data
+    });
+});
+
 
 function push_actual_store() {
     var store = $("#select_actual_store").val();

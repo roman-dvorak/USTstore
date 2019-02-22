@@ -212,6 +212,13 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code',1)]))
 
+    def warehouse_get_positions(self, warehouse):
+        data = self.mdb.store_positions.aggregate([
+            {"$match": {'warehouse': warehouse}},
+            #{"$project": {''}}
+        ])
+        return (data)
+
 
     def component_get_counts(self, id):
         out = self.mdb.stock.aggregate([{
