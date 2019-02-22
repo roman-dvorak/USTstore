@@ -29,23 +29,46 @@ var positions_table = new Tabulator("#positions-table", {
         {title:"name", field:"name", sorter:"string", editor:"input"},
         {title:"text", field:"text", sorter:"string", editor:"input"},
     ],
-    //ajaxURL:
-    //ajaxParams:{key1:"value1", key2:"value2"}, //ajax parameters
-    ajaxType:"post",
+    cellEdited:function(cell){
+        console.log(cell);
+        var cells = cell.getRow()._row.cells;
+        console.log(cells);
+
+        $.ajax({
+          type: "POST",
+          url: "/store/api/set_positions/update/",
+          data: {
+            'id': cells[0].value,
+            'name': cells[1].value,
+            'text': cells[2].value
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {msg: 'Pozice zaktualizována'});
+            if(cell[0] === undefined){
+                console.log("RELOAD");
+                cell.getTable().setData();
+            }
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('success', {msg: 'Chyba...'});
+            if(cell[0].value === undefined){
+                console.log("RELOAD");
+                cell.getTable().setData();
+            }
+          }
+        });
+
+    },
+    ajaxConfig:"post",
+    ajaxURL:"/store/api/get_positions/list/",
+
 });
-positions_table.setData("/store/api/get_positions/list/", {}, 'POST');
+positions_table.setData();
 
 $("#add-row").click(function(){
-    positions_table.addRow({}).then(function(row){
-        console.log(row);
-        row._row.cells[0].value = '-1'
-        console.log(row._row.cells[0]);
-        positions_table.redraw();
-
-    })
-    .catch(function(error){
-        //handle error updating data
-    });
+    positions_table.addRow({});
 });
 
 

@@ -27,6 +27,7 @@ def make_handlers(module, plugin):
              (r'/{}/api/products/'.format(module), plugin.api_products_json),
              (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
              (r'/{}/api/get_positions/list/'.format(module), plugin.api_positions_list),
+             (r'/{}/api/set_positions/update/'.format(module), plugin.api_update_position),
              (r'/%s/newprint' %module, plugin.newprint),
              (r'/%s/api/(.*)/' %module, plugin.api),
              (r'/{}/operation/(.*)/'.format(module), plugin.operation)
@@ -166,6 +167,15 @@ class api_positions_list(BaseHandler):
         output = bson.json_util.dumps(dout)
         self.write(output)
 
+class api_update_position(BaseHandler):
+    def post(self):
+        data = {'_id': bson.ObjectId(self.get_argument("id", None)),
+                'name': self.get_argument('name', 'not_set'),
+                'text': self.get_argument('text', 'not_set'),
+                'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
+
+        self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
+        self.write("OK")
 
 class api(BaseHandler):
     def post(self, data=None):
