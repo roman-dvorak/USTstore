@@ -259,11 +259,15 @@ function WriteToDb(close = true){
                 console.log("Chci to schovat...");
                 $('#modal-edit-component').modal('hide');
             }else{
+
+                //$('#modal-edit-component').modal('hide');
+                ClearArticleEdit();
                 if('upserted' in data){
                     OpenArticleEdit(name = data['upserted']['$oid']);
                 }else{
                     OpenArticleEdit(name = product_json['_id'].$oid);
                 }
+                $('#modal-edit-component').modal('show');
             }
 
         },
