@@ -59,6 +59,7 @@
       </script>
 
       <script type="text/javascript" src="/static/cart_tools.js"></script>
+      <script type="text/javascript" src="/static/barcode_reader.js"></script>
 
 
 	<style type="text/css">
@@ -114,6 +115,7 @@
 
   <span>
       {%if current_user %}<span class="current_cart"></span> <i class="material-icons">account_circle</i>{{current_user['user']}} <a href="/logout">Odhlásit</a><br> Sklad: {{current_user['param']['warehouse']}}{%else%} <a href="/login">přihlásit se</a>{%end%}
+      <i class="material-icons barcode-icon">remove</i>
   </span>
 
 </nav>

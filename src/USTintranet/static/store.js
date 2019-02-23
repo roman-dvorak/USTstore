@@ -200,7 +200,7 @@ function ClearArticleEdit(){
     $('#new_supplier_url').val(null);
 
     $('.hide-on-new').show();
-    
+
     $('#modal_oper_place').empty();
     $('#modal_oper_place').hide();
 }
@@ -427,7 +427,7 @@ function draw_stock(count){
       var lc = count.count_part.by_warehouse[lci];
 
       console.log("TEST...", lc)
-      var html = "<div class='card m-0 p-2 mr-2'>"+ /*lc.warehouse[0].name*/ + "<br>" + lc.count +" units </div>";
+      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position.text + "<br>" + lc.count +" units </div>";
       $("#inputSTOCK_list").append(html);
   }
 }
