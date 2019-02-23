@@ -1,0 +1,99 @@
+{% extends "base.hbs" %}
+{% block title %}UST intranet | TME catalog{%end%}
+{% block body %}
+<select class="" name="">
+
+</select>
+
+
+<h2> Vybraný sklad</h2>
+<select class="" name="" id="select_actual_store">
+    <option selected disabled>-- Not changed --</option>
+    {% for warehouse in warehouses %}
+        <option value="{{warehouse['_id']}}">{{warehouse['name']}}, {{warehouse['_id']}}</option>
+    {% end %}
+</select>
+<button onclick="push_actual_store()">Nastav</button>
+
+<div id="positions-table"></div>
+<button id="add-row">Add</button>
+
+<script>
+//<!-- Prehled skladovych pozit -->
+var positions_table = new Tabulator("#positions-table", {
+    height:"311px",
+    layout:"fitColumns",
+    placeholder:"No Data Set",
+    columns:[
+        {title:"id", field:"_id.$oid", sorter:"string"},
+        {title:"name", field:"name", sorter:"string", editor:"input"},
+        {title:"text", field:"text", sorter:"string", editor:"input"},
+    ],
+    cellEdited:function(cell){
+        console.log(cell);
+        var cells = cell.getRow()._row.cells;
+        console.log(cells);
+
+        $.ajax({
+          type: "POST",
+          url: "/store/api/set_positions/update/",
+          data: {
+            'id': cells[0].value,
+            'name': cells[1].value,
+            'text': cells[2].value
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {msg: 'Pozice zaktualizována'});
+            if(cell[0] === undefined){
+                console.log("RELOAD");
+                cell.getTable().setData();
+            }
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('success', {msg: 'Chyba...'});
+            if(cell[0].value === undefined){
+                console.log("RELOAD");
+                cell.getTable().setData();
+            }
+          }
+        });
+
+    },
+    ajaxConfig:"post",
+    ajaxURL:"/store/api/get_positions/list/",
+
+});
+positions_table.setData();
+
+$("#add-row").click(function(){
+    positions_table.addRow({});
+});
+
+
+function push_actual_store() {
+    var store = $("#select_actual_store").val();
+    console.log(store);
+
+    $.ajax({
+      type: "POST",
+      url: "/system/",
+      data: {
+        'operation': 'set_warehouse',
+        'warehouse': store
+      },
+      success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        Lobibox.notify('success', {msg: 'Sklad nastaven'});
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+      }
+    });
+
+}
+
+</script>
+
+{% end %}

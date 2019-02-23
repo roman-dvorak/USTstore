@@ -3,24 +3,21 @@
 {% block body %}
 
 <script type="text/javascript" src="/static/svg.min.js"></script>
-<!-- <link href="/static/tabulator/dist/css/tabulator.min.css" rel="stylesheet">
-<script type="text/javascript" src="/static/tabulator/dist/js/tabulator.min.js"></script> -->
 
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 
 <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
  -->
-
-
 <link href="/static/select2/dist/css/select2.css" rel="stylesheet">
 <script type="text/javascript" src="/static/select2/dist/js/select2.js"></script>
 
-<link href="/static/tabulator/dist/css/bootstrap/tabulator_bootstrap4.css" rel="stylesheet">
-<script type="text/javascript" src="/static/tabulator/dist/js/tabulator.js"></script>
+<<<<<<< HEAD
+=======
 
 
 
+>>>>>>> master
 <script type="text/javascript">
 	var id = '{{id}}';
 	var components = [];
@@ -123,72 +120,6 @@
 </div>
 
 <script type="text/javascript">
-	//$("#component-table").tabulator();
-
-
-	//create autocomplete editor
-	var aa_ust_id_autocomplete = function(cell, onRendered, success, cancel){
-		console.log('UST_ID own editor')
-	    var input = $('<select class="th-input"  id="row_ustid"></select>');
-	    onRendered( function(){
-		    input.select2({
-			  	//dropdownCssClass: "select2-style",
-			  	width: '100%',
-			    ajax: {
-			    	delay: 250,
-				    url: '/store/api/search/',
-				    type: "POST",
-				    dataType: 'json',
-				    data: function (params) {
-				      var query = {
-				        q: params.term,
-				        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
-				        page: 0
-				      }
-				      return query;
-				    },
-				    processResults: function (data) {
-				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
-				        return {
-				            results: $.map(data, function (item) {
-				                return {
-				                    text: item['name']+" ("+item['_id']+")",
-				                    id: item['_id']
-				                }
-				            })
-				        };
-				    }
-			    }
-			});
-		});
-
-	    /*
-	    //submit new value on blur
-	    input.on("change blur", function(e){
-	        if(input.val() != cell.getValue()){
-	            success(input.val());
-	        }else{
-	            cancel();
-	        }
-	    });
-
-	    //submit new value on enter
-	    input.on("keydown", function(e){
-	        if(e.keyCode == 13){
-	            success(input.val());
-	        }
-
-	        if(e.keyCode == 27){
-	            cancel();
-	        }
-	    });
-		*/
-
-	    return input;
-	};
-
-
 
 
 var ust_id_autocomplete = function(cell, onRendered, success, cancel){
@@ -214,6 +145,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     	console.log('RENDER')
     	var sel = $(input).select2({
 			  	//dropdownCssClass: "select2-style",
+                allowClear: true,
 			  	width: '100%',
 			    ajax: {
 			    	delay: 250,
@@ -230,7 +162,8 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 				    },
 				    processResults: function (data) {
 				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
+				    	data.unshift(Object({name: 'Odebrat', _id: {"$oid": ""}}));
+                        console.log(data);
 				        return {
 				            results: $.map(data, function (item) {
 				                return {
@@ -242,6 +175,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 				    }
 			    }
 		});
+        console.log(sel);
     	$(input).select2("open");
         //input.focus();
         //input.style.height = "100%";
@@ -299,7 +233,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
 		console.log("...........");
 		console.log(cell.cell);
-		//cell.cell.edit(true);
 		cell.edit(true);
 	}
 
@@ -340,11 +273,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
 
-	//var ajaxConfig = {
-	//    type:"POST", //set request type to Position
-	//    //contentType: 'application/json; charset=utf-8', //set specific content type
-	//};
-	//table.setData(".", {operation:"get_components_grouped"}, ajaxConfig);
 
 function edit_component(id){
 	console.log("CLICK");
@@ -499,9 +427,6 @@ function load_components() {
 			x = row.insertCell(-1);
 			x.innerHTML = c_value;
 
-
-			//x = row.insertCell(-1);
-			//x.innerHTML = str(len(c_ref));
 
 			x = row.insertCell(-1);
 			x.innerHTML = com['MFNP'] || null;

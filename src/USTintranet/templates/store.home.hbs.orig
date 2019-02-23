@@ -271,6 +271,7 @@
 
 
   </div>
+<<<<<<< HEAD
   <div id="filter-collapse" class="collapse m-1 pl-1 pr-1">
     <ul class="nav nav-tabs">
       <li class="nav-item">
@@ -292,6 +293,21 @@
         <option value="No">Vyskladněno</option>
       </select>
       </div>
+=======
+  <div id="filter-collapse" class="collapse m-1">
+    <div class="pl-3 pb-3">
+      <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+      <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+      <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+      <select id="filter-instock" onchange="update_list()">
+        <option value="All" selected>Vše</option>
+        <option value="Yes">Skladem</option>
+        <option value="No">Vyskladněno</option>
+      </select>     <!--  <span style="display: none;"><span>Filtrování TAGu: </span>
+      <input type="text" class="form-control" id="tag-search" onchange="update_list()" placeholder="Filtrovani TAGu">
+      <small>Inverzní filtr tagu<input type="checkbox" id="tag_polarity" onchange="update_list()"></small></span> -->
+    </div>
+>>>>>>> master
 
       <div id="filter_block" class="row">
         {% set last = {'path': "/", 'name':""} %}

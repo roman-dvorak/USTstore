@@ -13,15 +13,19 @@ import functools
 import bson
 import datetime
 import os
+import bson
+from hashlib import blake2s
 
 def make_handlers(module, plugin):
-        return [
+        handlers = [
             (r'/login', plugin.loginHandler),
             (r'/logout', plugin.logoutHandler),
             (r'/registration', plugin.regHandler),
             (r'/api/backup', plugin.doBackup),
-            (r'{}/'.format(module), plugin.home)]
-            
+            (r'/system', plugin.system_handler),
+            (r'/system/', plugin.system_handler)]
+        return handlers
+
 def plug_info():
     return {
         "module": "system",
@@ -58,7 +62,7 @@ def save_file(db, original_filename):
         return os.path.join(path, str(record['_id'])+"_"+file)
     else:
         out = db.owncloud.insert({
-                'path': path, 
+                'path': path,
                 'original_filename': file,
                 'revision': 1,
                 'author': 'autor',
@@ -199,6 +203,168 @@ class BaseHandler(tornado.web.RequestHandler):
             self.logged = False
             return None
 
+    def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
+        if not b:
+            b = len(symbols)
+        return ((num == 0) and symbols[0]) or (self.base(num // b, symbols, b).lstrip(symbols[0]) + symbols[num % b])
+
+
+    def get_warehouseses(self):
+        return list(self.mdb.warehouse.find().sort([('code',1)]))
+
+    def warehouse_get_positions(self, warehouse):
+        data = self.mdb.store_positions.aggregate([
+            {"$match": {'warehouse': warehouse}},
+            #{"$project": {''}}
+        ])
+        return (data)
+
+
+    def component_get_counts(self, id):
+        out = list(self.mdb.stock.aggregate([{
+            "$facet":{
+                "suma":[
+                    {"$match": {"_id": id}},
+                    {"$unwind": "$history"},
+                    {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
+                    {"$project": {"count": 1, "_id":0}}
+                ],
+                 "by_warehouse":[
+                     {"$match": {"_id": id}},
+                     {"$unwind": "$history"},
+                     {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
+                     {"$sort": {"warehouse": 1}},
+                     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
+                     {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
+                     {"$project": {
+                        "_id":0,
+                        "warehouse":1,
+                        "count": 1,
+                        "position": { "$arrayElemAt": [ "$position", 0 ] },
+                        "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
+                        }},
+                 ]
+            }
+        }]))
+
+        print("GET Component COUNTS....", out)
+
+        return out[0]
+
+    def component_get_suppliers(self, id):
+        out = self.mdb.stock.aggregate([
+                {"$match": {"_id": id}},
+                {"$unwind": '$supplier'},
+                {"$project": {'supplier':1, '_id':0}}
+            ])
+        return list(out)
+
+    def component_set_position(self, id, position, primary = False):
+        '''
+        id: Id polozky, ktera se vyhledavam
+        position: Pozice, ktera se nastavuje pro polozkou
+        primary: ma byt polozka primarni?
+        '''
+        target_position = position
+        target_primary = primary
+
+        # zjisti warehouse id podle toho, jakou pridavam pozici
+        warehouseid = self.mdb.store_positions.find_one({'_id': target_position})
+
+        print(".>>>> pos", warehouseid)
+
+        out2 = list(self.mdb.stock.aggregate([
+            {"$match": {'_id': id}},
+            {"$unwind": "$position"},
+            {"$lookup": {"from": 'store_positions', 'localField': 'position.posid', 'foreignField': '_id', 'as': 'pos'}},
+            {"$match": {'pos.warehouse':  warehouseid['warehouse']}},
+            {'$project': {'pos':1, 'position': 1, 'name':1}}
+        ]))
+
+        primary = None
+        exist = False
+        for pos in out2:
+            print(pos)
+            if target_position == pos['position']['posid']:
+                exist = True
+            if pos['position']['primary']:
+                primary = pos['position']['posid']
+        print(bson.json_util.dumps(out2, indent=4))
+        print("nalezeno", exist)
+        print("primarni", primary)
+
+        if not primary:
+            print("Primary position is not set yet.")
+            target_primary = True
+
+        if target_position == primary or (exist and target_position != primary and not target_primary):
+            print("This position is exist.")
+            return True
+
+        if exist:
+            print("Nastavim pozici na primarni")
+            if primary and not target_primary:
+                self.mdb.stock.update(
+                    {'_id': id, 'position.posid': primary},
+                    {"$set": {"position.$.primary": False}}
+                )
+            self.mdb.stock.update(
+                {'_id': id, 'position.posid': target_position},
+                {"$set": {"position.$.primary": target_primary}}
+            )
+            return True
+        else:
+            print("Nastavim novou pozici")
+            if primary and target_primary:
+                print("Earsing primary positions", primary, target_primary)
+                self.mdb.stock.update(
+                    {'_id': id, 'position.posid': primary},
+                    {"$set": {"position.$.primary": False}}
+                )
+            self.mdb.stock.update(
+                {'_id': id},
+                {"$addToSet": {"position": {"posid": target_position, "primary": target_primary}}}
+            )
+            return True
+
+    def component_remove_position(self, id, stock):
+        self.mdb.stock.update(
+            {'_id': bson.ObjectId(id)},
+            {"$pull": {"position":{"posid": bson.ObjectId(stock)}}}
+        )
+
+    def component_get_positions(self, id, stock = None, primary = False):
+        #stock = None
+        '''
+        'id': id polozky, ktera bude vyhledana
+        'stock': id skladu, ve kterem se bude vyhledavat. Pokud je False, vyhledava se vsude
+        'primary': Vyhledavaji se pouze primarni pozice
+        '''
+        q =[{"$match": {"_id": id}},
+            {"$unwind": "$position"},
+            {"$lookup": {"from": "store_positions", "localField": 'position.posid', "foreignField" : '_id', "as": "position.info"}},
+            {"$project" : {"pos":1, "position":1}},
+            {"$replaceRoot": {"newRoot": "$position"}
+        }]
+        if stock:
+            print("VYBRANY STOCK...")
+            print(stock, type(stock))
+            q += [{"$match": {"info.warehouse": stock}}]
+        if primary:
+            q += [{"$match": {"primary": primary}}]
+        data = list(self.mdb.stock.aggregate(q))
+        print(bson.json_util.dumps(data, indent=4))
+        return data
+
+    def barcode(self, hex):
+        print(int(hex, 16))
+        code = blake2s(bytes(hex, 'utf-8'), digest_size=6)
+        code = int(code.hexdigest(), 16)
+        print(code)
+        code = self.base(code, b=62)
+        code += code[1]
+        code += code[0]
+        return code
 
     def get_current_user(self):
         login = self.get_secure_cookie("user", None)
@@ -211,6 +377,8 @@ class BaseHandler(tornado.web.RequestHandler):
         if not user_db:
             print("NIC", user_db)
             return None
+        user_db['param'] = {}
+        user_db['param']['warehouse'] = self.get_cookie('warehouse', None)
         return user_db
 
     def authorized(self, required = [], sudo = True):
@@ -266,14 +434,8 @@ class BaseHandlerJson(BaseHandler):
 class BaseHandlerOwnCloud(BaseHandler):
     def prepare(self):
         self.oc = owncloud.Client(tornado.options.options.owncloud_url)
-        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass) 
+        self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
         super(BaseHandlerOwnCloud, self).prepare()
-
-
-class home(BaseHandler):
-    def get(self, param=None):
-        self.write("Ahoj :) ")
-
 
 class loginHandler(BaseHandler):
     def get(self):
@@ -282,7 +444,7 @@ class loginHandler(BaseHandler):
     def post(self):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
-        
+
         username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
         print("USERNAME:", username)
         if username:
@@ -294,7 +456,7 @@ class loginHandler(BaseHandler):
                 self.set_secure_cookie('user', userdb['user'])
                 self.redirect('/')
                 self.finish()
-        
+
         self.redirect('/login?msg=badlogin')
 
 class logoutHandler(BaseHandler):
@@ -344,11 +506,6 @@ class regHandler(BaseHandler):
         print(user, email, psw, pswc, agree)
         self.redirect('/')
 
-class home(BaseHandler):
-    def get(self):
-        self.write('home')
-
-
 class doBackup(BaseHandlerOwnCloud):
     def get(self):
         remote =  os.path.join(tornado.options.options.owncloud_root, 'backup', '2018', 'mdb')
@@ -358,3 +515,15 @@ class doBackup(BaseHandlerOwnCloud):
         self.oc.put_directory(remote, 'static/tmp/mdb')
         #os.remove('static/tmp/mdb')
         self.write("OK")
+
+
+
+class system_handler(BaseHandler):
+    def get(self):
+        self.render('system.homepage.hbs', warehouses = self.get_warehouseses())
+
+    def post(self):
+        operation = self.get_argument('operation')
+        if operation == 'set_warehouse':
+            self.set_cookie("warehouse", self.get_argument('warehouse'))
+            print("Nastaveno cookie pro vybrany warehouse")

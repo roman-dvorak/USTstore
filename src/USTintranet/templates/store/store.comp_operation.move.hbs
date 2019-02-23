@@ -1,0 +1,74 @@
+Součastné pozice ve skladech:<br>
+<ul>
+{%for current in current_places %}
+    <li>{{current['info'][0]['name']}} <small>({{current['posid']}})</small>
+{%end%}
+</ul>
+
+<div class="container">
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Staré umístění</label>
+		<select class="form-control table_style col-sm-9" id="compo_source">
+            {# {%for current in current_places['by_warehouse'] %} <option value="{{current['warehouse'][0]['_id']}}" count={{current['count']}}>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks) {{current['warehouse'][0]['_id']}}</option>{%end%} #}
+            {%for current in current_places %} <option value="{{current['posid']}}" >{{current['info'][0]['name']}}, <small>{{current['info'][0]['_id']}}</option>{%end%}
+
+        </select>
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Počet ks</label>
+		<input class="form-control table_style col-sm-9" type="number" id="compo_count" min="0" value="0">
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Nové umístění</label>
+		<select class="form-control table_style col-sm-9" id="compo_target">
+            {%for place in all_places %} <option value="{{place['_id']}}">{{place['code']}} - {{place['name']}}</option>{%end%}
+		</select>
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Poznámka </label>
+		<input class="form-control table_style col-sm-9" type="text" id="compo_description" value="">
+	</div>
+
+	<div class="form-group row">
+		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()">Uložit</button>
+	</div>
+</div><hr>
+<small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+
+<script type="text/javascript">
+
+
+	function compo_update_push(){
+	    $.ajax({
+	      type: "POST",
+	      url: "/store/operation/move_push/",
+	      data: {
+	        'component': current_detail,
+	        'source': $("#compo_source").val(),
+	        'target': $("#compo_target").val(),
+	        'count': $("#compo_count").val(),
+	        'description': $('#compo_description').val()
+	      },
+	      success: function( data, textStatus, jQxhr ){
+	      	//console.log(data);
+	      	$('#modal_operation').modal('hide');
+            Lobibox.notify('success', {msg: 'Operace provedena'});
+
+	        $("#modal-operation-content").modal('hide');
+        	$("#modal_oper_place").hide();
+
+	      },
+	      error: function( jqXhr, textStatus, errorThrown ){
+	        console.log( errorThrown );
+			Lobibox.notify('error', {msg: 'Operace nebyla provedena'});
+	      }
+	    });
+	}
+
+	$("#compo_offset").change(compo_update);
+	$("#compo_stock").change(compo_update);
+	compo_update();
+</script>

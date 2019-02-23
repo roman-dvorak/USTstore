@@ -1,6 +1,8 @@
-Součastné počty:<br>
+Součastné pozice ve skladech:<br>
 <ul>
-{%for sklad in counts %} <li>{{sklad['_id']}}: {{sklad['count']}}{%end%}
+    {%for current in counts["by_warehouse"] %}
+        <li>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks)</small>
+    {%end%}
 </ul>
 
 <div class="container">
@@ -11,9 +13,8 @@ Součastné počty:<br>
 	<div class="form-group row">
 		<div class="col-sm-3">Sklad</div>
 		<select class="form-control col-sm-9 table_style" id="compo_stock">
-		   <option value="pha01">Praha (pha01)</option>
-		   <option value="sob01">Soběslav (sob01)</option>
-		</select>
+            {%for current in counts['by_warehouse'] %} <option value="{{current['warehouse'][0]['_id']}}" count={{current['count']}}>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks) {{current['warehouse'][0]['_id']}}</option>{%end%}
+        </select>
 	</div>
 	<div class="form-group row">
 		<div class="col-sm-3">Poznámka</div>
@@ -35,7 +36,7 @@ Součastné počty:<br>
 
 	function compo_update() {
 		for(c in compo_counts){
-			if(compo_counts[c]['_id'] === $('#compo_stock').val()){	
+			if(compo_counts[c]['_id'] === $('#compo_stock').val()){
 				compo_new_count = Number(compo_counts[c]['count']) + Number($("#compo_offset").val());
 				break;
 			}

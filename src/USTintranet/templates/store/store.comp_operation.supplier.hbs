@@ -1,0 +1,104 @@
+
+<div class="container">
+<table  class="table table-hover">
+<tr><th>#</th> <th>Supplier</th> <th>Symbol</th> <th>Barcode</th> <th>URL</th><th>Edit</th></tr>
+{% for i, supplier in enumerate(suppliers)%}<tr>
+        <td>{{i}}</td>
+        <td>{{supplier['supplier']['supplier']}}</td>
+        <td>{{supplier['supplier']['symbol']}}</td>
+        <td>{{supplier['supplier']['barcode']}}</td>
+        <td>{{supplier['supplier']['url']}}</td>
+        <td>---</td>
+    <tr>{%end%}
+</table>
+<hr>
+<div>
+    <div class="form-group row">
+		<label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Pro vytvoření nového dodavatele zvolte <b>ID= -1</b>. Při zvolení jiného bude existující dodavatel přepsát.">ID <i class="material-icons text-muted">help</i></label>
+		<input class="form-control table_style col-sm-9" type="number" id="compo_id" min="-1" value="-1">
+	</div>
+    <div class="form-group row">
+		<label class="col-sm-3 col-form-label">Dodavatel</label>
+        <div class="form-control table_style col-sm-9"><select class="form-control" id="compo_supplier"></select></div>
+    </div>
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Symbol, Obj. číslo</label>
+		<input class="form-control table_style col-sm-9" type="text" id="compo_symbol">
+	</div>
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">Čárový kód</label>
+		<input class="form-control table_style col-sm-9" type="text" id="compo_code">
+	</div>
+	<div class="form-group row">
+		<label class="col-sm-3 col-form-label">URL</label>
+		<input class="form-control table_style col-sm-9" type="text" id="compo_url">
+	</div>
+	<div class="form-group row">
+		<button class="form-control table_style btn btn-primary col col-sm-9 offset-sm-3" onclick="compo_update_push()">Uložit</button>
+	</div>
+</div>
+</div><hr>
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+
+<script type="text/javascript">
+
+    function compo_update() {
+        $('#compo_supplier').select2({
+            width: '100%',
+            tags: true,
+            multiple: true,
+            maximumSelectionLength: 1,
+            ajax: {
+              url: '/store/api/get_suppliers/',
+              type: "POST",
+              dataType: 'json',
+              processResults: function (data) {
+                  console.log(data)
+                  return {
+                      results: $.map(data, function (item) {
+                          console.log(item);
+                          return {
+                              text: item,
+                              id: item
+                          }
+                      })
+                  };
+              }
+            }
+        })
+
+
+    }
+
+	function compo_update_push(){
+	    $.ajax({
+	      type: "POST",
+	      url: "/store/operation/supplier_push/",
+	      data: {
+	        'component': current_detail,
+	        'supplier_id': $("#compo_id").val(),
+	        'supplier': $("#compo_supplier").val()[0],
+	        'symbol': $("#compo_symbol").val(),
+	        'code': $("#compo_code").val(),
+	        'url': $('#compo_url').val()
+	      },
+	      success: function( data, textStatus, jQxhr ){
+	      	console.log(data);
+	      	$('#modal_operation').modal('hide');
+            Lobibox.notify('success', {msg: 'Polozka ulozena'});
+
+	        $("#modal-operation-content").modal('hide');
+        	$("#modal_oper_place").hide();
+
+	      },
+	      error: function( jqXhr, textStatus, errorThrown ){
+	        console.log( errorThrown );
+			Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+	      }
+	    });
+	}
+
+	//$("#compo_offset").change(compo_update);
+	//$("#compo_stock").change(compo_update);
+	compo_update();
+</script>
