@@ -518,3 +518,15 @@ function new_component(){
     $('.hide-on-new').hide();
     $('#modal-edit-component').modal('show');
 }
+
+
+function copyToCLipboard(el){
+    var data = el.getAttribute(copy)
+    var dummy = document.createElement("input");
+    document.body.appendChild(dummy);
+    dummy.setAttribute("id", "dummy_id");
+    document.getElementById("dummy_id").vaue = data;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+}
