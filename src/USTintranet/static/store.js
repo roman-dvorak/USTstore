@@ -138,7 +138,8 @@ function OpenArticleEdit(name = null, clear = true, show = true){
 
                   $('.hide-on-new').show();
                   $('#inputID_edit').val(element['_id'].$oid);
-                  $("#inputID_edit").attr('disabled', true);
+                  $("#inputID_edit").attr('readonly', true);
+                  $("#copyID_edit").attr('copy', element['_id'].$oid);
                   $('#inputNAME_edit').val(element['name'] || "Bez názvu");
                   $('#inputPRICEp_edit').val(element['price_sell'] || 0);
                   $('#inputSELLABLE_edit').prop('checked', element['sellable'] || false);
@@ -177,7 +178,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
 
 function ClearArticleEdit(){
     $('#inputID_edit').val(null);
-    $("#inputID_edit").attr('disabled', true);
+    $("#inputID_edit").attr('readonlys', true);
     $('#inputNAME_edit').val(null);
     $('#inputPRICE_edit').val(0);
     $('#inputPRICEp_edit').val(0);
@@ -187,6 +188,7 @@ function ClearArticleEdit(){
     $('#inputTAG_edit').val(null).trigger('change');
     $('#inputBARCODE_edit').val(null);
     $("#inputBARCODE_edit").attr('disabled', true);
+    $("#copyID_edit").attr('copy', undefined);
 
     $('#inputSTOCK_list').empty();
     $('#inputHISTORY_edit').empty();
@@ -254,7 +256,14 @@ function WriteToDb(close = true){
             }
 
             if(close == true){
+                console.log("Chci to schovat...");
                 $('#modal-edit-component').modal('hide');
+            }else{
+                if('upserted' in data){
+                    OpenArticleEdit(name = data['upserted']['$oid']);
+                }else{
+                    OpenArticleEdit(name = product_json['_id'].$oid);
+                }
             }
 
         },
@@ -508,7 +517,6 @@ function draw_history(id){
 }
 
 
-
 function new_component(){
     element = {};
     //$('#modal-edit-component').modal('hide');
@@ -521,12 +529,13 @@ function new_component(){
 
 
 function copyToCLipboard(el){
-    var data = el.getAttribute(copy)
+    console.log("COPY", el);
+    var data = el.getAttribute('copy')
     var dummy = document.createElement("input");
     document.body.appendChild(dummy);
-    dummy.setAttribute("id", "dummy_id");
-    document.getElementById("dummy_id").vaue = data;
+    dummy.setAttribute("value", data);
     dummy.select();
     document.execCommand("copy");
     document.body.removeChild(dummy);
+    console.log("Copy", data);
 }

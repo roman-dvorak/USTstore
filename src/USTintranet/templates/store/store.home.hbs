@@ -621,6 +621,7 @@ function update_view(){
         tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
+        tmpl.querySelector('.product_list_copyid').setAttribute('copy', element['_id'].$oid);
 
         // zaskrtavatko vybaraných polozek
         if(selected.indexOf(element['_id'].$oid) >= 0){
