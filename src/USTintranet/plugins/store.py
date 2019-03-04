@@ -579,9 +579,10 @@ class newprint(BaseHandler):
 
         print("Zahajuji generovani PDF")
         print("Soucastky", comp)
-
-        comp = self.mdb.stock.find({'_id' : {'$in' : comp}})
+        comp = [ObjectId(x) for x in comp]
+        comp = list(self.mdb.stock.find({'_id' : {'$in' : comp}}))
         print("......................")
+        print(comp)
         pdf = stickers_simple(comp = comp)
         pdf.output("static/sestava.pdf")
 
@@ -614,8 +615,10 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
 
     for i, component in enumerate(comp):
         i += skip
-        id = component['name'].strip().replace('/', '_')
-        code128.image(component['_id']).save("static/barcode/%s.png"%(id))
+        #   id = component['name'].strip().replace('/', '_')
+        id = str(component['_id'])
+        barcode = str(int(id, 16))
+        code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
 
         if i != 0 and i%(page_cells) == 0:
             page += 1
@@ -627,27 +630,27 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         cell_x = column*cell_w
         cell_y = row*cell_h
 
-        pdf.set_xy(cell_x+5, cell_y+6.75)
+        pdf.set_xy(cell_x+3, cell_y+6.75)
         if len(component['name'])<23:
             pdf.set_font('pt_sans-bold', '', 14)
         else:
             pdf.set_font('pt_sans-bold', '', 10)
         pdf.cell(cell_w-10, 0, component['name'][:35])
-        pdf.set_xy(cell_x+2.5, cell_y+9)
-        pdf.image('static/barcode/%s.png'%(id), w = cell_w-5, h=7)
+        pdf.set_xy(cell_x+1, cell_y+9)
+        pdf.image('static/tmp/barcode/%s.png'%(id), w = cell_w-2, h=6)
 
         pdf.set_font('pt_sans', '', 11)
-        pdf.set_xy(cell_x+4, cell_y+20)
+        pdf.set_xy(cell_x+4, cell_y+19)
         try:
             pdf.multi_cell(cell_w-8, 4, component['description'][:185])
         except Exception as e:
             pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
 
-        pdf.set_xy(cell_x+5, cell_y+cell_h-7)
-        pdf.set_xy(cell_x+5, cell_y+13)
+        pdf.set_xy(cell_x+3, cell_y+cell_h-7)
+        pdf.set_xy(cell_x+3, cell_y+12)
         pdf.set_font('pt_sans', '', 7.5)
-        pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| " + component['_id'])
+        pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| "  )
     return pdf
 
 
