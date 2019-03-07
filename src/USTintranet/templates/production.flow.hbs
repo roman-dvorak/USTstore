@@ -1,4 +1,4 @@
-{% extends "base.hbs" %}
+F{% extends "base.hbs" %}
 {% block title %} UST intranet | Produkce, uvod{% end %}
 {% block body %}
 
@@ -127,69 +127,6 @@
 
 
 	//create autocomplete editor
-	var aa_ust_id_autocomplete = function(cell, onRendered, success, cancel){
-		console.log('UST_ID own editor')
-	    var input = $('<select class="th-input"  id="row_ustid"></select>');
-	    onRendered( function(){
-		    input.select2({
-			  	//dropdownCssClass: "select2-style",
-			  	width: '100%',
-			    ajax: {
-			    	delay: 250,
-				    url: '/store/api/search/',
-				    type: "POST",
-				    dataType: 'json',
-				    data: function (params) {
-				      var query = {
-				        q: params.term,
-				        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
-				        page: 0
-				      }
-				      return query;
-				    },
-				    processResults: function (data) {
-				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
-				        return {
-				            results: $.map(data, function (item) {
-				                return {
-				                    text: item['name']+" ("+item['_id']+")",
-				                    id: item['_id']
-				                }
-				            })
-				        };
-				    }
-			    }
-			});
-		});
-
-	    /*
-	    //submit new value on blur
-	    input.on("change blur", function(e){
-	        if(input.val() != cell.getValue()){
-	            success(input.val());
-	        }else{
-	            cancel();
-	        }
-	    });
-
-	    //submit new value on enter
-	    input.on("keydown", function(e){
-	        if(e.keyCode == 13){
-	            success(input.val());
-	        }
-
-	        if(e.keyCode == 27){
-	            cancel();
-	        }
-	    });
-		*/
-
-	    return input;
-	};
-
-
-
 
 var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     //cell - the cell component for the editable cell
@@ -230,9 +167,10 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 				    },
 				    processResults: function (data) {
 				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
+				    	//data.unshift(Object({name: 'Nic', value: null}))
 				        return {
-				            results: $.map(data, function (item) {
+				            results: $.map(data, function (item, i) {
+                                console.log(item, i);
 				                return {
 				                    text: item['name']+" ("+item['_id']['$oid']+")",
 				                    id: item['_id']['$oid']

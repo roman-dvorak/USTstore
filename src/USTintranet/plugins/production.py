@@ -57,7 +57,7 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
         c_price = num_to_float(component.get('price', 0.0))
         print("########")
         print(c_ref)
-        
+
 
         s = 0
         for i, sel in enumerate(selected):
@@ -82,10 +82,10 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
                     price = o[0].get('price', 0.0)
                 except Exception as e:
                     print("ERr", c_ustid)
-                        
+
             component['price_store'] = price
             selected.append(component)
-            
+
 
     return selected
 
@@ -221,7 +221,7 @@ class edit(BaseHandler):
             ust_id: ust_id,
             description: description,
             price_predicted: price_predicted,
-            price_store: price_store, 
+            price_store: price_store,
             price_final: price_final
             '''
 
@@ -294,7 +294,14 @@ class edit(BaseHandler):
             ]))[0]
             components = production.get('components', [])
             for c in components:
-                print(c.get('UST_ID', None))
+                print(c)
+                sid = c.get('UST_ID', None)
+                print(sid)
+                if sid:
+                    id = bson.ObjectId(sid)
+                    print(id)
+                    count = self.component_get_counts(id)
+                    print(count)
 
 
 
@@ -306,7 +313,7 @@ class edit(BaseHandler):
             print("update_parameters")
             p_name = self.get_argument('name')
             p_description = self.get_argument('description')
-        
+
             self.mdb.production.update(
                 {'_id': bson.ObjectId(name)},
                 {'$set':{
@@ -488,7 +495,7 @@ class print_bom(BaseHandler):
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
             pdf.set_xy(17, first_row+j*rowh+3.5)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
-            
+
             pdf.set_xy(15, first_row+j*rowh+3.5)
             #pdf.cell(0, 5, component, border=0)
             #pdf.cell(0, 5, repr(self.get_component(dout['components'], component['Ref'])))
@@ -545,7 +552,7 @@ pdf.set_font('pt_sans', '', 8)
 
 
     def get(self, name):
-        
+
 
         dout = list(self.mdb.production.aggregate([
             {'$match': {'_id': bson.ObjectId(name)}},
@@ -584,7 +591,7 @@ pdf.set_font('pt_sans', '', 8)
         pdf.set_xy(10, 28+i*rowh+3)
         pdf.cell(0, 5, str(len(ref))+'x', border=0)
 
-        
+
         pdf.set_xy(15, 28+i*rowh+3)
         pdf.cell(0, 5, self.get_component(dout['components'], ref).get('MFPN'), border=0)
 
