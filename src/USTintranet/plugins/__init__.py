@@ -220,34 +220,64 @@ class BaseHandler(tornado.web.RequestHandler):
         return (data)
 
 
-    def component_get_counts(self, id):
-        out = list(self.mdb.stock.aggregate([{
-            "$facet":{
-                "suma":[
-                    {"$match": {"_id": id}},
-                    {"$unwind": "$history"},
-                    {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
-                    {"$project": {"count": 1, "_id":0}}
-                ],
-                 "by_warehouse":[
-                     {"$match": {"_id": id}},
-                     {"$unwind": "$history"},
-                     {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
-                     {"$sort": {"warehouse": 1}},
-                     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
-                     {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
-                     {"$project": {
-                        "_id":0,
-                        "warehouse":1,
-                        "count": 1,
-                        "position": { "$arrayElemAt": [ "$position", 0 ] },
-                        "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
-                        }},
-                 ]
-            }
-        }]))
+    def component_get_counts(self, id, warehouse = False):
+        if not warehouse:
+            out = list(self.mdb.stock.aggregate([{
+                "$facet":{
+                    "suma":[
+                        {"$match": {"_id": id}},
+                        {"$unwind": "$history"},
+                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
+                        {"$project": {"count": 1, "_id":0}}
+                    ],
+                     "by_warehouse":[
+                         {"$match": {"_id": id}},
+                         {"$unwind": "$history"},
+                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
+                         {"$sort": {"warehouse": 1}},
+                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
+                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
+                         {"$project": {
+                            "_id":0,
+                            "warehouse":1,
+                            "count": 1,
+                            "position": { "$arrayElemAt": [ "$position", 0 ] },
+                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
+                            }},
+                     ]
+                }
+            }]))
+        else:
+            print(warehouse, type(warehouse))
+            out = list(self.mdb.stock.aggregate([{
+                "$facet":{
+                    "suma":[
+                        {"$match": {"_id": id}},
+                        {"$unwind": "$history"},
+                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
+                        {"$project": {"count": 1, "_id":0}}
+                    ],
+                     "by_warehouse":[
+                         {"$match": {"_id": id}},
+                         {"$unwind": "$history"},
+                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
+                         {"$sort": {"warehouse": 1}},
+                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
+                         {"$match": {"position.warehouse": warehouse}},
+                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
+                         {"$project": {
+                            "_id":0,
+                            "warehouse":1,
+                            "count": 1,
+                            "position": { "$arrayElemAt": [ "$position", 0 ] },
+                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
+                            }},
+                     ]
+                }
+            }]))
 
-        print("GET Component COUNTS....", out)
+        #print("GET Component COUNTS....")
+        #print(out[0]['by_warehouse'])
 
         return out[0]
 

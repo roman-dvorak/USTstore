@@ -1,0 +1,7 @@
+*.pyc
+.idea
+*.iml
+test
+releases
+demo
+config.ini

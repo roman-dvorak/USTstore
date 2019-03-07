@@ -249,31 +249,32 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        {title:"Pro výrobu", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
 	        {title:"Sklad",
 	        	columns:[
-	        		{title: "Celkem", field:"stock", editable: false, width: 80},
+	        		{title: "Celkem", field:"_id.stock_count", editable: false, width: 80},
+    	        	{title: "p", field:"", editable: false, width: 80},
 	        	]
 	    	},
 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
-	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
-	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
-	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
+	        {title:"Položka", field:"_id.Value", editor:"input", editable:true, cellDblClick:editf},
+	        {title:"MFPN", field:"_id.MFPN", editor:"input", editable:true, cellDblClick:editf},
+	        {title:"Distributor", field:"_id.Distributor", editor:"input", editable:true, cellDblClick:editf},
+	        {title:"Odkaz", field:"_id.Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
+	        {title:"Pouzdro", field:"_id.Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
+	        {title:"UST id", field:"_id.UST_ID", editor: ust_id_autocomplete},
 	        {title:"Cena",
 	            columns:[
-			        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
-			        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
-			        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
+			        {title:"Sklad", field:"_id.price_store", editable:false, topCalc:"avg", width: 95},
+			        {title:"Použitá", field:"_id.price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
+			        {title:"Cena", field:"_id.price_group", topCalc: "sum", editable:false, width: 95},
 				]
 			},
-	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
+	        {title:"Poznámka", field:"_id.note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
 	    ],
     	addRowPos:"bottom",
 	    cellEdited:function(cell){
 	    	console.log("EDITED");
         	console.log(cell);
-    		console.log(cell._cell.row.cells[4].value);
-    		update_component_parameter(cell._cell.row.cells[4].value, cell._cell.column.field, cell._cell.value);
+    		console.log(cell._cell.row.cells[5].value);
+    		update_component_parameter(cell._cell.row.cells[5].value, cell._cell.column.field, cell._cell.value);
     	},
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
