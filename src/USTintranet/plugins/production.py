@@ -196,17 +196,23 @@ class edit(BaseHandler):
                         'Ref': {'$push': '$components.Ref'},
                         'count': {'$sum': 1},
                     }},
+                    {"$addFields":{"cUST_ID": {"$convert":{
+                             "input": '$_id.UST_ID',
+                             "to": 'objectId',
+                             "onError": "Err",
+                             "onNull": "null"
+                    }}}},
                     {"$lookup":{
                         "from": 'stock',
-                        "localField": '_id.UST_ID',
+                        "localField": 'cUST_ID',
                         "foreignField": '_id',
                         "as": 'stock'
                     }}
                 ]))
             out = bson.json_util.dumps(dout)
-            print(".................")
-            print(out)
-            print("................")
+            #print(".................")
+            #print(out)
+            #print("................")
             self.write(out)
 
         elif op == 'reload_prices':
