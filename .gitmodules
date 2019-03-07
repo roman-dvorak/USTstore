@@ -13,3 +13,6 @@
 [submodule "src/USTintranet/static/material-design-icons"]
 	path = src/USTintranet/static/material-design-icons
 	url = http://github.com/google/material-design-icons/
+[submodule "src/USTintranet/static/InteractiveHtmlBom"]
+	path = src/USTintranet/static/InteractiveHtmlBom
+	url = git@github.com:roman-dvorak/InteractiveHtmlBom.git

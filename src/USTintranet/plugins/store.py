@@ -640,7 +640,7 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         pdf.image('static/tmp/barcode/%s.png'%(id), w = cell_w-2, h=6)
 
         pdf.set_font('pt_sans', '', 11)
-        pdf.set_xy(cell_x+4, cell_y+19)
+        pdf.set_xy(cell_x+4, cell_y+22)
         try:
             pdf.multi_cell(cell_w-8, 4, component['description'][:185])
         except Exception as e:
@@ -650,7 +650,11 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         pdf.set_xy(cell_x+3, cell_y+cell_h-7)
         pdf.set_xy(cell_x+3, cell_y+12)
         pdf.set_font('pt_sans', '', 7.5)
-        pdf.cell(cell_w-10, 10, ', '.join(component['category']) + " |" + str(datetime.date.today()) + "| "  )
+        pdf.cell(cell_w-10, 10, id + " | " + str(datetime.date.today()) )
+
+        pdf.set_xy(cell_x+3, cell_y+15)
+        pdf.set_font('pt_sans', '', 7.5)
+        pdf.cell(cell_w-10, 10, "SKLAD | Pozice ve skladu" + " | " + component['category'])
     return pdf
 
 
