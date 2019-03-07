@@ -12,4 +12,5 @@ U firmy, která se skládá z týmů pracujících lidí, vznikají různé agen
 ### Zařízení
 ### Projekty
 ### Docházka a výplaty
-
+### Fakturace
+### Platby
