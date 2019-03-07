@@ -1,4 +1,4 @@
-{% extends "base.hbs" %}
+F{% extends "base.hbs" %}
 {% block title %} UST intranet | Produkce, uvod{% end %}
 {% block body %}
 
@@ -127,69 +127,6 @@
 
 
 	//create autocomplete editor
-	var aa_ust_id_autocomplete = function(cell, onRendered, success, cancel){
-		console.log('UST_ID own editor')
-	    var input = $('<select class="th-input"  id="row_ustid"></select>');
-	    onRendered( function(){
-		    input.select2({
-			  	//dropdownCssClass: "select2-style",
-			  	width: '100%',
-			    ajax: {
-			    	delay: 250,
-				    url: '/store/api/search/',
-				    type: "POST",
-				    dataType: 'json',
-				    data: function (params) {
-				      var query = {
-				        q: params.term,
-				        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
-				        page: 0
-				      }
-				      return query;
-				    },
-				    processResults: function (data) {
-				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
-				        return {
-				            results: $.map(data, function (item) {
-				                return {
-				                    text: item['name']+" ("+item['_id']+")",
-				                    id: item['_id']
-				                }
-				            })
-				        };
-				    }
-			    }
-			});
-		});
-
-	    /*
-	    //submit new value on blur
-	    input.on("change blur", function(e){
-	        if(input.val() != cell.getValue()){
-	            success(input.val());
-	        }else{
-	            cancel();
-	        }
-	    });
-
-	    //submit new value on enter
-	    input.on("keydown", function(e){
-	        if(e.keyCode == 13){
-	            success(input.val());
-	        }
-
-	        if(e.keyCode == 27){
-	            cancel();
-	        }
-	    });
-		*/
-
-	    return input;
-	};
-
-
-
 
 var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     //cell - the cell component for the editable cell
@@ -230,9 +167,10 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 				    },
 				    processResults: function (data) {
 				    	console.log("Mam data...", data);
-				    	data.unshift(Object({name: 'Nic', value: null}))
+				    	//data.unshift(Object({name: 'Nic', value: null}))
 				        return {
-				            results: $.map(data, function (item) {
+				            results: $.map(data, function (item, i) {
+                                console.log(item, i);
 				                return {
 				                    text: item['name']+" ("+item['_id']['$oid']+")",
 				                    id: item['_id']['$oid']
@@ -306,18 +244,19 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	var table = new Tabulator("#component-table",{
 	    layout:"fitColumns",
 	    columns:[
-	        {title:"#", field:"id", sorter:"number", width:25, editor:"input", editable:false},
+	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
 	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-	        {title:"Pro výrobu", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
+	        {title:"Pro výrobu", field: "count_multiply", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
 	        {title:"Sklad",
 	        	columns:[
-	        		{title: "Celkem", field:"stock", editable: false, width: 80},
+	        		{title: "Celkem", field:"stock_count", editable: false, width: 80},
+    	        	{title: "p", field:"", editable: false, width: 80},
 	        	]
 	    	},
 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
+	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
 	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
@@ -334,9 +273,46 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	    cellEdited:function(cell){
 	    	console.log("EDITED");
         	console.log(cell);
-    		console.log(cell._cell.row.cells[4].value);
-    		update_component_parameter(cell._cell.row.cells[4].value, cell._cell.column.field, cell._cell.value);
+    		console.log(cell._cell.row.cells[5].value);
+    		update_component_parameter(cell._cell.row.cells[5].value, cell._cell.column.field, cell._cell.value);
     	},
+        ajaxResponse:function(url, params, response){
+            console.log("AJAX RESPONSE");
+            console.log(url);
+            console.log(params);
+            console.log(response);
+            //url - the URL of the request
+            //params - the parameters passed with the request
+            //response - the JSON object returned in the body of the response.
+
+            response = $.map(response, function( val, i ) {
+              // Do something
+              console.log(val, i);
+
+              var usttext = undefined;
+              if (val['stock'].length > 0){
+                  usttext = val['stock'][0]['name'];
+                  console.log(val['stock'][0]['name']);
+              }
+
+              return{
+                  row: i,
+                  Ref: val['Ref'],
+                  Value: val['_id']['Value'],
+                  MFPN: val['_id']['MFPS'],
+                  Distributor: val['_id']['Distributor'],
+                  Datasheet: val['_id']['Datasheet'],
+                  stock_count: val['_id']['stock_count'],
+                  count: val['Ref'].length,
+                  count_multiply: val['Ref'].length*1,
+                  Footprint: val['_id']['Footprint'],
+                  note: val['_id']['note'],
+                  UST_ID: usttext,
+              }
+            });
+
+            return response; //return the tableData property of a response json object
+        },
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
 
