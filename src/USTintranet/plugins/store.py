@@ -201,7 +201,7 @@ class api(BaseHandler):
             #     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
             # ])
 
-            print("COUNT.....ID", id)
+            print("COUNT.....ID", id, type(id))
             dout[0]['count_part'] = self.component_get_counts(id)
             dout[0]['positions_local'] = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
             #dout[0]['positions_local'] = self.component_get_positions(id, stock = bson.ObjectId("5c67445b7e875154440cc297"))
