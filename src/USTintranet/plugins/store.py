@@ -639,10 +639,10 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         pdf.set_xy(cell_x+1, cell_y+9)
         pdf.image('static/tmp/barcode/%s.png'%(id), w = cell_w-2, h=6)
 
-        pdf.set_font('pt_sans', '', 11)
+        pdf.set_font('pt_sans', '', 10)
         pdf.set_xy(cell_x+4, cell_y+19)
         try:
-            pdf.multi_cell(cell_w-8, 4, component['description'][:185])
+            pdf.multi_cell(cell_w-8, 3.4, component['description'][:190])
         except Exception as e:
             pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
@@ -891,7 +891,7 @@ class print_layout(BaseHandler):
                 pdf.set_font('pt_sans', '', 11)
                 pdf.set_xy(cell_x+5, cell_y+23)
                 try:
-                    pdf.multi_cell(cell_w-10, 5, component['description'])
+                    pdf.multi_cell(cell_w-10, 5, component['description'], 1)
                 except Exception as e:
                     pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
