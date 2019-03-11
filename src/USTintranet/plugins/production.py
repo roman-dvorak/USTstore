@@ -170,16 +170,49 @@ class edit(BaseHandler):
             self.write(output)
 
         elif op == 'get_components_grouped':
+        #     dout = list(self.mdb.production.aggregate([
+        #         {'$match': {'_id': bson.ObjectId(name)}},
+        #         {'$sort': {'components.Ref': 1}}
+        #     ]))
+        #     dout = group_data(dout[0].get('components', []), db = self.mdb)
+        #     dout = get_component_stock(dout, db = self.mdb)
+        #     for i,d in enumerate(dout):
+        #         if not d.get('price', False):
+        #             dout[i]['price'] = d.get('price_store', 0)
+        #     out = bson.json_util.dumps(dout)
+
             dout = list(self.mdb.production.aggregate([
-                {'$match': {'_id': bson.ObjectId(name)}},
-                {'$sort': {'components.Ref': 1}}
-            ]))
-            dout = group_data(dout[0].get('components', []), db = self.mdb)
-            dout = get_component_stock(dout, db = self.mdb)
-            for i,d in enumerate(dout):
-                if not d.get('price', False):
-                    dout[i]['price'] = d.get('price_store', 0)
+                    {'$match': {'_id': bson.ObjectId(name)}},
+                    {'$unwind': '$components'},
+                    {'$project': {'components': 1}},
+                    {'$sort': {'components.Ref': 1}},
+                    {'$group':{
+                        '_id': {'UST_ID': '$components.UST_ID',
+                                'Value': '$components.Value',
+                                'Footprint': '$components.Footprint',
+                                'Distributor': '$components.Distributor',
+                                'Datasheet': '$components.Datasheet',
+                                'stock_count': '$components.stock_count',},
+                        'Ref': {'$push': '$components.Ref'},
+                        'count': {'$sum': 1},
+                    }},
+                    {"$addFields":{"cUST_ID": {"$convert":{
+                             "input": '$_id.UST_ID',
+                             "to": 'objectId',
+                             "onError": "Err",
+                             "onNull": "null"
+                    }}}},
+                    {"$lookup":{
+                        "from": 'stock',
+                        "localField": 'cUST_ID',
+                        "foreignField": '_id',
+                        "as": 'stock'
+                    }}
+                ]))
             out = bson.json_util.dumps(dout)
+            #print(".................")
+            #print(out)
+            #print("................")
             self.write(out)
 
         elif op == 'reload_prices':
@@ -187,20 +220,24 @@ class edit(BaseHandler):
 
 
         elif op == 'update_component_parameters':
+            print("####.... update_component_parameter")
             component = self.get_arguments('component[]')
-            parameter = self.get_argument('parameter').strip()
+            parameter = self.get_argument('parameter').strip().replace('_id.', '')
             value = self.get_argument('value').strip()
 
             if value == 'undefined': value = ''
 
             for c in component:
+                if parameter == 'UST_ID':
+                    value = bson.ObjectId(value)
+                    print("JE TO UST ID... budu potrebovat ID")
                 self.mdb.production.update(
                     {
                        '_id': bson.ObjectId(name.strip()),
                        "components.Ref": c.strip()
                     },
                     {
-                        "$set":{"components.$.{}".format(parameter): value.strip()}
+                        "$set":{"components.$.{}".format(parameter): value}
                     }
                 )
                 print("Uravil jsem", c)
@@ -291,10 +328,31 @@ class edit(BaseHandler):
             print(name)
             production = list(self.mdb.production.aggregate([
                 {'$match': {'_id': bson.ObjectId(name)}},
-            ]))[0]
-            components = production.get('components', [])
-            for c in components:
-                print(c.get('UST_ID', None))
+                {'$unwind': "$components"},
+                {'$group':
+                    {"_id": "$components.UST_ID", "count": { "$sum": 1 }}
+                }
+            ]))
+
+            #print(production)
+            #
+            # print(production)
+            for c in production:
+                id = c['_id']
+                count = self.component_get_counts(id, bson.ObjectId(self.get_cookie('warehouse')))
+                print(id, "..", count)
+                if len(count['by_warehouse']) > 0:
+                    print("Nastavuji", name, id, count['suma'][0]['count'])
+                    self.mdb.production.update_many(
+                        {'_id': bson.ObjectId(name), 'components.UST_ID': id},
+                        {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
+
+                        array_filters = [{ "id.UST_ID": id}],
+                        upsert = False
+                    )
+                else:
+                    print("POLOZKA NENALEZENA....")
+            self.write({'status': 'ok'})
 
 
 
