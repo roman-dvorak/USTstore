@@ -1,7 +1,7 @@
 <h3>Pozice ve skladech</h3>
 <ul>
 {%for current in current_places %}
-    <li>{%if current['primary']%}<b>{%end%}{{current['info'][0]['text']}}{%if current['primary']%}</b> <small>(primary)</small>{%else%} <i onclick="compo_update_push_remave_position('{{current['posid']}}')">X{% end %}</i>
+    <li>{%if current['primary']%}<b>{%end%}{{current['info'][0]['name']}}{%if current['primary']%}</b> <small>(primary)</small>{%else%} <i onclick="compo_update_push_remave_position('{{current['posid']}}')">X{% end %}</i>
 {%end%}
 </ul>
 <small class="text-muted">Jsou zobrazeny pouze pozice ve vybraném skladě.</small>
@@ -11,7 +11,7 @@
 	<div class="form-group row">
 		<div class="col-sm-3">Sklad</div>
 		<select class="form-control col-sm-9 table_style" id="compo_stock">
-            {%for place in all_places %} <option value="{{place['_id']}}">{{place['text']}}</option>{%end%}
+            {%for place in all_places %} <option value="{{place['_id']}}">{{place['name']}}</option>{%end%}
         </select>
 	</div>
 	<div class="form-group row">
