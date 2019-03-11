@@ -70,6 +70,7 @@ positions_table.setData();
 
 $("#add-row").click(function(){
     positions_table.addRow({});
+    window.scrollTo(0,document.body.scrollHeight);
 });
 
 
@@ -87,9 +88,13 @@ function push_actual_store() {
       success: function( data, textStatus, jQxhr ){
         console.log(data);
         Lobibox.notify('success', {msg: 'Sklad nastaven'});
+        positions_table.setData();
+
       },
       error: function( jqXhr, textStatus, errorThrown ){
         console.log( errorThrown );
+        Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
+
       }
     });
 
