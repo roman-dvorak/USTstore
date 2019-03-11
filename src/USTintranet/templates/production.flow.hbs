@@ -22,7 +22,7 @@ F{% extends "base.hbs" %}
 <script type="text/javascript">
 
     var config = {"dark_mode": false, "show_silkscreen": true, "highlight_pin1": false, "redraw_on_drag": true, "board_rotation": 0.0, "checkboxes": "Sourced,Placed", "bom_view": "left-right", "layer_view": "FB", "extra_fields": []}
-    pcbdata = {%raw product['ibom'] %};
+    pcbdata = {%raw product.get('ibom', {}) %};
 
 	var id = '{{id}}';
 	var components = [];
