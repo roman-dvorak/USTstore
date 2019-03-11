@@ -583,10 +583,10 @@ class newprint(BaseHandler):
         comp = list(self.mdb.stock.find({'_id' : {'$in' : comp}}))
         print("......................")
         print(comp)
-        pdf = stickers_simple(comp = comp)
-        pdf.output("static/sestava.pdf")
+        pdf = stickers_simple(comp = comp, store = self.get_current_user()['param']['warehouse_info'], pozice = self.component_get_positions)
+        pdf.output("static/tmp/sestava.pdf")
 
-        with open('static/sestava.pdf', 'rb') as f:
+        with open('static/tmp/sestava.pdf', 'rb') as f:
             self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
             self.set_header("Content-Disposition", "inline; filename=UST_tiskova_sestava.pdf")
             self.write(f.read())
@@ -594,7 +594,7 @@ class newprint(BaseHandler):
 
 
 
-def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
+def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice = None):
     page = 0
     page_cols = col
     page_rows = rows
@@ -602,6 +602,7 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
     cell_w = 210/page_cols
     cell_h = 297/page_rows
 
+    stock_identificator = store
 
     print ("pozadovany format je 70x42")
     pdf = FPDF('P', 'mm', format='A4')
@@ -639,10 +640,10 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         pdf.set_xy(cell_x+1, cell_y+9)
         pdf.image('static/tmp/barcode/%s.png'%(id), w = cell_w-2, h=6)
 
-        pdf.set_font('pt_sans', '', 10)
-        pdf.set_xy(cell_x+4, cell_y+19)
+        pdf.set_font('pt_sans', '', 9.5)
+        pdf.set_xy(cell_x+3, cell_y+22)
         try:
-            pdf.multi_cell(cell_w-8, 3.4, component['description'][:190])
+            pdf.multi_cell(cell_w-6, 3.4, component['description'][:190])
         except Exception as e:
             pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
@@ -652,9 +653,16 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = []):
         pdf.set_font('pt_sans', '', 7.5)
         pdf.cell(cell_w-10, 10, id + " | " + str(datetime.date.today()) )
 
+        pos = pozice(bson.ObjectId(id), stock = stock_identificator['_id'], primary = True)
+        if len(pos) > 0:
+            pos = pos[0]['info'][0]['name']
+            print("POZ", pos)
+        else:
+            pos = ""
         pdf.set_xy(cell_x+3, cell_y+15)
         pdf.set_font('pt_sans', '', 7.5)
-        pdf.cell(cell_w-10, 10, "SKLAD | Pozice ve skladu" + " | " + component['category'])
+        pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos) + " | " + ','.join(component['category']))
+        print("Generovani pozice...")
     return pdf
 
 
@@ -1074,8 +1082,8 @@ class print_layout(BaseHandler):
 
 
 
-        pdf.output("static/sestava.pdf")
-        with open('static/sestava.pdf', 'rb') as f:
+        pdf.output("static/tmp/sestava.pdf")
+        with open('static/tmp/sestava.pdf', 'rb') as f:
             self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
             self.set_header("Content-Disposition", "inline; filename=UST_tiskova_sestava.pdf")
             self.write(f.read())

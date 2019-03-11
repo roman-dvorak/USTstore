@@ -180,7 +180,9 @@ class BaseHandler(tornado.web.RequestHandler):
             return None
 
         user_db['param'] = {}
-        user_db['param']['warehouse'] = self.get_cookie('warehouse', None)
+        wh = self.get_cookie('warehouse', None)
+        user_db['param']['warehouse'] = wh
+        user_db['param']['warehouse_info'] = self.mdb.warehouse.find_one({'_id': bson.ObjectId(wh)})
 
         return user_db
 

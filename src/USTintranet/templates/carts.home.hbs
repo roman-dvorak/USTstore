@@ -3,7 +3,7 @@
 {% block body %}
 
 <script type="text/javascript">
-  
+
   function cart_print(id){
     //var a = window.open('/cart/print/'+id+'/', '_blank');
     //a.focus();
@@ -13,7 +13,7 @@
             cart: id,
         },
         function(data, status){
-          var a = window.open('/static/sestava.pdf', '_blank');
+          var a = window.open('/static/tmp/sestava.pdf', '_blank');
           a.focus();
         }
     );
@@ -104,7 +104,7 @@
 
 
 <script type="text/javascript">
-  
+
   function new_cart(){
   $.ajax({
         type: "POST",
@@ -114,7 +114,7 @@
             'type': $("#newCart_type")[0].value
         },
         success: function( data, textStatus, jQxhr ){
-          
+
         },
         error: function(data, status){
           alert("Polozka nebyla pridata");
