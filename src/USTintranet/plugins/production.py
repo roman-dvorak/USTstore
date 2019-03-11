@@ -348,7 +348,7 @@ class edit(BaseHandler):
                         {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
 
                         array_filters = [{ "id.UST_ID": id}],
-                        upsert= False
+                        upsert = False
                     )
                 else:
                     print("POLOZKA NENALEZENA....")
