@@ -148,10 +148,10 @@ class edit(BaseHandler):
             print(product)
             self.redirect('/production/{}/edit/'.format(product))
 
-        product = list(self.mdb.production.aggregate([
+        product = self.mdb.production.aggregate([
                 {'$match': {'_id': bson.ObjectId(name)}}
-            ]))[0]
-        self.render('production.flow.hbs', id = name, product = product)
+            ])
+        self.render('production.flow.hbs', id = name, product = list(product))
 
     def post(self, name):
         self.set_header('Content-Type', 'application/json')
@@ -320,8 +320,6 @@ class edit(BaseHandler):
         ##
         #### END: Update component
         ##
-
-
 
         elif op == 'update_prices':
             print("UPDATE PRICES ....")
@@ -561,7 +559,7 @@ class print_bom(BaseHandler):
             pdf.set_xy(130,  first_row+j*rowh)
             pdf.cell(0, 5, component.get('MFPN', '--'))
             pdf.set_xy(130, first_row+j*rowh+3.5)
-            pdf.cell(0, 5, component.get('UST_ID', '--'))
+            pdf.cell(0, 5, str(component.get('UST_ID', '--')))
             #pdf.set_xy(55, 28+j*rowh)
             #pdf.cell(0, 5, component.get('Value', '--'))
 
