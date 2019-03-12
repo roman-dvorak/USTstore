@@ -55,6 +55,7 @@ def group_data(data, groupby = ['Footprint', 'UST_ID', 'Value'], db = None):
         c_ustid = component.get('UST_ID', None)
         c_value = component.get('Value', 0)
         c_price = num_to_float(component.get('price', 0.0))
+        c_component = component.get('store', [])
         print("########")
         print(c_ref)
 
@@ -488,12 +489,58 @@ class print_bom(BaseHandler):
 
 
     def get(self, name):
-        dout = list(self.mdb.production.aggregate([
+        info = list(self.mdb.production.aggregate([
             {'$match': {'_id': bson.ObjectId(name)}},
-            {'$sort': {'components.Ref': 1}}
+        #     {'$sort': {'components.Ref': 1}},
+        #     # {"$lookup":{
+        #     #     "from": 'stock',
+        #     #     "localField": 'UST_ID',
+        #     #     "foreignField": '_id',
+        #     #     "as": 'stock'
+        #     # }}
         ]))[0]
-        out = group_data(dout.get('components', []), db = self.mdb)
+
+        print(info)
+
+
+        out = list(self.mdb.production.aggregate([
+                {'$match': {'_id': bson.ObjectId(name)}},
+                {'$unwind': '$components'},
+                {'$project': {'components': 1}},
+                {'$sort': {'components.Ref': 1}},
+                {'$group':{
+                    '_id': {'UST_ID': '$components.UST_ID',
+                            'Value': '$components.Value',
+                            'Footprint': '$components.Footprint',
+                            'Distributor': '$components.Distributor',
+                            'Datasheet': '$components.Datasheet',
+                            'stock_count': '$components.stock_count',},
+                    'Ref': {'$push': '$components.Ref'},
+                    'count': {'$sum': 1},
+                }},
+                {"$addFields":{"cUST_ID": {"$convert":{
+                         "input": '$_id.UST_ID',
+                         "to": 'objectId',
+                         "onError": "Err",
+                         "onNull": "null"
+                }}}},
+                {"$lookup":{
+                    "from": 'stock',
+                    "localField": 'cUST_ID',
+                    "foreignField": '_id',
+                    "as": 'stock'
+                }}
+            ]))
         #out = bson.json_util.dumps(dout)
+
+        print("DEOUT", out)
+
+        for x in out:
+            print(x)
+        #out = group_data(dout.get('components', []), db = self.mdb)
+        #out = bson.json_util.dumps(dout)
+
+
 
 
         pdf = FPDF('P', 'mm', format='A4')
@@ -503,11 +550,11 @@ class print_bom(BaseHandler):
 
         pdf.set_font('pt_sans', '', 12)
         pdf.set_xy(10, 10)
-        pdf.cell(0,5, dout.get('name', name))
+        pdf.cell(0,5, info.get('name', name))
 
         pdf.set_font('pt_sans', '', 8)
         pdf.set_y(15)
-        pdf.cell(0,5, dout.get('description', name))
+        pdf.cell(0,5, info.get('description', name))
 
         pdf.set_font('pt_sans', '', 8)
 
@@ -523,15 +570,34 @@ class print_bom(BaseHandler):
         first_row = 28
         pdf.set_xy(10, 28)
 
-        out = [{'count': '',
+        out = [{
+                '_id': {
+                    'UST_ID': 'UST_ID',
+                    'Value': 'Value',
+                    'Footprint': 'FootPrint',
+                    'Distributor': 'Distributor',
+                    'Datasheet': 'Datasheet'
+                },
                 'Ref': ['Ref'],
-                'Value': 'Value',
-                'Footprint': 'Package',
-                "MFPN": 'MFPN',
-                'UST_ID': 'UST_ID'}]+out
+                'count': 'cnt',
+                'cUST_ID': "UST_ID",
+                'stock': ['stock']}
+            ]+out
+        # out = [{'count': '',
+        #         'Ref': ['Ref'],
+        #         'Value': 'Value',
+        #         'Footprint': 'Package',
+        #         "MFPN": 'MFPN',
+        #         "stock": {'name': "Name"},
+        #         'UST_ID': 'UST_ID'}]+out
 
         j = 0
+        print(">......")
+        print(out)
         for i, component in enumerate(out):
+            print(i, ">", component)
+        for i, component in enumerate(out):
+            print("COMPONENT")
             print(i, component)
             j += 1
             if j > 26:
@@ -553,19 +619,19 @@ class print_bom(BaseHandler):
             #pdf.cell(0, 5, ', '.join(), border=0)
             pdf.set_font('pt_sans-bold', '', 9)
             pdf.set_xy(15, first_row+j*rowh)
-            pdf.cell(0, 5, component.get('Value', '--'))
+            pdf.cell(0, 5, component['_id'].get('Value', '--'))
             pdf.set_xy(55, first_row+j*rowh)
-            pdf.cell(0, 5, component.get('Footprint', '--'))
+            pdf.cell(0, 5, component['_id'].get('Footprint', '--'))
             pdf.set_xy(130,  first_row+j*rowh)
-            pdf.cell(0, 5, component.get('MFPN', '--'))
+            pdf.cell(0, 5, component['_id'].get('MFPN', '--'))
             pdf.set_xy(130, first_row+j*rowh+3.5)
-            pdf.cell(0, 5, str(component.get('UST_ID', '--')))
+            pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
             #pdf.set_xy(55, 28+j*rowh)
             #pdf.cell(0, 5, component.get('Value', '--'))
 
             #pdf.set_line_width(0.5)
             pdf.line(10, first_row+j*rowh+8, 200, first_row+j*rowh+8)
-            print("=============================================================")
+            print("===================Value==========================================")
             #pdf.cell(100, 5, repr(cg[0]))
             #pdf.set_x(95)
             #pdf.cell(100, 5, repr(cv[0]))
