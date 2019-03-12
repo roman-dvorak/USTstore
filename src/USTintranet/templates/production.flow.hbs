@@ -100,7 +100,7 @@ F{% extends "base.hbs" %}
 					<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
 
 					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary">Print</a>
-					<input type="button" id="production_update_prices" value="Zaktualizovat ceny" class="btn btn-sm btn-primary" onclick="update_prices()">
+					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()">
 				</div>
 			</div>
 		</div>
@@ -257,23 +257,23 @@ F{% extends "base.hbs" %}
 
 
 
-
-    initUtils();
-    initRender();
-    initStorage();
-    initDefaults();
-    cleanGutters();
-    populateMetadata();
-    dbgdiv = document.getElementById("dbg");
-    bom = document.getElementById("bombody");
-    bomhead = document.getElementById("bomhead");
-    filter = "";
-    reflookup = "";
-    initDone = true;
-    console.log("changeBomLayout");
-    // Triggers render
-    changeBomLayout('left-right');
-	//$("#component-table").tabulator();
+    //
+    // initUtils();
+    // initRender();
+    // initStorage();
+    // initDefaults();
+    // cleanGutters();
+    // populateMetadata();
+    // dbgdiv = document.getElementById("dbg");
+    // bom = document.getElementById("bombody");
+    // bomhead = document.getElementById("bomhead");
+    // filter = "";
+    // reflookup = "";
+    // initDone = true;
+    // console.log("changeBomLayout");
+    // // Triggers render
+    // changeBomLayout('left-right');
+	// //$("#component-table").tabulator();
 
 
 	//create autocomplete editor
