@@ -14,6 +14,8 @@ import time
 import datetime
 import calendar
 import os
+import glob
+from os.path import dirname, basename
 import git
 from git import Repo, Actor
 
@@ -55,7 +57,7 @@ class registration(BaseHandler):
 class WebApp(tornado.web.Application):
     def __init__(self, config={}):
 
-        name = 'UST inntranet'
+        name = 'UST intranet'
         server = 'sklad.ust.cz'
         server_url = '{}:{}'.format(server, tornado.options.options.port)
         server_url = '{}:{}'.format(server, 88)
@@ -66,18 +68,16 @@ class WebApp(tornado.web.Application):
         #
         # tohle najde vsechny python kody ve slozce 'plugins', ktere obsahuji fci make_handlers
         #
-        for name in os.listdir("plugins"):
-            if name.endswith(".py"):
-                try:
-                    module = name[:-3]
-                    i = __import__('plugins.%s'%(module), fromlist=[''])
-                    globals()[module] = i
+        for filepath in glob.glob(dirname(__file__)+"/plugins/*.py"):
+            try:
+                mod_name = basename(filepath)[:-3]
+                mod = __import__('plugins.%s' % mod_name, fromlist=[''])
 
-                    handlers += i.make_handlers(module, i)
-                    plugins[module] = i.plug_info()
-                except Exception as e:
-                    pass
-                    print(name, ">>", e)
+                globals()[mod_name] = mod
+                handlers += mod.make_handlers(mod_name, mod)
+                plugins[mod_name] = mod.plug_info()
+            except Exception as e:
+                print("Exception in plugin %s: %s" % (mod_name, e))
 
         handlers += [
             #staticke soubory je vhodne nahradit pristupem primo z proxy serveru. (pak to tolik nevytezuje tornado)
@@ -123,7 +123,6 @@ class WebApp(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **settings)
 
 def main():
-    import os
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
     tornado.options.parse_config_file("/data/ust/intranet.conf")
@@ -131,8 +130,6 @@ def main():
     http_server = tornado.httpserver.HTTPServer(WebApp())
     http_server.listen(tornado.options.options.port)
     tornado.ioloop.IOLoop.instance().start()
-    #http_server.start(4)
-
 
 
 if __name__ == "__main__":
