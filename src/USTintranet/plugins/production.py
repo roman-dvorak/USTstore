@@ -607,7 +607,7 @@ class print_bom(BaseHandler):
             print("COMPONENT")
             print(i, component)
             j += 1
-            if j > 26:
+            if j > 28:
                 j = 0
                 first_row = 10
                 print("New page...")
@@ -618,7 +618,6 @@ class print_bom(BaseHandler):
                 pdf.set_xy(170, 6)
                 pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
                 pdf.line(10,first_row, 200, first_row )
-
 
             if type(component['count']) == 'String' and ['count'] > 5.0:
                 last += 15
@@ -632,11 +631,7 @@ class print_bom(BaseHandler):
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
             pdf.set_xy(15, first_row+j*rowh+3.5)
-            #pdf.cell(0, 5, component, border=0)
-            #pdf.cell(0, 5, repr(self.get_component(dout['components'], component['Ref'])))
 
-            #pdf.set_xy(3, 28+i*rowh)
-            #pdf.cell(0, 5, ', '.join(), border=0)
             pdf.set_font('pt_sans-bold', '', 9)
             pdf.set_xy(15, first_row+j*rowh)
             pdf.cell(0, 5, component['_id'].get('Value', '--'))
@@ -649,7 +644,6 @@ class print_bom(BaseHandler):
             #pdf.set_xy(55, 28+j*rowh)
             #pdf.cell(0, 5, component.get('Value', '--'))
 
-            #pdf.set_line_width(0.5)
             pdf.line(10,first_row+j*rowh + 8, 200, first_row+j*rowh + 8)
             print("===================Value==========================================")
 
