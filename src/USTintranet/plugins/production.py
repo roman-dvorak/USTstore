@@ -535,8 +535,8 @@ class print_bom(BaseHandler):
 
         print("DEOUT", out)
 
-        for x in out:
-            print(x)
+        #for x in out:
+        #    print(x)
         #out = group_data(dout.get('components', []), db = self.mdb)
         #out = bson.json_util.dumps(dout)
 
@@ -544,6 +544,7 @@ class print_bom(BaseHandler):
 
 
         pdf = FPDF('P', 'mm', format='A4')
+        pdf.set_auto_page_break(False)
         pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
         pdf.add_font('pt_sans-bold', '', 'static/pt_sans/PT_Sans-Web-Bold.ttf', uni=True)
         pdf.add_page()
@@ -557,6 +558,10 @@ class print_bom(BaseHandler):
         pdf.cell(0,5, info.get('description', name))
 
         pdf.set_font('pt_sans', '', 8)
+        pdf.set_xy(170, 3)
+        pdf.cell(0, 5, "Strana "+str(pdf.page_no())+"/{nb}", border=0)
+        pdf.set_xy(170, 6)
+        pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
 
         row = []
         used = []
@@ -603,9 +608,17 @@ class print_bom(BaseHandler):
             print(i, component)
             j += 1
             if j > 26:
-                j=0
+                j = 0
                 first_row = 10
+                print("New page...")
                 pdf.add_page()
+                pdf.set_font('pt_sans', '', 8)
+                pdf.set_xy(170, 3)
+                pdf.cell(0, 5, "Strana "+str(pdf.page_no())+"/{nb}", border=0)
+                pdf.set_xy(170, 6)
+                pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
+                pdf.line(10,first_row, 200, first_row )
+
 
             if type(component['count']) == 'String' and ['count'] > 5.0:
                 last += 15
@@ -613,23 +626,23 @@ class print_bom(BaseHandler):
                 last += 10
 
             pdf.set_font('pt_sans', '', 8)
-            pdf.set_xy(10, last + first_row)
+            pdf.set_xy(10, first_row+j*rowh)
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
-            pdf.set_xy(17, last + first_row+3.5)
+            pdf.set_xy(17, first_row+j*rowh+3.5)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
-            pdf.set_xy(15, last + first_row+3.5)
+            pdf.set_xy(15, first_row+j*rowh+3.5)
             #pdf.cell(0, 5, component, border=0)
             #pdf.cell(0, 5, repr(self.get_component(dout['components'], component['Ref'])))
 
             #pdf.set_xy(3, 28+i*rowh)
             #pdf.cell(0, 5, ', '.join(), border=0)
             pdf.set_font('pt_sans-bold', '', 9)
-            pdf.set_xy(15, last + first_row)
+            pdf.set_xy(15, first_row+j*rowh)
             pdf.cell(0, 5, component['_id'].get('Value', '--'))
-            pdf.set_xy(55, last + first_row)
+            pdf.set_xy(55, first_row+j*rowh)
             pdf.cell(0, 5, component['_id'].get('Footprint', '--'))
-            pdf.set_xy(130,  last + first_row)
+            pdf.set_xy(130, first_row+j*rowh)
             pdf.cell(0, 5, component['_id'].get('MFPN', '--'))
             pdf.set_xy(130, first_row+j*rowh + 3.5)
             pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
@@ -637,13 +650,10 @@ class print_bom(BaseHandler):
             #pdf.cell(0, 5, component.get('Value', '--'))
 
             #pdf.set_line_width(0.5)
-            pdf.line(10, last + first_row + 8, 200, last + first_row + 8)
+            pdf.line(10,first_row+j*rowh + 8, 200, first_row+j*rowh + 8)
             print("===================Value==========================================")
-            #pdf.cell(100, 5, repr(cg[0]))
-            #pdf.set_x(95)
-            #pdf.cell(100, 5, repr(cv[0]))
 
-
+        pdf.alias_nb_pages()
         pdf.output("static/production.pdf")
         with open('static/production.pdf', 'rb') as f:
             self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
