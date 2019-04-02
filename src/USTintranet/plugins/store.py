@@ -576,6 +576,7 @@ class newprint(BaseHandler):
         if self.get_argument('cart', False):
             l = list(self.mdb.carts.find({'_id': bson.ObjectId(self.get_argument('cart'))}))[0]['cart']
             comp = [d['id'] for d in l if 'id' in d]
+            print(comp)
 
         print("Zahajuji generovani PDF")
         print("Soucastky", comp)
@@ -647,11 +648,9 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice
         except Exception as e:
             pdf.multi_cell(cell_w-10, 5, "ERR" + repr(e))
 
-
-        pdf.set_xy(cell_x+3, cell_y+cell_h-7)
-        pdf.set_xy(cell_x+3, cell_y+12)
-        pdf.set_font('pt_sans', '', 7.5)
-        pdf.cell(cell_w-10, 10, id + " | " + str(datetime.date.today()) )
+        #pdf.set_xy(cell_x+3, cell_y+12)
+        #pdf.set_font('pt_sans', '', 7.5)
+        #pdf.cell(cell_w-10, 10, id + " | " + str(datetime.date.today()) )
 
         pos = pozice(bson.ObjectId(id), stock = stock_identificator['_id'], primary = True)
         if len(pos) > 0:
@@ -659,9 +658,16 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice
             print("POZ", pos)
         else:
             pos = ""
-        pdf.set_xy(cell_x+3, cell_y+15)
         pdf.set_font('pt_sans', '', 7.5)
-        pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos) + " | " + ','.join(component['category']))
+        #pdf.set_xy(cell_x+3, cell_y+15)
+        #pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos) + " | " + ','.join(component['category']))
+
+        pdf.set_xy(cell_x+3, cell_y+12)
+        pdf.cell(cell_w-10, 10, str(datetime.date.today()) + " | " + ','.join(component['category']))
+
+        pdf.set_xy(cell_x+3, cell_y+15)
+        pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos))
+
         print("Generovani pozice...")
     return pdf
 
