@@ -193,6 +193,7 @@ class edit(BaseHandler):
                                 'Footprint': '$components.Footprint',
                                 'Distributor': '$components.Distributor',
                                 'Datasheet': '$components.Datasheet',
+                                'MFPN': '$components.MFPN',
                                 'stock_count': '$components.stock_count',},
                         'Ref': {'$push': '$components.Ref'},
                         'count': {'$sum': 1},
