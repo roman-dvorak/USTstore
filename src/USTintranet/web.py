@@ -68,7 +68,7 @@ class WebApp(tornado.web.Application):
         #
         # tohle najde vsechny python kody ve slozce 'plugins', ktere obsahuji fci make_handlers
         #
-        for filepath in glob.glob(dirname(__file__)+"/plugins/*.py"):
+        for filepath in glob.glob("./plugins/*.py"):
             try:
                 mod_name = basename(filepath)[:-3]
                 mod = __import__('plugins.%s' % mod_name, fromlist=[''])
