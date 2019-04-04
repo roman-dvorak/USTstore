@@ -453,7 +453,9 @@ class operation(BaseHandler):
             # ])
 
             places = self.component_get_positions(id, stock = id_wh)
-            self.render("store/store.comp_operation.buy.hbs", article = article, places = places)
+            request = self.component_get_buyrequests(id)
+            print("Pozadavky na nakup", request)
+            self.render("store/store.comp_operation.buy.hbs", article = article, places = places, request = request)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
@@ -465,18 +467,31 @@ class operation(BaseHandler):
             bilance_plan = self.get_argument('count_planned', None)
             invoice = self.get_argument('invoice', None)
             price = self.get_argument('price')
+            request = self.get_argument('request')
 
-            invoice = bson.ObjectId(invoice)
-            id = bson.ObjectId()
+            # Pokud se jedna o nakup a ma se naskladnit
+            if request == 'false':
+                invoice = bson.ObjectId(invoice)
+                id = bson.ObjectId()
+                out = self.mdb.stock.update(
+                        {'_id': bson.ObjectId(comp)},
+                        {'$push': {'history':
+                            {'_id': id, 'stock': stock, 'operation':'buy', 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged}
+                        }}
+                    )
+                print("buy_push >>", comp, stock, description, bilance, invoice, price)
 
-            print("buy_push >>", comp, stock, description, bilance, invoice, price)
-            out = self.mdb.stock.update(
+                self.LogActivity('store', 'operation_service')
+            # Pokud vytvarime pozadavek na koupi polozky
+            else:
+                out = self.mdb.stock.update(
                     {'_id': bson.ObjectId(comp)},
                     {'$push': {'history':
-                        {'_id': id, 'stock': stock, 'operation':'buy', 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged}
+                        {'_id': id, 'operation':'buy_request', 'bilance': float(bilance), 'description':description, 'user':self.logged, 'status': 0}
                     }}
                 )
-            self.LogActivity('store', 'operation_service')
+                self.LogActivity('store', 'Created request')
+
             self.write(out)
 
         ## Move components from place to place...

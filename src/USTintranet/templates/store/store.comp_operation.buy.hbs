@@ -9,15 +9,21 @@
     </div>
 {% end %}
 <div class="container">
+
+	<div class="form-group row">
+		<label class="col-sm-2 col-form-label">Požadavek</label>
+		<input class="form-control table_style col-sm-10" type="checkbox" id="compo_requested"></input>
+	</div>
+
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Počet ks</label>
 		<input class="form-control table_style col-sm-10" type="number" id="compo_count" min="0" value="0">
 	</div>
-	<div class="form-group row">
+	<div class="form-group row request-hide">
 		<label class="col-sm-2 col-form-label">Cena (za ks)</label>
 		<input class="form-control table_style col-sm-10" type="number" id="compo_price" step = 0.00001 value="0">
 	</div>
-	<div class="form-group row">
+	<div class="form-group row request-hide">
 		<label class="col-sm-2 col-form-label">Dodavatel</label>
 		<select class="form-control table_style col-sm-10">
 			{% for i, sup in enumerate(article.get('supplier',[])) %}
@@ -25,7 +31,7 @@
 			{% end %}
 		</select>
 	</div>
-	<div class="form-group row .bg-danger">
+	<div class="form-group row .bg-danger request-hide">
 		<label class="col-sm-2 col-form-label">Faktura </label>
 		<select class="form-control table_style col-sm-10" disabled></select>
 	</div>
@@ -34,7 +40,7 @@
 		<input class="form-control table_style col-sm-10" type="text" id="compo_description" value="">
 	</div>
 
-	<div class="form-group row">
+	<div class="form-group row request-hide">
 		<label class="col-sm-2 col-form-label">Sklad </label>
 		<select class="form-control table_style col-sm-10" id="compo_stock">
 		   <!-- <option value="pha01">Praha (pha01)</option>
@@ -48,7 +54,14 @@
 	<div class="form-group row">
 		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()" {%if len(article.get('supplier',[])) == 0 or len(places) == 0 %}disabled{%end%}>Uložit</button>
 	</div>
-</div><hr>
+</div>
+<div class="request-show">
+    TODO: Seznam pozadavku
+    <ul>
+    {%for req in request %} <li>{{req['bilance']}} {{req['description']}} {{req.get('status', 0)}}{% end %}
+    </ul>
+</div>
+<hr>
 <small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
@@ -63,6 +76,7 @@
 			}
 		}
 		$('#compo_new_count').text(compo_new_count);
+        compo_update_request();
 	}
 
 	function compo_update_push(){
@@ -71,6 +85,7 @@
 	      url: "/store/operation/buy_push/",
 	      data: {
 	        'component': current_detail,
+            'request': $("#compo_requested").is(":checked"),
 	        'stock': $("#compo_stock").val(),
 	        'count': $("#compo_count").val(),
 	        'price': $("#compo_price").val(),
@@ -93,7 +108,18 @@
 	    });
 	}
 
+    function compo_update_request(){
+        if($("#compo_requested").is(":checked")){
+            $('.request-hide').hide();
+            $('.request-show').show();
+        }else{
+            $('.request-hide').show();
+            $('.request-show').hide();
+        }
+    }
+
 	$("#compo_offset").change(compo_update);
 	$("#compo_stock").change(compo_update);
+    $("#compo_requested").change(compo_update_request);
 	compo_update();
 </script>

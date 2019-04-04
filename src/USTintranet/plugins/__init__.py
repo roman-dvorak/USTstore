@@ -281,6 +281,19 @@ class BaseHandler(tornado.web.RequestHandler):
 
         return out[0]
 
+    def component_get_buyrequests(self, id):
+        out = list(self.mdb.stock.aggregate([#{
+            #"$facet":{
+            #    "list":[
+                    {"$match": {"_id": id}},
+                    {"$unwind": "$history"},
+                    {"$match": {"history.operation": 'buy_request'}},
+                    {"$replaceRoot": {'newRoot': '$history'}},
+            #    ],
+            #}
+        ]))
+        return out
+
     def component_get_suppliers(self, id):
         out = self.mdb.stock.aggregate([
                 {"$match": {"_id": id}},
