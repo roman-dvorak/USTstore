@@ -532,7 +532,11 @@ class operation(BaseHandler):
             position = bson.ObjectId(self.get_argument('position'))
 
             if type == 'add':
+                print("Add position")
                 self.component_set_position(id, position, False)
+            elif type == 'change':
+                print("change position")
+                self.component_set_position(id, position, True)
             elif type == 'remove':
                 self.component_remove_position(id, position)
             else:

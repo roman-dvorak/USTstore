@@ -303,7 +303,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         print(".>>>> pos", warehouseid)
 
-        out2 = list(self.mdb.stock.aggregate([
+        current_positions = list(self.mdb.stock.aggregate([
             {"$match": {'_id': id}},
             {"$unwind": "$position"},
             {"$lookup": {"from": 'store_positions', 'localField': 'position.posid', 'foreignField': '_id', 'as': 'pos'}},
@@ -313,13 +313,13 @@ class BaseHandler(tornado.web.RequestHandler):
 
         primary = None
         exist = False
-        for pos in out2:
+        for pos in current_positions:
             print(pos)
             if target_position == pos['position']['posid']:
                 exist = True
             if pos['position']['primary']:
                 primary = pos['position']['posid']
-        print(bson.json_util.dumps(out2, indent=4))
+        print(bson.json_util.dumps(current_positions, indent=4))
         print("nalezeno", exist)
         print("primarni", primary)
 
@@ -331,13 +331,13 @@ class BaseHandler(tornado.web.RequestHandler):
             print("This position is exist.")
             return True
 
-        if exist:
+        # pokud tato skladova pozice uz u polozky existuje.
+        if exist and target_primary:
             print("Nastavim pozici na primarni")
-            if primary and not target_primary:
-                self.mdb.stock.update(
-                    {'_id': id, 'position.posid': primary},
-                    {"$set": {"position.$.primary": False}}
-                )
+            self.mdb.stock.update(
+                {'_id': id},
+                {"$set": {"position.$[].primary": False}}
+            )
             self.mdb.stock.update(
                 {'_id': id, 'position.posid': target_position},
                 {"$set": {"position.$.primary": target_primary}}

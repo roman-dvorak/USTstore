@@ -1,7 +1,8 @@
 <h3>Pozice ve skladech</h3>
 <ul>
 {%for current in current_places %}
-    <li>{%if current['primary']%}<b>{%end%}{{current['info'][0]['name']}}{%if current['primary']%}</b> <small>(primary)</small>{%else%} <i onclick="compo_update_push_remave_position('{{current['posid']}}')">X{% end %}</i>
+    <li>{%if current['primary']%}<b>{%end%}{{current['info'][0]['name']}}{%if current['primary']%}</b><small>(primary)</small>{%else%}
+         <i onclick="compo_update_push_remove_position('{{current['posid']}}')">X </i>  <i onclick="compo_update_push_set_primary('{{current['posid']}}')">P</i> {% end %}
 {%end%}
 </ul>
 <small class="text-muted">Jsou zobrazeny pouze pozice ve vybraném skladě.</small>
@@ -22,6 +23,10 @@
 <small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
+    $(document).ready(function() {
+        $('#compo_stock').select2();
+    });
+
 	function compo_update_push_setposition(){
 	    $.ajax({
 	      type: "POST",
@@ -46,13 +51,37 @@
 	}
 
 
-    	function compo_update_push_remave_position(id){
+    	function compo_update_push_remove_position(id){
     	    $.ajax({
     	      type: "POST",
     	      url: "/store/operation/setposition_push/",
     	      data: {
     	        'component': current_detail,
                 'type': 'remove',
+    	        'position': id,
+    	      },
+    	      success: function( data, textStatus, jQxhr ){
+    	      	console.log(data);
+    	      	$('#modal_operation').modal('hide');
+                Lobibox.notify('success', {msg: 'Polozka byla odebrana'});
+                load_modal_operation('setposition', '#modal_oper_place');
+
+    	      },
+    	      error: function( jqXhr, textStatus, errorThrown ){
+    	        console.log( errorThrown );
+                load_modal_operation('setposition', '#modal_oper_place');
+    	      }
+    	    });
+    	}
+
+
+    	function compo_update_push_set_primary(id){
+    	    $.ajax({
+    	      type: "POST",
+    	      url: "/store/operation/setposition_push/",
+    	      data: {
+    	        'component': current_detail,
+                'type': 'change',
     	        'position': id,
     	      },
     	      success: function( data, textStatus, jQxhr ){
