@@ -51,15 +51,16 @@ class api_products_json(BaseHandler):
         self.set_header('Content-Type', 'application/json')
         dout = {}
 
-        polarity = '$nin' if (self.request.arguments.get('polarity', ['true'])[0] == b'true') else '$in'
+        polarity = '$nin' if (self.request.arguments.get('polarity', [b'true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
         selected = (self.request.arguments.get('selected[]', []))
         in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
         search = self.get_argument('search')#.decode('ascii')
-        tag_search = self.get_argument('tag_search')#.decode('ascii')
+        tag_search = self.get_argument('tag_search', '')#.decode('ascii')
         print("SEARCH", search)
+        print("search polarity", polarity, selected)
         print("tag polarity", tag_polarity, in_stock)
         dout = {}
 
@@ -356,6 +357,17 @@ class api(BaseHandler):
             upsert = True)
             dout = {}
             pass
+
+        elif data == 'get_components_requested':
+            #status = self.get_argument('status': 5)
+            print("Get component requested")
+            out = self.mdb.stock.aggregate([
+                {"$match": {'history.operation': 'buy_request'}},
+                {"$unwind": '$history'},
+                {"$match": {'history.operation': 'buy_request'}},
+                {"$project": {'history':1, 'supplier':1, 'description': 1, 'name': 1}},
+                ])
+            dout = list(out)
 
         elif data == 'search':
             search = self.get_argument('q', '')

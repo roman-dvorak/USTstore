@@ -5,13 +5,13 @@
 
 <!-- <script type="text/javascript"  src="/static/store.js" charset="utf-8"></script> -->
 <script type="text/javascript">
-  
+
  var elements = [];
 
 </script>
 
 <style type="text/css">
-  
+
   .table tbody td{
     padding: 0.2rem;
     vertical-align: middle;;
@@ -26,13 +26,13 @@
   <div class="col-md-3 col-sm-12 col-12 bg-faded sidebar">
     <button class="btn btn-warning" onclick="load_invoice(null)">Nová faktura</button>
     <div id="invoice_list">
-      
+
     </div>
   </div> <!-- Konec levého sloupce, Pravy sloupec -->
   <div class="col-md-9 col-sm-12 offset-sm-0 pt-3">
 
     <div class="card">
-      
+
       <div class="card-body">
         <h3>Stage 1: Příprava faktury</h3>
         <p>V prvním kroku tvorby faktury je potřeba kliknout na tlačítko <span class="btn btn-warning btn-sm">Nová faktura</span>, kterým se vytvoří unikátní ID pro novou objednávku/fakturu.</p>
@@ -82,7 +82,7 @@
         <label>Datum vytvoření</label>
         <input class="form-control" type="date" name="" id="invoice_created" disabled>
         </div>
-        
+
         <div class="form-group col">
           <label>Datum splatnosti</label>
           <input class="form-control" type="date" name="" id="invoice_duedate">
@@ -120,7 +120,7 @@
           </div>
         </div>
       </div>
-      
+
       <button class="form-control btn btn-success" onclick="save_invoice()">Uložit</button>
       <button class="form-control btn btn-warning" id="btn_next-stage" onclick="next_stage_invoice()" style="display: none;">Další krok: <span id="invoice_next_stage_name">Odeslat k validaci</span></button>
       <button class="form-control btn btn-warning" id="btn_export" onclick="export_invoice()" style="display: none;">Exportovat objednavku</button>
@@ -177,9 +177,51 @@
         </table>
 
       </div>
-
     </div>
 
+
+        <div class="card" id="add_to_invoice">
+            <div class="card-body">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="home-tab" data-toggle="tab" href="#tab_requested" role="tab" aria-selected="true">Požadované položky</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="profile-tab" data-toggle="tab" href="#tab_stock" role="tab" aria-selected="false">Vyhledat ve skladě</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="contact-tab" data-toggle="tab" href="#tab_supplier" role="tab" aria-selected="false">Vyhledat u dodavatelů</a>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="tab_requested" role="tabpanel" aria-labelledby="home-tab">
+                <!-- Panel s importem vyzadovanych polozek -->
+                <h3> Položky požadované pro nákup </h3>
+                <input type="button" value="Obnovit" onclick="draw_requested_table()">
+
+                <table id="requested_table" class="table">
+                    <thead></thead>
+                    <tbody id="requested_table_placement"></tbody>
+                </table>
+
+                <!-- Konec: Panel s importem vyzadovanych polozek -->
+            </div>
+            <div class="tab-pane fade" id="tab_stock" role="tabpanel" aria-labelledby="profile-tab">
+                <!-- Panel s vyhledavanim polozek ve skladu -->
+                <h3> Vyhledávání ve skladu </h3>
+                <input type="text" id="search_in_stock_value">
+                <input type="button" value="Obnovit" onclick="draw_search_table()">
+
+                <table id="requested_table" class="table">
+                    <thead></thead>
+                    <tbody id="requested_table_placement"></tbody>
+                </table>
+
+                <!-- Konec: Panel s vyhledavanim polozek ve skladu --></div>
+            <div class="tab-pane fade" id="tab_supplier" role="tabpanel" aria-labelledby="contact-tab">...</div>
+            </div>
+          </div>
+        </div>
   </div>
 
 </div></div>
@@ -187,7 +229,7 @@
   $(document).ready(function(){
     load_invoices_list();
     prepare_invoice_new_form();
-  
+
     $("#invoice_partner").select2({
           width: '100%',
           ajax: {
@@ -456,7 +498,7 @@
             //'elements': []
         },
         success: function(data, textStatus, jQxhr){
-            
+
         },
         error: function(jqXhr, textStatus, errorThrown){
           console.log(errorThrown);
@@ -498,7 +540,6 @@
   }
 
   function create_operation() {
-
       $.ajax({
           type: "POST",
           url: "/invoice_import/invoice/prepare_invoice_row/",
@@ -525,9 +566,65 @@
             console.log( errorThrown, textStatus);
             Lobibox.notify('error', {msg: errorThrown});
           }
-      }); 
+      });
       load_invoice($('#invoice_id').val());
       $('#new_external_id').val(-1);
+  }
+
+  function draw_requested_table(){
+      /*
+        Tato funkce nacte data o skladovych polozkach, ktere jsou vyzadany k nakoupeni
+        a vybrane polozky zobrazi do tabulky. Na konci tabulky budou dve tlacitka.
+        Jedno tlacitko prida polozku do seznamu. Druhe oznaci polozku jako nakoupenou.
+      */
+      $.ajax({
+          type: "POST",
+          url: "/store/api/get_components_requested/",
+          data: {
+              //'supplier': $('#invoice_partner').val(),
+              //'id': data.id
+          },
+          success: function(data, textStatus, jQxhr){
+            console.log(data);
+            $("#requested_table_placement").empty();
+            for (i in data){
+              console.log(data[i]);
+              var row = "<tr>"
+              row += "<td>"+ data[i]['_id']['$oid']+"</td>"
+              row += "<td>"+ data[i]['name']+"</td>"
+              row += "<td>"+ data[i]['description']+"</td>"
+              row += "<td>"+ data[i]['history']['description']+"</td>"
+              row += "<td>"+ data[i]['history']['bilance']+"</td>"
+              row += "<td class='btn-group'><button class='btn btn-sm btn-success' onclick=''>+</button></td>"
+              row += "</tr>"
+              $("#requested_table_placement").append(row);
+
+            }
+          },
+          error: function(jqXhr, textStatus, errorThrown){
+            console.log(errorThrown);
+          }
+      });
+  }
+
+  function draw_search_table(){
+      $.ajax({
+  	  type: "POST",
+  	  url: "/store/api/products/",
+  	  //contentType : 'application/json',
+  	  data: {
+  	  		'search': 'led',
+            //'polarity': 'False',
+  	  		'page': 0
+  	  },
+  	  success: function( data, textStatus, jQxhr ){
+  	      console.log(data);
+  	  },
+  	  error: function( jqXhr, textStatus, errorThrown ){
+  	      console.log('ERR, /store/api/products/')
+  	      console.log( errorThrown );
+  	  }
+  	});
   }
 
 
