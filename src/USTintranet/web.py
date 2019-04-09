@@ -41,7 +41,6 @@ class home(BaseHandler):
     def post(self, arg=None):
         self.write("ACK")
 
-
 class user(BaseHandler):
     def get(self, user = None):
         self.write("AAA")
@@ -112,7 +111,6 @@ class WebApp(tornado.web.Application):
             server_url=server_url,
             site_title=name,
             login_url="/login",
-            #ui_modules=modules,
             port=tornado.options.options.port,
             compress_response=True,
             debug=tornado.options.options.debug,

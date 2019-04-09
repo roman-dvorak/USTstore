@@ -174,6 +174,8 @@ class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pr
 
 
 class BaseHandler(tornado.web.RequestHandler):
+    role_module = []
+
     def prepare(self):
         login = self.get_secure_cookie("user")
         if login:
@@ -185,6 +187,9 @@ class BaseHandler(tornado.web.RequestHandler):
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
             self.role = set(user_db['role'])
+            if not self.is_authorized(self.role_module) and len(self.role_module) > 0:
+                raise tornado.web.HTTPError(401)
+
             cart = self.get_cookie('cart', None)
             print("Nakupni kosik", bson.ObjectId(cart))
             if cart:
@@ -201,7 +206,7 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             print ("uzivatel neni korektne prihlasen")
             self.logged = False
-            return None
+            return Non
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:

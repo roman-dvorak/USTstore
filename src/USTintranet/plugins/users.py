@@ -30,13 +30,15 @@ def plug_info():
     return{
         "module": "users",
         "name": "Adresář",
-        "icon": 'icon_users.svg'
+        "icon": 'icon_users.svg',
+        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
     }
 
 #@perm_validator(permissions=['sudo'])
 class home(BaseHandler):
+    role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
     def get(self, data=None):
-        self.authorized(['users', 'users-sudo'])
+        #self.authorized(['users', 'users-sudo'])
         me = self.actual_user
         my_activity = list(self.mdb.operation_log.find({'user': me['user']}))
         if self.is_authorized(['users-editor', 'sudo-users']):

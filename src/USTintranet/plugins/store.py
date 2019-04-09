@@ -37,16 +37,17 @@ def plug_info():
     return{
         "module": "store",
         "name": "Správce skladu",
-        "icon": 'icon_sklad.svg'
+        "icon": 'icon_sklad.svg',
+        "role": ['store-access', 'store-sudo', 'sudo', 'store-manager']
     }
 
 ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]
 ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
 
 
-
-
 class api_products_json(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+
     def post(self):
         self.set_header('Content-Type', 'application/json')
         dout = {}
@@ -134,6 +135,8 @@ class api_products_json(BaseHandler):
 
 
 class api_parameters_list(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+
     def post(self):
         self.set_header('Content-Type', 'application/json')
 
@@ -158,6 +161,7 @@ class api_parameters_list(BaseHandler):
 
 # list of positions in current stock
 class api_positions_list(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         oid = bson.ObjectId(self.get_cookie("warehouse", None))
         self.set_header('Content-Type', 'application/json')
@@ -169,6 +173,7 @@ class api_positions_list(BaseHandler):
         self.write(output)
 
 class api_update_position(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         data = {'_id': bson.ObjectId(self.get_argument("id", None)),
                 'name': self.get_argument('name', 'not_set'),
@@ -179,6 +184,7 @@ class api_update_position(BaseHandler):
         self.write("OK")
 
 class api(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self, data=None):
         self.set_header('Content-Type', 'application/json')
 
@@ -408,6 +414,7 @@ class api(BaseHandler):
 
 
 class hand_bi_home(BaseHandler):
+    role_module = ['store-access', 'store-sudo', 'store-manager']
     def get(self, data=None):
         cat = list(self.mdb.category.find({}))
         cat = sorted(cat, key = lambda x: x['path']+x['name'])
@@ -419,6 +426,7 @@ class hand_bi_home(BaseHandler):
 
 
 class operation(BaseHandler):
+    role_module = ['store-sudo', 'store-manager']
     def post(self, data=None):
 
         id_wh = bson.ObjectId(self.get_cookie('warehouse', False))
@@ -602,6 +610,7 @@ class operation(BaseHandler):
             '''.format(data, self.get_argument('component')))
 
 class newprint(BaseHandler):
+    role_module = ['store-access', 'store-sudo', 'store-manager']
     def post(self, data=None):
         comp = self.get_arguments('component')
         if self.get_argument('cart', False):
@@ -704,6 +713,7 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice
 
 
 class print_layout(BaseHandler):
+    role_module = ['store-access', 'store-sudo', 'store-manager']
     def get(self, data = None):
         out_type = self.get_argument('type', 'html')
         components = []
