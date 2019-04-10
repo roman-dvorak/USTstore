@@ -4,10 +4,10 @@
 <tr><th>#</th> <th>Supplier</th> <th>Symbol</th> <th>Barcode</th> <th>URL</th><th>Edit</th></tr>
 {% for i, supplier in enumerate(suppliers)%}<tr>
         <td>{{i}}</td>
-        <td>{{supplier['supplier']['supplier']}}</td>
-        <td>{{supplier['supplier']['symbol']}}</td>
-        <td>{{supplier['supplier']['barcode']}}</td>
-        <td>{{supplier['supplier']['url']}}</td>
+        <td>{{supplier['supplier'].get('supplier', '')}}</td>
+        <td>{{supplier['supplier'].get('symbol', '')}}</td>
+        <td>{{supplier['supplier'].get('barcode', '')}}</td>
+        <td>{{supplier['supplier'].get('url', '')}}</td>
         <td>---</td>
     <tr>{%end%}
 </table>
