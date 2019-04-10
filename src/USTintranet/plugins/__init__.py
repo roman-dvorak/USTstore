@@ -191,15 +191,11 @@ class BaseHandler(tornado.web.RequestHandler):
                 raise tornado.web.HTTPError(401)
 
             cart = self.get_cookie('cart', None)
-            print("Nakupni kosik", bson.ObjectId(cart))
+            #print("Nakupni kosik", bson.ObjectId(cart))
             if cart:
                 self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
             else:
                 self.cart = None
-            print(self.cart)
-
-            print("prava uzivatele \t", self.role)
-            print ("Uzivatel je prihlasen", login)
 
             self.logged = login
             return None
