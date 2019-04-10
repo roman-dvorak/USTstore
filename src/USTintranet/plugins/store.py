@@ -592,6 +592,7 @@ class operation(BaseHandler):
             symbol = self.get_argument('symbol')
             code = self.get_argument('code')
             url = self.get_argument('symbol')
+            url = self.get_argument('url')
 
             if order < 0:
                 # nova polozka
