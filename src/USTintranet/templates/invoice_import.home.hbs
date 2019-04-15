@@ -352,9 +352,9 @@
   function draw_invoice_table(){
     var len = 0;
     $('#new_table_placement').empty()
-    for (i in elements.history){
-      console.log(elements.history[i]);
-      var element = elements.history[i];
+    for (i in elements.items){
+      console.log(elements.items[i]);
+      var element = elements.items[i];
       console.log(element);
 
       var data = "<tr>"
@@ -377,7 +377,7 @@
   }
 
   function edit_row(i){
-    var element = elements.history[i];
+    var element = elements.items[i];
     $('#new_current_row').val(i);
     $('#new_id').empty().append('<option value="'+element['article']+'">'+element['article']+'</option>').val(element['article']).trigger('change');
     $('#new_external_id').empty().append('<option value="'+element['symbol']+'">'+element['symbol']+'</option>').val(element['symbol']).trigger('change');
@@ -572,8 +572,8 @@
               row += "<td>"+ data[i]['_id']['$oid']+"</td>"
               row += "<td>"+ data[i]['name']+"</td>"
               row += "<td>"+ data[i]['description']+"</td>"
-              row += "<td>"+ data[i]['history']['description']+"</td>"
-              row += "<td>"+ data[i]['history']['bilance']+"</td>"
+              row += "<td>"+ data[i]['items']['description']+"</td>"
+              row += "<td>"+ data[i]['items']['bilance']+"</td>"
               row += "<td class='btn-group'><button class='btn btn-sm btn-success' onclick=''>+</button></td>"
               row += "</tr>"
               $("#requested_table_placement").append(row);

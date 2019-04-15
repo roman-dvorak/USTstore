@@ -1,0 +1,8 @@
+{% for i, supplier in enumerate(suppliers) %}
+    <div>
+        {{i}}<br>
+        {{supplier['supplier'].get('barcode', "none")}}, {{supplier['supplier'].get('supplier', "none")}},
+        {{supplier['supplier'].get('symbol', "none")}}, <a href="{{supplier.get('url', "none")}}">{{supplier.get('url', "none")}}</a><br>
+        <button style="btn btn-sm btn-success" onclick="supplier_click('{{supplier['_id']}}', {{i}})">pouzit</button>
+    </div>
+{% end %}

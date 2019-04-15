@@ -1,0 +1,221 @@
+{% extends "../base.hbs" %}
+{% block title %}UST intranet | Invoice items edit{%end%}
+{% block body %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4">
+            <div class="card">
+                <div class="card-header">
+                  Obejdnávka
+                </div>
+                <div class="card-body">
+                    exampleModalLabel
+                </div>
+                <div class="card-header">
+                    Přehled položek
+                </div>
+                <div class="card-body">
+
+                    bbb
+                </div>
+
+
+            </div>
+        </div>
+        <div class="col-8">
+            <div class="card">
+                <div class="card-body">
+                                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#tab_requested" role="tab" aria-selected="true">Požadované položky</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="profile-tab" data-toggle="tab" href="#tab_stock" role="tab" aria-selected="false">Vyhledat ve skladě</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="contact-tab" data-toggle="tab" href="#tab_supplier" role="tab" aria-selected="false">Vyhledat u dodavatelů</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="contact-tab" data-toggle="tab" href="#tab_supplier" role="tab" aria-selected="false">Přidat ručně</a>
+                                    </li>
+                                </ul>
+                                <div class="tab-content" id="myTabContent">
+                                <div class="tab-pane fade show active" id="tab_requested" role="tabpanel" aria-labelledby="home-tab">
+                                    <!-- Panel s importem vyzadovanych polozek -->
+                                    <h3> Položky požadované pro nákup </h3>
+                                    <input class="btn btn-warning" type="button" value="Načíst" onclick="draw_requested_table()">
+
+                                    <table id="requested_table" class="table table-sm">
+                                        <thead></thead>
+                                        <tbody id="requested_table_placement"></tbody>
+                                    </table>
+
+                                    <!-- Konec: Panel s importem vyzadovanych polozek -->
+                                </div>
+                                <div class="tab-pane fade" id="tab_stock" role="tabpanel" aria-labelledby="profile-tab">
+                                    <!-- Panel s vyhledavanim polozek ve skladu -->
+                                    <h3> Vyhledávání ve skladu </h3>
+                                    <input type="text" id="search_in_stock_value">
+                                    <input type="button" value="Obnovit" onclick="draw_search_table()">
+
+                                    <table id="requested_table" class="table">
+                                        <thead></thead>
+                                        <tbody id="requested_table_placement"></tbody>
+                                    </table>
+
+                                    <!-- Konec: Panel s vyhledavanim polozek ve skladu --></div>
+                                <div class="tab-pane fade" id="tab_supplier" role="tabpanel" aria-labelledby="contact-tab">...</div>
+                                </div>
+                </div>
+            </div>  <!-- KONEC: karty nahore v pravo, vyhledavani soucastek -->
+            <div class="card">
+                <div class="card-header">
+                  Součástka:
+                </div>
+                <div class="card-body">
+                    <div id="item_basic_info"></div>
+                    <hr>
+                    <div id="item_basic_suppliers"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<template id="template-item-preview">
+    {% module Template('store/template.item.preview.hbs') %}
+</template>
+
+<script>
+  function draw_requested_table(){
+      /*
+        Tato funkce nacte data o skladovych polozkach, ktere jsou vyzadany k nakoupeni
+        a vybrane polozky zobrazi do tabulky. Na konci tabulky budou dve tlacitka.
+        Jedno tlacitko prida polozku do seznamu. Druhe oznaci polozku jako nakoupenou.
+      */
+      $.ajax({
+          type: "POST",
+          url: "/store/api/get_components_requested/",
+          data: {},
+          success: function(data, textStatus, jQxhr){
+            console.log(data);
+            $("#requested_table_placement").empty();
+            for (i in data){
+              var row = "<tr onclick='load_stock_item(\"" + data[i]['_id']['$oid'] + "\")'>"
+              row += "<td>"+ data[i]['_id']['$oid'] + "</td>"
+              row += "<td>"+ data[i]['name']+"</td>"
+              row += "<td>"+ data[i]['description'] + "</td>"
+              row += "<td>"+ data[i]['history']['description'] + "</td>"
+              row += "<td>"+ data[i]['history']['bilance'] + "</td>"
+              row += "<td class='btn-group'><button class='btn btn-sm btn-success' onclick=''>+</button></td>"
+              row += "</tr>"
+              $("#requested_table_placement").append(row);
+            }
+          },
+          error: function(xhr,status, error){
+            console.error(error, status);
+          }
+      });
+  }
+
+  function draw_search_table(){
+    $.ajax({
+        type: "POST",
+        url: "/store/api/products/",
+        //contentType : 'application/json',
+        data: {
+            'search': 'led',
+            'page': 0
+        },success: function( data, textStatus, jQxhr ){
+            console.log(data);
+        },error: function( jqXhr, textStatus, errorThrown ){
+            console.log('ERR, /store/api/products/')
+            console.log( errorThrown );
+        }
+    });
+  }
+
+function load_stock_item(iid){
+    /*
+        Tato funkce natčte informace o soucastce ze skladu a zobrazi je v tabulce
+        v pravem sloupci tabulky.
+    */
+    $.ajax({
+        type: "POST",
+        url: "/store/api/item/"+iid+"/",
+        data: {
+        },success: function( data, textStatus, jQxhr ){
+            data = data[0];
+            $('.info').empty()
+            $('#item_basic_info').empty()
+            $('#item_basic_suppliers').empty()
+            var tmpl = document.getElementById('template-item-preview').content.cloneNode(true);
+            tmpl.querySelector('.info').innerHTML = JSON.stringify(data, null, 2);
+            document.getElementById('item_basic_info').appendChild(tmpl);
+
+        },error: function( jqXhr, textStatus, errorThrown ){
+            console.log('ERR, /store/api/products/')
+            console.log( errorThrown );
+        }
+    });
+
+    $.ajax({
+        type: "GET",
+        url: "/store/api/item/"+iid+"/suppliers",
+        data: {
+        },success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            $('#item_basic_suppliers').append(data);
+        },error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+        }
+    });
+}
+
+
+function supplier_click(iid, sid){
+/*
+    Pri kliknuti na tlacitko pridat do objednavky pri konkretniho dodavatele.
+*/
+    $.ajax({
+        type: "POST",
+        url: "/invoice_import/invoice/{{invoiceid}}/push_item/",
+        data: {
+            sid: iid,
+            supplier: sid
+        },success: function( data, textStatus, jQxhr ){
+            console.log(data);
+        },error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+        }
+    });
+}
+
+
+
+
+  function load_invoice(){
+      $.ajax({
+        type: "POST",
+        url: "/invoice_import/get_invoice/",
+        data: {
+            'out': 'json',
+            'id': '{{invoiceid}}'
+        },
+        success: function(data, textStatus, jQxhr){
+            console.log(data)
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+          console.log(errorThrown);
+        }
+    });
+  }
+  load_invoice();
+
+
+</script>
+
+
+{% end %}

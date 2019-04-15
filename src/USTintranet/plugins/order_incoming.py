@@ -21,6 +21,15 @@ def make_handlers(module, plugin):
         return [
              (r'/{}/get_invoices/'.format(module), plugin.get_invoices),
              (r'/{}/get_invoice/'.format(module), plugin.get_invoice),
+
+    # pro vytvoreni nove objednavky
+             (r'/{}/invoice/edit/'.format(module), plugin.invoice_edit),
+             (r'/{}/invoice/edit'.format(module), plugin.invoice_edit),
+             (r'/{}/invoice/(.*)/edit'.format(module), plugin.invoice_edit),
+             (r'/{}/invoice/(.*)/edit/'.format(module), plugin.invoice_edit),
+
+             (r'/{}/invoice/(.*)/push_item/'.format(module), plugin.push_item),
+
              (r'/{}/save_invoice/'.format(module), plugin.save_invoice),
              (r'/{}/invoice/prepare_invoice_row/'.format(module), plugin.prepare_invoice_row),
              (r'/{}/next_state/'.format(module), plugin.invoice_next_state),
@@ -141,11 +150,11 @@ class prepare_invoice_row(BaseHandler):
             if int(element_id) == -1:
                 self.mdb.invoice.update(
                     { "_id": bson.ObjectId(invoice)},
-                    { "$push": { 'history': push_json }}, upsert=True)
+                    { "$push": { 'items': push_json }}, upsert=True)
             else:
                 self.mdb.invoice.update(
                     { "_id": bson.ObjectId(invoice)},
-                    { "$set": { 'history.{}'.format(element_id): push_json }}, upsert=True)
+                    { "$set": { 'items.{}'.format(element_id): push_json }}, upsert=True)
         else:
             raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")
 
@@ -182,3 +191,17 @@ class invoice_next_state(BaseHandler):
         else:
             print("AUTHORIZED PROBLEM ....", self.role)
             raise tornado.web.HTTPError(status_code=401, log_message="Nemáte dostatečná oprávnění pro tuto operaci.")
+
+class invoice_edit(BaseHandler):
+    def get(self, iid = None):
+
+        self.render("invoice/invoice.items.edit.hbs", invoiceid = iid)
+
+class push_item(BaseHandler):
+    def post(self, iid):
+        sid = bson.ObjectId(self.get_argument('sid'))   #id of stock item
+        supplier = self.get_argument('supplier', -1)    #index of supplier in array
+        count = self.get_argument('count', 0.0)
+
+        print("iid:", iid)
+        print("Pridavam polozku", iid, sid, supplier, count)

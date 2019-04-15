@@ -24,6 +24,9 @@ def make_handlers(module, plugin):
              (r'/%s' %module, plugin.hand_bi_home),
              (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
+             (r'/{}/api/item/(.*)/'.format(module), plugin.api_item_json),
+             (r'/{}/api/item/(.*)/buy_request'.format(module), plugin.api_buyrequest_json),
+             (r'/{}/api/item/(.*)/suppliers'.format(module), plugin.api_suppliers),
              (r'/{}/api/products/'.format(module), plugin.api_products_json),
              (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
              (r'/{}/api/get_positions/list/'.format(module), plugin.api_positions_list),
@@ -43,6 +46,59 @@ def plug_info():
 
 ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]
 ascii_list_to_str = lambda input: [str(x, 'utf-8') for x in input]
+
+
+class api_item_json(BaseHandler):
+#    Tato funkce vrati zakladni informace o polozce
+#
+# bez upravy dokumentace neupravovat.
+
+    role_module = ['store-sudo', 'store-manager', 'store-access', 'store-read']
+    def post(self, id):
+        iid = bson.ObjectId(id)
+        self.set_header('Content-Type', 'application/json')
+        print("Vyhledavam soucastku s ID:", iid)
+        item = list(self.mdb.stock.aggregate([
+            {"$match": {"_id": iid}},
+        ]))
+        print(item)
+        self.write(bson.json_util.dumps(item))
+
+class api_buyrequest_json(BaseHandler):
+#    Tato funkce sezam pozadavku na nakup soucastky
+#
+# bez upravy dokumentace neupravovat.
+
+    role_module = ['store-sudo', 'store-manager', 'store-access', 'store-read']
+    def post(self, id):
+        iid = bson.ObjectId(id)
+        self.set_header('Content-Type', 'application/json')
+        print("Vyhledavam soucastku s ID:", iid)
+        item = list(self.mdb.stock.aggregate([
+            {"$match": {"_id": iid}},
+            {"$unwind": "$history"},
+            {"$match": {"history.operation": 'buy_request'}},
+            #{"$project": {'history': 1}}
+        ]))
+        self.write(bson.json_util.dumps(item))
+
+class api_suppliers(BaseHandler):
+    def get(self, iid):
+        iid = bson.ObjectId(iid)
+        print("soucastka", iid)
+        item = list(self.mdb.stock.aggregate([
+            {"$match": {"_id": iid}},
+            {"$unwind": "$supplier"},
+            {"$project": {'supplier': 1, 'name': 1}}
+        ]))
+
+        for i in item:
+            if i['supplier'].get('url', False):
+                i['url'] = i['supplier']['url']
+            elif i['supplier'].get('supplier', "none") == 'TME':
+                i['url'] =  "https://www.tme.eu/details/{}".format(i.get('symbol', ''))
+
+        self.render('store/store.item.suppliers_view.hbs', suppliers = item)
 
 
 class api_products_json(BaseHandler):
@@ -591,7 +647,6 @@ class operation(BaseHandler):
             supplier = self.get_argument('supplier')
             symbol = self.get_argument('symbol')
             code = self.get_argument('code')
-            url = self.get_argument('symbol')
             url = self.get_argument('url')
 
             if order < 0:
