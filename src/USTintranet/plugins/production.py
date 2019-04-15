@@ -338,20 +338,24 @@ class edit(BaseHandler):
             #
             # print(production)
             for c in production:
-                id = c['_id']
-                count = self.component_get_counts(id, bson.ObjectId(self.get_cookie('warehouse')))
-                print(id, "..", count)
-                if len(count['by_warehouse']) > 0:
-                    print("Nastavuji", name, id, count['suma'][0]['count'])
-                    self.mdb.production.update_many(
-                        {'_id': bson.ObjectId(name), 'components.UST_ID': id},
-                        {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
+                try:
+                    id = c['_id']
+                    oid = bson.ObjectId(id)
+                    count = self.component_get_counts(oid, bson.ObjectId(self.get_cookie('warehouse')))
+                    print(id, "..", count)
+                    if len(count['by_warehouse']) > 0:
+                        print("Nastavuji", name, id, count['suma'][0]['count'])
+                        self.mdb.production.update_many(
+                            {'_id': bson.ObjectId(name), 'components.UST_ID': id},
+                            {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
 
-                        array_filters = [{ "id.UST_ID": id}],
-                        upsert = False
-                    )
-                else:
-                    print("POLOZKA NENALEZENA....")
+                            array_filters = [{ "id.UST_ID": id}],
+                            upsert = False
+                        )
+                    else:
+                        print("POLOZKA NENALEZENA....")
+                except Exception as e:
+                    print("CHYBA ....")
             self.write({'status': 'ok'})
 
 
