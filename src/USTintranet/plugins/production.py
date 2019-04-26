@@ -212,6 +212,8 @@ class edit(BaseHandler):
                     }}
                 ]))
             out = bson.json_util.dumps(dout)
+            print("Get component grouped")
+            print(json.dumps(out, indent=4, sort_keys=True))
             #print(".................")
             #print(out)
             #print("................")
