@@ -488,7 +488,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
                   price_item: price,
                   price_row:  val['Ref'].length*price,
-                  link: (val["_id"]['UST_ID'] != null ? val["_id"]['UST_ID']['$oid'] : null),
+                  link: (val["_id"]['UST_ID'] != null ? val["_id"]['UST_ID'] : null),
                   Footprint: val['_id']['Footprint'],
                   note: val['_id']['note'],
                   UST_ID: usttext,
