@@ -400,14 +400,13 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        {title:"Pro výrobu", field: "count_multiply", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
 	        {title:"Sklad",
 	        	columns:[
-	        		{title: "Celkem", field:"stock_count", editable: false, width: 80},
-    	        	{title: "p", field:"", editable: false, width: 80},
+	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
 	        	]
 	    	},
             {title:"Cena",
 	        	columns:[
 	        		{title: "pol", field:"price_item", editable: false, width: 80},
-    	        	{title: "cel", field:"price_row", editable: false, width: 80},
+    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
 	        	]
 	    	},
             {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store#", target:"_blank"}, width: 50},
@@ -488,7 +487,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
                   price_item: price,
                   price_row:  val['Ref'].length*price,
-                  link: (val["_id"]['UST_ID'] != null ? val["_id"]['UST_ID'] : null),
+                  link: val["_id"]['UST_ID'] || null,
                   Footprint: val['_id']['Footprint'],
                   note: val['_id']['note'],
                   UST_ID: usttext,
