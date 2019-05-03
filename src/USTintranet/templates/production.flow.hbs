@@ -291,7 +291,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
               var usttext = undefined;
               var price = null;
 
-              if (val['stock'].length > 0){
+                if (val['stock'].length > 0){
                   usttext = val['stock'][0]['name'];
                   console.log("StockName", val['stock'][0]['name']);
 
@@ -308,39 +308,33 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
                         }
                       }
                   //}
-              }
+                }
 
-              console.log("Stock..", val);
+                var uid = val["_id"]['UST_ID'];
 
-              var uid = val["_id"]['UST_ID'];
-              if (uid == null){}
-              else{
-                //  if(typeof uid !== 'string' || !(uid instanceof String)){
-                //  uid = val['_id']['UST_ID']['$oid'];
-                //}
-                uid = String(uid);
-              }
-              console.log("Uid", uid);
+                if(typeof uid == 'object'){
+                    uid = val['_id']['UST_ID']['$oid'];
+                }
 
 
-              return{
-                  row: i,
-                  Ref: val['Ref'],
-                  Value: val['_id']['Value'],
-                  MFPN: val['_id']['MFPN'],
-                  Distributor: val['_id']['Distributor'],
-                  Datasheet: val['_id']['Datasheet'],
-                  stock_count: val['_id']['stock_count'],
-                  count: val['Ref'].length,
-                  count_multiply: val['Ref'].length*1,
+                return{
+                    row: i,
+                    Ref: val['Ref'],
+                    Value: val['_id']['Value'],
+                    MFPN: val['_id']['MFPN'],
+                    Distributor: val['_id']['Distributor'],
+                    Datasheet: val['_id']['Datasheet'],
+                    stock_count: val['_id']['stock_count'],
+                    count: val['Ref'].length,
+                    count_multiply: val['Ref'].length*1,
 
-                  price_item: price,
-                  price_row:  val['Ref'].length*price,
-                  link: val["_id"]['UST_ID'] || null,
-                  Footprint: val['_id']['Footprint'],
-                  note: val['_id']['note'],
-                  UST_ID: usttext,
-              }
+                    price_item: price,
+                    price_row:  val['Ref'].length*price,
+                    link: uid,
+                    Footprint: val['_id']['Footprint'],
+                    note: val['_id']['note'],
+                    UST_ID: usttext,
+                }
             });
 
             return response; //return the tableData property of a response json object
