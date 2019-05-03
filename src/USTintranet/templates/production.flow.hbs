@@ -2,41 +2,13 @@ F{% extends "base.hbs" %}
 {% block title %} UST intranet | Produkce, uvod{% end %}
 {% block body %}
 
-<!-- <script type="text/javascript" src="/static/svg.min.js"></script> -->
-<!-- <link href="/static/tabulator/dist/css/tabulator.min.css" rel="stylesheet">
-<script type="text/javascript" src="/static/tabulator/dist/js/tabulator.min.js"></script> -->
-
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
-
-<!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
- -->
-
 
 <link href="/static/select2/dist/css/select2.css" rel="stylesheet">
 <script type="text/javascript" src="/static/select2/dist/js/select2.js"></script>
 
 <link href="/static/tabulator/dist/css/bootstrap/tabulator_bootstrap4.css" rel="stylesheet">
 <script type="text/javascript" src="/static/tabulator/dist/js/tabulator.js"></script>
-
-<script type="text/javascript">
-
-    var config = {"dark_mode": false, "show_silkscreen": true, "highlight_pin1": false, "redraw_on_drag": true, "board_rotation": 0.0, "checkboxes": "Sourced,Placed", "bom_view": "left-right", "layer_view": "FB", "extra_fields": []}
-    {#pcbdata = {%raw product.get('ibom', {}) %};#}
-    pcbdata = {}
-
-	var id = '{{id}}';
-	var components = [];
-	var placement = [];
-	var production = [];
-</script>
-
-
-<link href="/static/InteractiveHtmlBom/InteractiveHtmlBom/web/ibom.css" rel="stylesheet">
-<script type="text/javascript" src="/static/InteractiveHtmlBom/InteractiveHtmlBom/web/split.js"></script>
-<script type="text/javascript" src="/static/InteractiveHtmlBom/InteractiveHtmlBom/web/util.js"></script>
-<script type="text/javascript" src="/static/InteractiveHtmlBom/InteractiveHtmlBom/web/render.js"></script>
-<script type="text/javascript" src="/static/InteractiveHtmlBom/InteractiveHtmlBom/web/ibom.js"></script>
 
 
 <style type="text/css">
@@ -125,127 +97,8 @@ F{% extends "base.hbs" %}
 				<div class="card-header">
 					<h3>Placement</h3>
 				</div>
-				<div class="card-body" style="min-height: 500pt;">
+				<div class="card-body" >
 
-
-                    <div id="topmostdiv">
-                      <div id="top">
-                        <div style="float: right;">
-                          <div class="hideonprint menu" style="float: right; margin: 10px; top: 8px;">
-                            <button class="menubtn"></button>
-                            <div class="menu-content">
-                              <label class="menu-label menu-label-top">
-                                <input id="darkmodeCheckbox" type="checkbox" onchange="setDarkMode(this.checked)">
-                                Dark mode
-                              </label>
-                              <label class="menu-label">
-                                <input id="silkscreenCheckbox" type="checkbox" checked onchange="silkscreenVisible(this.checked)">
-                                Show silkscreen
-                              </label>
-                              <label class="menu-label">
-                                <input id="highlightpin1Checkbox" type="checkbox" onchange="setHighlightPin1(this.checked)">
-                                Highlight first pin
-                              </label>
-                              <label class="menu-label">
-                                <input id="dragCheckbox" type="checkbox" checked onchange="setRedrawOnDrag(this.checked)">
-                                Continuous redraw on drag
-                              </label>
-                              <label class="menu-label">
-                                <span>Board rotation</span>
-                                <span style="float: right"><span id="rotationDegree">0</span>&#176;</span>
-                                <input id="boardRotation" type="range" min="-36" max="36" value="0" class="slider" oninput="setBoardRotation(this.value)">
-                              </label>
-                              <label class="menu-label">
-                                <div style="margin-left: 5px">Bom checkboxes</div>
-                                <input id="bomCheckboxes" class="menu-textbox" type=text
-                                       oninput="setBomCheckboxes(this.value)">
-                              </label>
-                            </div>
-                          </div>
-                          <div class="button-container hideonprint"
-                               style="float: right; margin: 10px; position: relative; top: 8px">
-                            <button id="fl-btn" class="left-most-button" onclick="changeCanvasLayout('F')"
-                                    title="Front only">F
-                            </button>
-                            <button id="fb-btn" class="middle-button" onclick="changeCanvasLayout('FB')"
-                                    title="Front and Back">FB
-                            </button>
-                            <button id="bl-btn" class="right-most-button" onclick="changeCanvasLayout('B')"
-                                    title="Back only">B
-                            </button>
-                          </div>
-                          <div class="button-container hideonprint"
-                               style="float: right; margin: 10px; position: relative; top: 8px">
-                            <button id="bom-btn" class="left-most-button" onclick="changeBomLayout('bom-only')"
-                                    title="BOM only"></button>
-                            <button id="lr-btn" class="middle-button" onclick="changeBomLayout('left-right')"
-                                    title="BOM left, drawings right"></button>
-                            <button id="tb-btn" class="right-most-button" onclick="changeBomLayout('top-bottom')"
-                                    title="BOM top, drawings bot"></button>
-                          </div>
-                        </div>
-                        <div id="fileinfodiv" style="overflow: auto;">
-                          <table class="fileinfo">
-                            <tbody>
-                              <tr>
-                                <td id="title" class="title" style="width: 70%">
-                                  Title
-                                </td>
-                                <td id="revision" class="title" style="width: 30%">
-                                  Revision
-                                </td>
-                              </tr>
-                              <tr>
-                                <td id="company">
-                                  Kicad version
-                                </td>
-                                <td id="filedate">
-                                  Date
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                      <div id="bot" class="split" style="height: calc(100% - 80px)">
-                        <div id="bomdiv" class="split split-horizontal">
-                          <div style="width: 100%">
-                            <input id="reflookup" class="searchbox reflookup hideonprint" type="text" placeholder="Ref lookup"
-                                   oninput="updateRefLookup(this.value)">
-                            <input id="filter" class="searchbox filter hideonprint" type="text" placeholder="Filter"
-                                   oninput="updateFilter(this.value)">
-                            <div class="button-container hideonprint" style="float: left">
-                              <button id="copy" title="Copy bom table to clipboard"
-                                   onclick="copyToClipboard()"></button>
-                            </div>
-                          </div>
-                          <div id="dbg"></div>
-                          <table class="bom">
-                            <thead id="bomhead">
-                            </thead>
-                            <tbody id="bombody">
-                            </tbody>
-                          </table>
-                        </div>
-                        <div id="canvasdiv" class="split split-horizontal">
-                          <div id="frontcanvas" class="split" style="overflow: hidden">
-                            <div style="position: relative; min-height: 400pt; width: 100%; height: 100%;">
-                              <canvas id="F_bg" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
-                              <canvas id="F_slk" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
-                              <canvas id="F_hl" style="position: absolute; left: 0; top: 0; z-index: 2;"></canvas>
-                            </div>
-                          </div>
-                          <div id="backcanvas" class="split" style="overflow: hidden">
-                            <div style="position: relative; min-height: 400pt;  width: 100%; height: 100%;">
-                              <canvas id="B_bg" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
-                              <canvas id="B_slk" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
-                              <canvas id="B_hl" style="position: absolute; left: 0; top: 0; z-index: 2;"></canvas>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                  </div>
-                    <!-- IBOM -->
 
 				</div>
 			</div>
@@ -287,7 +140,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
     //create and style input
 
-
 	var input = document.createElement("select");
     input.setAttribute("class", "th-input");
     input.setAttribute("id", "row_ustid");
@@ -297,62 +149,70 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     input.style.width = "100%";
     input.style.boxSizing = "border-box";
 
-
     onRendered(function(){
     	console.log('RENDER')
-    	var sel = $(input).select2({
-			  	//dropdownCssClass: "select2-style",
-			  	width: '100%',
-			    ajax: {
-			    	delay: 250,
-				    url: '/store/api/search/',
-				    type: "POST",
-				    dataType: 'json',
-				    data: function (params) {
-				      var query = {
-				        q: params.term,
-				        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
-				        page: 0
-				      }
-				      return query;
-				    },
-				    processResults: function (data) {
-				    	console.log("Mam data...", data);
-				    	//data.unshift(Object({name: 'Nic', value: null}))
-				        return {
-				            results: $.map(data, function (item, i) {
-                                console.log(item, i);
-				                return {
-				                    text: item['name']+" ("+item['_id']['$oid']+")",
-				                    id: item['_id']['$oid']
-				                }
-				            })
-				        };
-				    }
+        var select_input = $(input);
+
+        select_input.select2({
+		  	//dropdownCssClass: "select2-style",
+		  	width: '100%',
+		    ajax: {
+		    	delay: 250,
+			    url: '/store/api/search/',
+			    type: "POST",
+			    dataType: 'json',
+			    data: function (params) {
+			      var query = {
+			        q: params.term,
+			        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
+			        page: 0
+			      }
+			      return query;
+			    },
+			    processResults: function (data) {
+			    	data.unshift(Object({name: 'Odebrat výběr', value: -1, _id: {'$oid': "null"}}))
+			        return {
+			            results: $.map(data, function (item, i) {
+                            //console.log(item, i);
+			                return {
+			                    text: item['name']+" ("+item['_id']['$oid']+")",
+			                    id: item['_id']['$oid']
+			                }
+			            })
+			        };
 			    }
-		});
-    	$(input).select2("open");
-        //input.focus();
-        //input.style.height = "100%";
+		    },
+            allowClear: true,
+    	});
+
+        select_input.on('blur', function (e) {
+            cancel();
+        });
+
+        select_input.select2("open");
     });
 
     function onChange(e = null){
     	console.log("e", e);
         var data = $(input).val();
     	console.log('change', data);
+        console.log(input);
 
-        $(input).select2('close');
+
+        //$(input).blur();
         //$(input).select2('destroy');
         //$(input).empty();
-
+        //$(input).remove();
         //allowClear: false,
-        if(data != cell.getValue()){
+
+        if(data !== null && data != cell.getValue()){
             console.log("Hodnota pole se zmenila", data);
             success(data);
         }else{
-            console.log("Hodnota pole je stejna", data)
-            //success(data);
-            close();
+            console.log("Hodnota pole je stejna")
+            //$(':focus').blur();
+            cancel();
+            //close();
         }
     }
 
@@ -385,10 +245,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
 
 	function editf(e, cell){
-
-		console.log("...........");
 		console.log(cell.cell);
-		//cell.cell.edit(true);
 		cell.edit(true);
 	}
 
@@ -428,10 +285,12 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	    ],
     	addRowPos:"bottom",
 	    cellEdited:function(cell){
-	    	console.log("EDITED");
-        	console.log(cell);
-    		console.log(cell._cell.row.cells[5].value);
-    		update_component_parameter(cell._cell.row.cells[5].value, cell._cell.column.field, cell._cell.value);
+            if(cell._cell.value !== null){
+    	    	console.log("EDITED");
+            	//console.log(cell);
+        		//console.log(cell._cell.row.cells[7].value);
+        		update_component_parameter(cell._cell.row.cells[7].value, cell._cell.column.field, cell._cell.value);
+            }
     	},
         ajaxResponse:function(url, params, response){
             console.log("AJAX RESPONSE");
@@ -459,7 +318,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
                     console.log("Historie:", history);
                     for(j in history){
-                        if(history[j]['operation'] == 'buy'){
+                        if(history[j]['operation'] == 'buy' || history[j]['operation'] == 'inventory'){
                             console.log("Cena za nakup je",  history[j]['price']);
                             price = history[j]['price'];
                             break;
@@ -469,10 +328,17 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
               }
 
               console.log("Stock..", val);
-              // for(i in val['stock'][0]['history']){
-              //     var history = val['stock'][0]['history'][i];
-              //     console.log("Historie:", history['operation']);
-              // }
+
+              var uid = val["_id"]['UST_ID'];
+              if (uid == null){}
+              else{
+                //  if(typeof uid !== 'string' || !(uid instanceof String)){
+                //  uid = val['_id']['UST_ID']['$oid'];
+                //}
+                uid = String(uid);
+              }
+              console.log("Uid", uid);
+
 
               return{
                   row: i,
@@ -772,42 +638,6 @@ function update_component_parameter(component, param, value){
 }
 
 
-/*
-// Pouzivalo se pro nahravani BOMu parserovaneho v prohlizeci
-function update_component(tstamp, ref, name, value, package, ust_id, description, price_predicted, price_store, price_final){
-
-	$.ajax({
-        type: "POST",
-        url: ".",
-        data: {
-        	operation: 'update_component',
-        	tstamp: tstamp,
-        	ref: ref,
-        	name: name,
-        	value: value,
-        	package: package,
-        	ust_id: ust_id,
-        	description: description,
-        	price_predicted: price_predicted,
-        	price_store: price_store,
-        	price_final: price_final
-        },
-   		async: false,
-        success: function( data, textStatus, jQxhr ){
-    		comp = data;
-            console.log(comp);
-        },
-        error: function( jqXhr, textStatus, errorThrown ){
-            console.log( errorThrown );
-            Lobibox.notify('error', {
-                msg: 'CHYBA!!!!: ' + errorThrown,
-                icon: false,
-            });
-        }
-    });
-}
-*/
-
 
 
 // funkce slouzi pro prenacteni vsech cen v modulu
@@ -863,30 +693,6 @@ function update_placement(Ref,Val,Package,PosX,PosY,Rot,Side){
 
 
 
-/*
-$('#file_bom').change(load_bom);
-function load_bom(){
-
-	var reader = new FileReader();
-	reader.onload = function(progressEvent){
-		console.log(this.result);
-
-		var lines = this.result.split('\n');
-		for(var i = 1; i < lines.length; i++){
-		  console.log(lines[i]);
-		  data = Papa.parse(lines[i], {
-		  		delimiter: ';',
-		  	}).data[0];
-		  //console.log(data);
-		  update_component(null, data[1], data[4], data[2], null, null, 0, 0, 0);
-		}
-
-		load_components();
-	};
-	reader.readAsText( $('#file_bom')[0].files[0]);
-}*/
-
-
 
 // pri zmene souboru v #file_placement se vezme soubor, rozparseruje a po soucastkach se odesila na server
 $('#file_placement').change(load_placement);
@@ -911,40 +717,6 @@ function load_placement(){
 	reader.readAsText( $('#file_placement')[0].files[0]);
 }
 
-
-/*
-//$('.position').click(edit_component([this.innerHTML]));
-$('#row_nahrada').select2({
-  	//dropdownCssClass: "select2-style",
-  	width: '100%',
-    ajax: {
-    	delay: 250,
-	    url: '/store/api/search/',
-	    type: "POST",
-	    dataType: 'json',
-	    data: function (params) {
-	      var query = {
-	        q: params.term,
-	        key: ['name', '_id', 'description', 'supplier.barcode', 'supplier.symbol'],
-	        //key[2]: 'description',
-	        //key[3]: 'supplier.symbol',
-	        page: 0
-	      }
-	      // Query parameters will be ?search=[term]&type=public
-	      return query;
-	    },
-	    processResults: function (data) {
-	        return {
-	            results: $.map(data, function (item) {
-	                return {
-	                    text: item['name']+" ("+item['_id']+")",
-	                    id: item['_id']
-	                }
-	            })
-	        };
-	    }
-    }
-})*/
 
 
 </script>

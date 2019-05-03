@@ -211,9 +211,11 @@ class edit(BaseHandler):
                         "as": 'stock'
                     }}
                 ]))
+
             out = bson.json_util.dumps(dout)
             print("Get component grouped")
             print(json.dumps(out, indent=4, sort_keys=True))
+            print("End of get component grouped")
             #print(".................")
             #print(out)
             #print("................")
@@ -224,7 +226,7 @@ class edit(BaseHandler):
 
 
         elif op == 'update_component_parameters':
-            print("####.... update_component_parameter")
+            print("Update_component_parameter")
             component = self.get_arguments('component[]')
             parameter = self.get_argument('parameter').strip().replace('_id.', '')
             value = self.get_argument('value').strip()
@@ -233,17 +235,23 @@ class edit(BaseHandler):
 
             for c in component:
                 if parameter == 'UST_ID':
-                    value = bson.ObjectId(value)
-                    print("JE TO UST ID... budu potrebovat ID")
-                self.mdb.production.update(
-                    {
-                       '_id': bson.ObjectId(name.strip()),
-                       "components.Ref": c.strip()
-                    },
-                    {
-                        "$set":{"components.$.{}".format(parameter): value}
-                    }
-                )
+                    set = '$set'
+                    if value == 'null':
+                        set = '$unset'
+                    else:
+                        value = bson.ObjectId(value)
+
+                    if len(str(value)) > 0:
+                        self.mdb.production.update(
+                            {
+                               '_id': bson.ObjectId(name.strip()),
+                               "components.Ref": c.strip()
+                            },
+                            {
+                                set:{"components.$.{}".format(parameter): value}
+                            }
+                        )
+
                 print("Uravil jsem", c)
 
             print(component, parameter, value)
