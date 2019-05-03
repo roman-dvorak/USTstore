@@ -185,34 +185,17 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
             allowClear: true,
     	});
 
-        select_input.on('blur', function (e) {
-            cancel();
-        });
-
         select_input.select2("open");
     });
 
     function onChange(e = null){
-    	console.log("e", e);
-        var data = $(input).val();
-    	console.log('change', data);
-        console.log(input);
-
-
-        //$(input).blur();
-        //$(input).select2('destroy');
-        //$(input).empty();
-        //$(input).remove();
-        //allowClear: false,
-
-        if(data !== null && data != cell.getValue()){
-            console.log("Hodnota pole se zmenila", data);
-            success(data);
+        var select_data = $(input).val();
+        if(select_data !== null && select_data != cell.getValue()){
+            console.log("Hodnota pole se zmenila", select_data);
+            success(select_data);
         }else{
             console.log("Hodnota pole je stejna")
-            //$(':focus').blur();
             cancel();
-            //close();
         }
     }
 
