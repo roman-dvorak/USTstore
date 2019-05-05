@@ -211,11 +211,9 @@ class edit(BaseHandler):
                         "as": 'stock'
                     }}
                 ]))
-
             out = bson.json_util.dumps(dout)
             print("Get component grouped")
             print(json.dumps(out, indent=4, sort_keys=True))
-            print("End of get component grouped")
             #print(".................")
             #print(out)
             #print("................")
@@ -226,7 +224,7 @@ class edit(BaseHandler):
 
 
         elif op == 'update_component_parameters':
-            print("Update_component_parameter")
+            print("####.... update_component_parameter")
             component = self.get_arguments('component[]')
             parameter = self.get_argument('parameter').strip().replace('_id.', '')
             value = self.get_argument('value').strip()
@@ -235,23 +233,17 @@ class edit(BaseHandler):
 
             for c in component:
                 if parameter == 'UST_ID':
-                    set = '$set'
-                    if value == 'null':
-                        set = '$unset'
-                    else:
-                        value = bson.ObjectId(value)
-
-                    if len(str(value)) > 0:
-                        self.mdb.production.update(
-                            {
-                               '_id': bson.ObjectId(name.strip()),
-                               "components.Ref": c.strip()
-                            },
-                            {
-                                set:{"components.$.{}".format(parameter): value}
-                            }
-                        )
-
+                    value = bson.ObjectId(value)
+                    print("JE TO UST ID... budu potrebovat ID")
+                self.mdb.production.update(
+                    {
+                       '_id': bson.ObjectId(name.strip()),
+                       "components.Ref": c.strip()
+                    },
+                    {
+                        "$set":{"components.$.{}".format(parameter): value}
+                    }
+                )
                 print("Uravil jsem", c)
 
             print(component, parameter, value)
@@ -641,6 +633,8 @@ class print_bom(BaseHandler):
 
             pdf.set_font('pt_sans', '', 8)
             pdf.set_xy(10, first_row+j*rowh)
+            pdf.cell(0, 5, str(i), border=0)
+            pdf.set_xy(10, first_row+j*rowh+3.5)
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
             pdf.set_xy(17, first_row+j*rowh+3.5)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
