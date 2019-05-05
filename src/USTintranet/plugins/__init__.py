@@ -202,7 +202,7 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             print ("uzivatel neni korektne prihlasen")
             self.logged = False
-            return Non
+            return None
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:
