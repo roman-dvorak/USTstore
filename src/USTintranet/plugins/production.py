@@ -569,6 +569,9 @@ class print_bom(BaseHandler):
         pdf.cell(0, 5, "Strana "+str(pdf.page_no())+"/{nb}", border=0)
         pdf.set_xy(170, 6)
         pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
+        if pdf.page_no() == 1:
+            pdf.set_xy(170, 9)
+            pdf.cell(0, 5, str("Sklad: {}".format('nazev')), border=0)
 
         row = []
         used = []
@@ -578,7 +581,7 @@ class print_bom(BaseHandler):
         #print(df)
         #grouped = df.groupby(by=['Value', 'Footprint'])
 
-        rowh = 9
+        rowh = 9+4
         first_row = 28
         pdf.set_xy(10, 28)
 
@@ -604,17 +607,16 @@ class print_bom(BaseHandler):
         #         'UST_ID': 'UST_ID'}]+out
 
         j = 0
-        print(">......")
-        print(out)
-        for i, component in enumerate(out):
-            print(i, ">", component)
 
         last = 10
         for i, component in enumerate(out):
             print("COMPONENT")
             print(i, component)
+            item_places = self.component_get_positions(component['cUST_ID'], stock = bson.ObjectId(self.get_cookie('warehouse', False)))
+            print("Places:", item_places)
+
             j += 1
-            if j > 28:
+            if j > 28-9:
                 j = 0
                 first_row = 10
                 print("New page...")
@@ -653,7 +655,13 @@ class print_bom(BaseHandler):
             #pdf.set_xy(55, 28+j*rowh)
             #pdf.cell(0, 5, component.get('Value', '--'))
 
-            pdf.line(10,first_row+j*rowh + 8, 200, first_row+j*rowh + 8)
+            pdf.set_font('pt_sans', '', 8)
+            for k, place in enumerate(item_places):
+                pdf.set_xy(20, first_row+j*rowh + 7)
+                pdf.cell(0, 5, place['info'][0]['name'])
+
+
+            pdf.line(10,first_row+j*rowh + 8+4, 200, first_row+j*rowh + 8 + 5)
             print("===================Value==========================================")
 
         pdf.alias_nb_pages()
