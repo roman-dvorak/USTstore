@@ -491,11 +491,13 @@ class operation(BaseHandler):
         # emtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
         if data == 'service':
             id = bson.ObjectId(self.get_argument('component'))
+            item_places = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
 
             article = list(self.mdb.stock.find_one({'_id': id}))
-            counts= self.component_get_counts(id)
+            counts = self.component_get_counts(id)
             places = self.get_warehouseses()
-            self.render("store/store.comp_operation.service.hbs", last = article, counts = counts, all_places=places)
+            print(counts)
+            self.render("store/store.comp_operation.service.hbs", last = article, counts = counts, all_places=places, item_places = item_places)
 
         elif data == 'service_push': # vlozeni 'service do skladu'
             id = bson.ObjectId(self.get_argument('component'))

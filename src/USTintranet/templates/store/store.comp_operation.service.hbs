@@ -1,4 +1,5 @@
 Součastné pozice ve skladech:<br>
+{{item_places}}
 <ul>
     {%for current in counts["by_warehouse"] %}
         <li>{{current['warehouse']['name']}} <small>({{current['count']}} ks)</small>
@@ -13,7 +14,7 @@ Součastné pozice ve skladech:<br>
 	<div class="form-group row">
 		<div class="col-sm-3">Sklad</div>
 		<select class="form-control col-sm-9 table_style" id="compo_stock">
-            {%for current in counts['by_warehouse'] %} <option value="{{current['warehouse']['_id']}}" count={{current['count']}}>{{current['warehouse']['name']}} <small>({{current['count']}} ks) {{current['warehouse']['_id']}}</option>{%end%}
+            {%for place in item_places %} <option value="{{place['info'][0]['_id']}}">{{place['info'][0]['name']}}</option>{%end%}
         </select>
 	</div>
 	<div class="form-group row">
@@ -21,7 +22,7 @@ Součastné pozice ve skladech:<br>
 		<input class="form-control col-sm-9 table_style" type="text" name="" id="compo_description">
 	</div>
 	<div class="form-group row">
-		Nový počet ve skladě je  <b><span id="compo_new_count"></span></b>.
+		{#Nový počet ve skladě je#} <b><span id="compo_new_count"></span></b>
 	</div>
 	<div class="form-group row">
 		<button class="form-control btn btn-primary col" onclick="compo_update_push()">Použít</button>
