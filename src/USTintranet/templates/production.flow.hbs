@@ -54,11 +54,11 @@ F{% extends "base.hbs" %}
 					</div>
 					<div class="row form-group">
 						<div class="col-2"> Autor: </div>
-						<input class="form-control col-10" type="text" id='production_autor' disabled><br>
+						<input class="form-control col-10" type="text" id='production_autor' readonly><br>
 					</div>
 					<div class="row form-group">
 						<div class="col-2"> Vytvořeno: </div>
-						<input class="form-control col-10" type="text" id='production_created' disabled><br>
+						<input class="form-control col-10" type="text" id='production_created' readonly><br>
 					</div>
 					<div class="row form-group">
 						<div class="col-2"> Popis: </div>
@@ -66,7 +66,7 @@ F{% extends "base.hbs" %}
 					</div>
 					<div class="row form-group">
 						<div class="col-2"> Type: </div>
-						<input class="form-control col-10" type="text" id='production_type' disabled><br>
+						<input class="form-control col-10" type="text" id='production_type' readonly><br>
 					</div>
 
 					Dále zde bude: Tagy, priorita, celková cena
@@ -534,9 +534,11 @@ function load_components() {
 		}
 	}
 
+    console.log("OBECNA DATA:", production);
+
 	$('#production_name').val(production['name']);
 	$('#production_autor').val(production['author']);
-	$('#production_created').val(production['created']);
+	$('#production_created').val(Date(production['created']['$date']));
 	$('#production_type').val(production['type']);
 	$('#production_description').val(production['description']);
 
