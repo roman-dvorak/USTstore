@@ -23,6 +23,9 @@
 function loadProductionTable() {
 	var table = new Tabulator("#production-list-table", {
 		width: '100%',
+        initialSort:[
+            {column:"id", dir:"desc"}, //sort by this first
+        ],
 		columns:[
 	        {title:"ID", field:"id", width:100},
 	        {title:"Name", field:"name", sorter:"string"},
