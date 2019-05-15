@@ -194,7 +194,8 @@ class edit(BaseHandler):
                                 'Distributor': '$components.Distributor',
                                 'Datasheet': '$components.Datasheet',
                                 'MFPN': '$components.MFPN',
-                                'stock_count': '$components.stock_count',},
+                                'stock_count': '$components.stock_count',
+                                'note': '$components.note',},
                         'Ref': {'$push': '$components.Ref'},
                         'count': {'$sum': 1},
                     }},
@@ -370,6 +371,7 @@ class edit(BaseHandler):
             print("update_parameters")
             p_name = self.get_argument('name')
             p_description = self.get_argument('description')
+            print(p_name, p_description)
 
             self.mdb.production.update(
                 {'_id': bson.ObjectId(name)},
