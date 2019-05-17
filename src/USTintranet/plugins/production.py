@@ -523,8 +523,10 @@ class print_bom(BaseHandler):
                             'Footprint': '$components.Footprint',
                             'Distributor': '$components.Distributor',
                             'Datasheet': '$components.Datasheet',
-                            'stock_count': '$components.stock_count',},
+                            'stock_count': '$components.stock_count',
+                            'note': '$components.note'},
                     'Ref': {'$push': '$components.Ref'},
+                    'category': {'$push': '$components.category'},
                     'count': {'$sum': 1},
                 }},
                 {"$addFields":{"cUST_ID": {"$convert":{
@@ -540,17 +542,6 @@ class print_bom(BaseHandler):
                     "as": 'stock'
                 }}
             ]))
-        #out = bson.json_util.dumps(dout)
-
-        print("DEOUT", out)
-
-        #for x in out:
-        #    print(x)
-        #out = group_data(dout.get('components', []), db = self.mdb)
-        #out = bson.json_util.dumps(dout)
-
-
-
 
         pdf = FPDF('P', 'mm', format='A4')
         pdf.set_auto_page_break(False)
@@ -578,11 +569,6 @@ class print_bom(BaseHandler):
         row = []
         used = []
 
-        #df = pd.DataFrame(dout['components'])
-        #df = df.sort('Ref')
-        #print(df)
-        #grouped = df.groupby(by=['Value', 'Footprint'])
-
         rowh = 9+4
         first_row = 28
         pdf.set_xy(10, 28)
@@ -593,29 +579,29 @@ class print_bom(BaseHandler):
                     'Value': 'Value',
                     'Footprint': 'FootPrint',
                     'Distributor': 'Distributor',
-                    'Datasheet': 'Datasheet'
+                    'Datasheet': 'Datasheet',
+                    'note': "Poznámka"
                 },
                 'Ref': ['Ref'],
-                'count': 'cnt',
+                'count': '',
                 'cUST_ID': "UST_ID",
-                'stock': ['stock']}
+                'stock': [{'name': 'Název', 'category': ['Kategorie']}]}
             ]+out
-        # out = [{'count': '',
-        #         'Ref': ['Ref'],
-        #         'Value': 'Value',
-        #         'Footprint': 'Package',
-        #         "MFPN": 'MFPN',
-        #         "stock": {'name': "Name"},
-        #         'UST_ID': 'UST_ID'}]+out
 
         j = 0
 
         last = 10
         for i, component in enumerate(out):
-            print("COMPONENT")
-            print(i, component)
+            print("Component", i, component)
             item_places = self.component_get_positions(component['cUST_ID'], stock = bson.ObjectId(self.get_cookie('warehouse', False)))
-            print("Places:", item_places)
+            #print("Places:", item_places)
+
+            try:
+                name = component.get('stock')[0]['name']
+                category = component.get('stock')[0]['category']
+            except Exception as e:
+                name = ''
+                category = []
 
             j += 1
             if j > 28-9:
@@ -630,40 +616,57 @@ class print_bom(BaseHandler):
                 pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
                 pdf.line(10,first_row, 200, first_row )
 
+                pdf.set_xy(10, 3)
+                pdf.cell(0, 5, info.get('name', name), border=0)
+
             if type(component['count']) == 'String' and ['count'] > 5.0:
                 last += 15
             else:
                 last += 10
 
             pdf.set_font('pt_sans', '', 8)
+
             pdf.set_xy(10, first_row+j*rowh)
-            pdf.cell(0, 5, str(i), border=0)
-            pdf.set_xy(10, first_row+j*rowh+3.5)
+            pdf.cell(0, 5, str(i)+'.', border=0)
+
+            pdf.set_xy(10, first_row+j*rowh + 3.5)
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
-            pdf.set_xy(17, first_row+j*rowh+3.5)
+
+            pdf.set_xy(15, first_row+j*rowh + 3.5)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
-            pdf.set_xy(15, first_row+j*rowh+3.5)
+            pdf.set_xy(163, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
+
+            pdf.set_xy(130, first_row+j*rowh)
+            pdf.cell(0, 5, component['_id'].get('Footprint', '--')[:45])
+
+            pdf.set_font('pt_sans-bold', '', 7.5)
+
+            pdf.set_xy(15, first_row+j*rowh)
+            pdf.cell(0, 5, component['_id'].get('Value', '--')[:30])
+
 
             pdf.set_font('pt_sans-bold', '', 9)
-            pdf.set_xy(15, first_row+j*rowh)
-            pdf.cell(0, 5, component['_id'].get('Value', '--'))
-            pdf.set_xy(55, first_row+j*rowh)
-            pdf.cell(0, 5, component['_id'].get('Footprint', '--'))
-            pdf.set_xy(130, first_row+j*rowh)
-            pdf.cell(0, 5, component['_id'].get('MFPN', '--'))
-            pdf.set_xy(130, first_row+j*rowh + 3.5)
-            pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
-            #pdf.set_xy(55, 28+j*rowh)
-            #pdf.cell(0, 5, component.get('Value', '--'))
+
+            pdf.set_xy(60, first_row+j*rowh)
+            pdf.cell(0, 5, name)
+
+            pdf.set_xy(130, first_row+j*rowh + 7)
+            pdf.cell(0, 5, str(component['_id'].get('note', '--')))
 
             pdf.set_font('pt_sans', '', 8)
-            for k, place in enumerate(item_places):
-                pdf.set_xy(20, first_row+j*rowh + 7)
-                pdf.cell(0, 5, place['info'][0]['name'])
 
 
-            pdf.line(10,first_row+j*rowh + 8+4, 200, first_row+j*rowh + 8 + 5)
+            pdf.set_xy(15, first_row+j*rowh + 7)
+            pdf.cell(0, 5, str(', '.join(category)), border=0)
+
+            #for k, place in enumerate(item_places):
+            #    pdf.set_xy(15, first_row+j*rowh + 7)
+            #    pdf.cell(0, 5, place['info'][0]['name'])
+
+
+            pdf.line(10,first_row+j*rowh + 8+5, 200, first_row+j*rowh + 8 + 5)
             print("===================Value==========================================")
 
         pdf.alias_nb_pages()
@@ -673,94 +676,3 @@ class print_bom(BaseHandler):
             self.set_header("Content-Disposition", "inline; filename=UST_osazovaci_list.pdf")
             self.write(f.read())
         f.close()
-
-
-
-'''
-pdf.set_font('pt_sans', '', 8)
-                        page = pdf.page_no()
-                        pdf.set_xy(120, 288)
-                        pdf.cell(10, 0, "Generováno %s, strana %s z %s" %(datetime.datetime.now(), page, pdf.alias_nb_pages()) )
-
-                        pdf.set_font('pt_sans', '', 11)
-                        pdf.set_xy(10, 10)
-                        pdf.cell(100, 5, 'Skladová položka')
-                        pdf.set_x(95)
-                        pdf.cell(10, 5, "Počet kusů", align='R')
-                        pdf.set_x(120)
-                        pdf.cell(10, 5, "Cena za 1ks", align='R')
-                        pdf.set_x(180)
-                        pdf.cell(10, 5, "Cena položky (bez DPH)", align='R', ln=2)
-                        pdf.line(10, 15, pdf.w-10, 15)
-                        pdf.set_y(18)
-
-
-
-    def get(self, name):
-
-
-        dout = list(self.mdb.production.aggregate([
-            {'$match': {'_id': bson.ObjectId(name)}},
-            {'$sort': {'components.Ref': 1}}
-        ]))[0]
-        print(dout)
-
-
-        pdf = FPDF('P', 'mm', format='A4')
-        pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
-        pdf.add_font('pt_sans-bold', '', 'static/pt_sans/PT_Sans-Web-Bold.ttf', uni=True)
-        pdf.add_page()
-
-        pdf.set_font('pt_sans', '', 12)
-
-        pdf.set_xy(10, 10)
-        pdf.cell(0,5, dout.get('name', name))
-
-        pdf.set_font('pt_sans', '', 8)
-
-        row = []
-        used = []
-
-        df = pd.DataFrame(dout['components'])
-        df = df.sort('Ref')
-        print(df)
-        grouped = df.groupby(by=['Value', 'Footprint'])
-
-        rowh = 8
-
-        pdf.set_xy(10, 28)k
-        ref = []
-        for j, index in enumerate(indexes):
-            component = df.loc[[index]]
-            ref.append(component['Ref'].values[0])
-        pdf.set_xy(10, 28+i*rowh+3)
-        pdf.cell(0, 5, str(len(ref))+'x', border=0)
-
-
-        pdf.set_xy(15, 28+i*rowh+3)
-        pdf.cell(0, 5, self.get_component(dout['components'], ref).get('MFPN'), border=0)
-
-        pdf.set_xy(3, 28+i*rowh)
-        pdf.cell(0, 5, ', '.join(ref), border=0)
-
-        pdf.set_xy(55, 28+i*rowh)
-        pdf.cell(0, 5, component['Value'].values[0])
-        pdf.set_xy(95, 28+i*rowh)
-        pdf.cell(0, 5, component['Footprint'].values[0])
-
-
-        print("=============================================================")
-        #pdf.cell(100, 5, repr(cg[0]))
-        #pdf.set_x(95)
-        #pdf.cell(100, 5, repr(cv[0]))
-
-
-        pdf.output("static/production.pdf")
-        with open('static/production.pdf', 'rb') as f:
-            self.set_header("Content-Type", 'application/pdf; charset="utf-8"')
-            self.set_header("Content-Disposition", "inline; filename=UST_osazovaci_list.pdf")
-            self.write(f.read())
-        f.close()
-
-
-'''
