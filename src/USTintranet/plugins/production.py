@@ -550,11 +550,11 @@ class print_bom(BaseHandler):
         pdf.add_page()
 
         pdf.set_font('pt_sans', '', 12)
-        pdf.set_xy(10, 10)
+        pdf.set_xy(10, 9)
         pdf.cell(0,5, info.get('name', name))
 
         pdf.set_font('pt_sans', '', 8)
-        pdf.set_y(15)
+        pdf.set_y(20)
         pdf.cell(0,5, info.get('description', name))
 
         pdf.set_font('pt_sans', '', 8)
@@ -565,6 +565,8 @@ class print_bom(BaseHandler):
         if pdf.page_no() == 1:
             pdf.set_xy(170, 9)
             pdf.cell(0, 5, str("Sklad: {}".format('nazev')), border=0)
+            pdf.set_xy(10, 13)
+            pdf.cell(0, 5, str(name), border=0)
 
             pdf.set_xy(10, 3)
             pdf.cell(0, 5, "Universal Scientific Technologies s.r.o.")
