@@ -629,8 +629,6 @@ class print_bom(BaseHandler):
             pdf.set_xy(10, first_row+j*rowh)
             pdf.cell(0, 5, str(i)+'.', border=0)
 
-            pdf.set_xy(10, first_row+j*rowh + 3.5)
-            pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
             pdf.set_xy(15, first_row+j*rowh + 11)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
@@ -654,15 +652,17 @@ class print_bom(BaseHandler):
             pdf.set_xy(15, first_row+j*rowh)
             pdf.cell(0, 5, name)
 
+            pdf.set_xy(10, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
             pdf.set_font('pt_sans', '', 8)
 
 
-            pdf.set_xy(15, first_row+j*rowh + 3.5)
+            pdf.set_xy(15, first_row+j*rowh + 7)
             pdf.cell(0, 5, str(', '.join(category)), border=0)
 
             for k, place in enumerate(item_places):
-                pdf.set_xy(15, first_row+j*rowh + 7)
+                pdf.set_xy(15, first_row+j*rowh + 3.5)
                 pdf.cell(0, 5, place['info'][0]['name'])
 
 
