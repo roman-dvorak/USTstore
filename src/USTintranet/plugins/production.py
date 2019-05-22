@@ -566,6 +566,10 @@ class print_bom(BaseHandler):
             pdf.set_xy(170, 9)
             pdf.cell(0, 5, str("Sklad: {}".format('nazev')), border=0)
 
+            pdf.set_xy(10, 3)
+            pdf.cell(0, 5, "Universal Scientific Technologies s.r.o.")
+
+
         row = []
         used = []
 
