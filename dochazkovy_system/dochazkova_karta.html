@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="global.css">
+
+    <title>Docházková karta</title>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Docházková karta: <a href="#">Mgr. Jiří Novák</a></h1>
+
+    <div class="row">
+        <div class="col col-12 col-lg-6">
+            <div id="calendar">
+                <table class="table text-center table-bordered" style="table-layout: fixed">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th colspan="7" class="text-left">
+                            <h4 style="display: inline; float: left;">Květen 2019</h4>
+                            <span style="float: right">
+                            <button type="button" class="btn btn-light">Předchozí měsíc</button>
+                            <button type="button" class="btn btn-light">Následující měsíc</button>
+                            </span>
+
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th>Po</th>
+                        <th>Út</th>
+                        <th>St</th>
+                        <th>Čt</th>
+                        <th>Pá</th>
+                        <th>So</th>
+                        <th>Ne</th>
+                    </tr>
+                    <tr>
+                        <td class="text-secondary">29</td>
+                        <td class="text-secondary">30</td>
+                        <td>1</td>
+                        <td>2</td>
+                        <td>3</td>
+                        <td>4</td>
+                        <td>5</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>7</td>
+                        <td>8</td>
+                        <td>9</td>
+                        <td>10</td>
+                        <td>11</td>
+                        <td>12</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>14</td>
+                        <td>15</td>
+                        <td>16</td>
+                        <td>17</td>
+                        <td>18</td>
+                        <td>19</td>
+                    </tr>
+                    <tr>
+                        <td>20</td>
+                        <td>21</td>
+                        <td>22</td>
+                        <td>23</td>
+                        <td>24</td>
+                        <td>25</td>
+                        <td>26</td>
+                    </tr>
+                    <tr>
+                        <td>27</td>
+                        <td>28</td>
+                        <td>29</td>
+                        <td>30</td>
+                        <td>31</td>
+                        <td class="text-secondary">1</td>
+                        <td class="text-secondary">2</td>
+                    </tr>
+                    <tr>
+                        <td class="text-secondary">3</td>
+                        <td class="text-secondary">4</td>
+                        <td class="text-secondary">5</td>
+                        <td class="text-secondary">6</td>
+                        <td class="text-secondary">7</td>
+                        <td class="text-secondary">8</td>
+                        <td class="text-secondary">9</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col col-12 col-lg-6">
+            <div id="month-info">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Informace o měsíci</th>
+                        <th class="text-right">
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Počet odpracovaných hodin</td>
+                        <td>20</td>
+                    </tr>
+                    <tr>
+                        <td>Maximální počet hodin v měsíci</td>
+                        <td>40</td>
+                    </tr>
+                    <tr>
+                        <td>Chybí vyčerpat</td>
+                        <td>20</td>
+                    </tr>
+                    <tr>
+                        <td>Za měsíc hrubého</td>
+                        <td>2000 Kč</td>
+                    </tr>
+                    <tr>
+                        <td>Za měsíc vyplacená částka</td>
+                        <td>2000 Kč</td>
+                    </tr>
+                    <tr>
+                        <td>Hodinová mzda</td>
+                        <td>100 Kč</td>
+                    </tr>
+                    <tr>
+                        <td>Platba daně</td>
+                        <td>Ne</td>
+                    </tr>
+                    <tr>
+                        <td>Vyčerpáno hodin v roce</td>
+                        <td>100</td>
+                    </tr>
+                    <tr>
+                        <td>Volné hodiny do konce roku</td>
+                        <td>200</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="text-center">
+                            <button class="btn btn-primary">Uzavřít měsíc</button>
+                        </td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div id="work-info">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th colspan="5">7. května 2019</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Od: <input type="time" step="1800" style="border-width: thin"></td>
+                        <td>Do: <input type="time" step="1800" style="border-width: thin"></td>
+                        <td>Počet hodin: 0</td>
+                        <td>Poznámka: <input type="text"></td>
+                        <td>
+                            <button class="btn btn-secondary">OK</button>
+                            <button class="btn btn-secondary">Zrušit</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            <button class="btn btn-primary">Přidat</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
