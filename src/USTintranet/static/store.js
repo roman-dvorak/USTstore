@@ -402,13 +402,35 @@ function draw_supplier(){
   for (param in parameters){
     var p = parameters[param];
 
+    var url = p.url;
+
+    if (url.length > 0){
+        switch (p.supplier) {
+            case "Mouser":
+            case "mouser":
+                url = "https://cz.mouser.com/ProductDetail/"+p.symbol
+                break;
+        }
+    }
+    else{
+        switch (p.supplier) {
+            case "tme":
+            case "TME":
+                url = "https://www.tme.eu/cz/details/"+url;
+                break;
+        }
+
+
+
+    }
+
     var html = "<div class='card p-2 m-0 mt-1 row' >"+
                 "<div class='col-auto mr-auto'><span>"+ "#"+(Number(param)+1).toString()+ "  "+
                 p.supplier + "</span> - "+
                 "<span>"+ p.symbol + "</span></div>"+
                 "<div class='btn-group btn-group-justified col-auto'>"+
                 "<a class='btn btn-sm btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
-                "<a class='btn btn-sm btn-outline-primary' href='" + p.url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
+                "<a class='btn btn-sm btn-outline-primary' href='//" + url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
                 "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
                 "</div>";
     var $html = $('<div />',{html:html});
