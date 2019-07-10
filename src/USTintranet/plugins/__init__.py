@@ -471,6 +471,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
 
+#
+#    def update_component(self, component):
+#
+
 class BaseHandlerJson(BaseHandler):
     def prepare(self):
         self.set_header('Content-Type', 'application/json')

@@ -129,7 +129,7 @@ class api_products_json(BaseHandler):
                 }]
             count = len(list(self.mdb.stock.aggregate(agq)))
 
-        elif any(i.isdigit() for i in search):
+        elif search.isdigit():
             search_string = "{:x}".format(int(search))
             agq = [{"$match": {'_id': bson.ObjectId(search_string)}
                 },{
