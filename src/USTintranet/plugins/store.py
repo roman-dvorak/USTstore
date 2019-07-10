@@ -129,6 +129,15 @@ class api_products_json(BaseHandler):
                 }]
             count = len(list(self.mdb.stock.aggregate(agq)))
 
+        elif any(i.isdigit() for i in search):
+            search_string = "{:x}".format(int(search))
+            agq = [{"$match": {'_id': bson.ObjectId(search_string)}
+                },{
+                    '$addFields': {'count': { '$sum': '$history.bilance'}}
+                }]
+            count = len(list(self.mdb.stock.aggregate(agq)))
+
+
         else:
 
             print("Hledam podle parametru")
