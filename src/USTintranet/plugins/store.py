@@ -121,64 +121,75 @@ class api_products_json(BaseHandler):
         print("tag polarity", tag_polarity, in_stock)
         dout = {}
 
-        agq = [
-            {"$unwind": "$_id"},
-            {"$sort" : {"category": 1,"_id": 1} },
-            {"$match": {'$or':[
-                                {'_id': { '$regex': search, '$options': 'ix'}},
-                                {'name': { '$regex': search, '$options': 'ix'}},
-                                {'description': { '$regex': search, '$options': 'ix'}} ]}
-            },{
-                "$match": {'category': {polarity: ascii_list_to_str(selected)}}
-            },{
-                '$addFields': {'count': { '$sum': '$history.bilance'}}
-            }]
+        if bson.ObjectId.is_valid(search):
+            print("Vybiram rozpoznani dle ObjectID")
+            agq = [{"$match": {'_id': bson.ObjectId(search)}
+                },{
+                    '$addFields': {'count': { '$sum': '$history.bilance'}}
+                }]
+            count = len(list(self.mdb.stock.aggregate(agq)))
 
-        if in_stock == 'Yes':
-            agq += [{'$match': {'count': {'$gt': 0}}}]
-        elif in_stock == 'No':
-            agq += [{'$match': {'count': {'$eq': 0}}}]
+        else:
 
-        if len(tag_search) > 1 and not tag_polarity:
+            print("Hledam podle parametru")
+            agq = [
+                {"$unwind": "$_id"},
+                {"$sort" : {"category": 1,"_id": 1} },
+                {"$match": {'$or':[
+                                    {'_id': { '$regex': search, '$options': 'ix'}},
+                                    {'name': { '$regex': search, '$options': 'ix'}},
+                                    {'description': { '$regex': search, '$options': 'ix'}} ]}
+                },{
+                    "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+                },{
+                    '$addFields': {'count': { '$sum': '$history.bilance'}}
+                }]
+
+            if in_stock == 'Yes':
+                agq += [{'$match': {'count': {'$gt': 0}}}]
+            elif in_stock == 'No':
+                agq += [{'$match': {'count': {'$eq': 0}}}]
+
+            if len(tag_search) > 1 and not tag_polarity:
+                agq += [{
+                    "$match": {'tags': { '$not': {'$elemMatch': {'id': tag_search}}}}
+                }]
+
+            elif len(tag_search) > 1 and tag_polarity:
+                agq += [{
+                    "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
+                }]
+
+            if in_stock == 'Yes':
+                agq += [{"$match": {'count': {"$gt": 0}}}]
+            elif in_stock == 'No':
+                agq += [{"$match": {'count': {"$eq": 0}}}]
+
+            count = len(list(self.mdb.stock.aggregate(agq)))
+
             agq += [{
-                "$match": {'tags': { '$not': {'$elemMatch': {'id': tag_search}}}}
-            }]
+                    '$skip' : int(page_len)*int(page)
+                },{
+                    '$limit' : int(page_len)
+                },{
+                    "$lookup":{
+                        "from": "category",
+                        "localField": "category",
+                        "foreignField": "name",
+                        "as": "category"
+                    }
+                },{
+                    '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
+                }]
 
-        elif len(tag_search) > 1 and tag_polarity:
-            agq += [{
-                "$match": {'tags': {'$elemMatch': {'id': tag_search}}}
-            }]
-
-        if in_stock == 'Yes':
-            agq += [{"$match": {'count': {"$gt": 0}}}]
-        elif in_stock == 'No':
-            agq += [{"$match": {'count': {"$eq": 0}}}]
-
-        count = len(list(self.mdb.stock.aggregate(agq)))
-
-        agq += [{
-                '$skip' : int(page_len)*int(page)
-            },{
-                '$limit' : int(page_len)
-            },{
-                "$lookup":{
-                    "from": "category",
-                    "localField": "category",
-                    "foreignField": "name",
-                    "as": "category"
-                }
-            },{
-                '$addFields': {'price_buy_avg': {'$avg': '$history.price'}}
-            }]
-
-        # agq += [{
-        #     "$lookup":{
-        #         "from": "",
-        #         "localField": "category",
-        #         "foreignField": "name",
-        #         "as": "category"
-        #     }
-        # }]
+            # agq += [{
+            #     "$lookup":{
+            #         "from": "",
+            #         "localField": "category",
+            #         "foreignField": "name",
+            #         "as": "category"
+            #     }
+            # }]
 
         dbcursor = self.mdb.stock.aggregate(agq)
         dout['data'] = list(dbcursor)
