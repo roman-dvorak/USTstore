@@ -107,6 +107,31 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="vacations">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th colspan="4">Dovolená</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Od: <input type="text" style="width: 140px"></td>
+                        <td>Do: <input type="text" style="width: 140px"></td>
+                        <td>
+                            <button class="btn btn-secondary">OK</button>
+                            <button class="btn btn-secondary">Zrušit</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            <button class="btn btn-primary">Přidat</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="col col-12 col-lg-6">
@@ -181,7 +206,7 @@
                     <tr>
                         <td>Od: <input type="time" step="1800" style="border-width: thin"></td>
                         <td>Do: <input type="time" step="1800" style="border-width: thin"></td>
-                        <td>Počet hodin: 0</td>
+                        <td>Počet hodin: <input type="number" style="width: 50px"></td>
                         <td>Poznámka: <input type="text"></td>
                         <td>
                             <button class="btn btn-secondary">OK</button>
