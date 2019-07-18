@@ -2,7 +2,7 @@
 
 ## Jaké máme objekty
 
-uživatel, jméno, adresa, smlouva, příloha (soubor), kus práce (jeden den od-do), dovolená
+uživatel, jméno, adresa, smlouva, kus práce (jeden den od-do), dovolená, dokument
 
 ## Uživatel - co víme?
 
@@ -21,8 +21,7 @@ tyto fieldy už v db jsou
 tyto je potřeba dořešit
 
 - datum narození
-- adresa trvalého pobytu
-- kontaktní adresa
+- pole adres
 - telefon
 - číslo účtu
 - pracovní náplň
@@ -32,14 +31,7 @@ tyto je potřeba dořešit
 
 - pole kusů práce
 - pole dovolených
-
-- potvrzení o studiu - do kdy platí nebo null
-- prohlášení o dani - do kdy platí nebo null
-
-- kolik odpracovaných hodin v měsíci?
-- kolik odpracovaných hodin v roce?
-
-    tyhle dva fieldy se mi úplně nelíbí, protože opakují informace které v databázi už jsou ve fieldu kusů práce, ale bude potřeba tyto informace rychle získávat, protože budou kontrolované při každém zadání nového kusu práce - nevím jak to udělat líp
+- pole dokumentů
 
 - má uživatel uzavřený měsíc?
 
@@ -60,20 +52,19 @@ tyto je potřeba dořešit
 ## Kus práce - opravdu potřebuje lepší název
 = v jednom dni jeden časový úsek práce od-do
 
-- od - nepotřebujeme nutně znát, pak by to mohlo obsahovat datetime třeba půlnoci
+- od
 - počet hodin
 - poznámka
 
 - na kterém projektu se dělalo (výběr z připravených možností)? - možnosti projektů uložit do kolekce intranet?
 
-pokud uživatel zadá více kusů práce v jednom dni, budeme požadovat udání "od"? (abychom neměli záznamy tvrdící že uživatel pracoval dvakrát v jednom dni pokaždé od půlnoci, nebo na tom nezáleží?)
-
 ## Jméno
-- titul před jménem - stačí jeden field, není důvod případných více titulů rozdělovat
-- jméno - má smysl rozlišovat prostřední jména do samostatných fieldů?
-  tj. {"jméno": "Jan Pavel", "přijmení": "Druhý"} vs. {"jméno": "Jan", "prostřední jméno": "Pavel", "přijmení": "Druhý"}
-- přijmení - stačí jeden field
-- titul za jménem - stačí jeden field
+titulů, jmen i přijmení může mít člověk víc, ale nemá smysl to rozdělovat
+
+- titul před jménem
+- jméno
+- přijmení
+- titul za jménem
 
 ## Adresa
 - ulice
@@ -81,12 +72,13 @@ pokud uživatel zadá více kusů práce v jednom dni, budeme požadovat udání
 - město
 - stát
 - PSČ
+- typ - "trvalý pobyt", "kontaktní adresa"...
 
-## Příloha
-- typ - je to kopie pracovní smlouvy, potvrzení o studiu...
-- popis
-- datum nahrání
-- kde je uložená - v db (id) / na disku (cesta)
+## Dokument
+- typ - potvrzení o studiu, prohlášení k dani...
+- platnost od
+- platnost do
+- cesta k souboru - v db (id) / na disku
 
 ## Dovolená 
 - od
