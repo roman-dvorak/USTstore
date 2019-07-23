@@ -1,20 +1,30 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import bson.json_util
 
+import tornado.escape
+import tornado.web
+import tornado.websocket
+from . import Intranet
 from . import BaseHandler
 from . import BaseHandlerJson
+from . import perm_validator
+import json
+import bson.json_util
+import urllib
+import datetime
 
 
-def make_handlers(plugin_name, plugin_namespace):
-    return [
-        (r'/{}/api/user/(.*)/save'.format(plugin_name), plugin_namespace.save_user),
-        (r'/{}/api/get_users/(.*)/'.format(plugin_name), plugin_namespace.ApiGetUsersHandler),
-        (r'/{}/api/get_users'.format(plugin_name), plugin_namespace.ApiGetUsersHandler),
-        (r'/{}/api/get_companies/'.format(plugin_name), plugin_namespace.get_compa),
-        (r'/{}'.format(plugin_name), plugin_namespace.home),
-        (r'/{}/'.format(plugin_name), plugin_namespace.home),
-    ]
+# def make_handlers(module, plugin):
+#     return [  # users
+#         (r'/{}/api/user/(.*)/save'.format(module), plugin.save_user),
+#         (r'/{}/api/get_users/(.*)/'.format(module), plugin.get_users),
+#         (r'/{}/api/get_users'.format(module), plugin.get_users),
+#         (r'/{}/api/get_comps/'.format(module), plugin.get_compa),
+#         (r'/{}'.format(module), plugin.home),
+#         (r'/{}/'.format(module), plugin.home),
+#         # (r'/%s/print/' %module, plugin.print_layout),
+#         # (r'/%s/api/(.*)/' %module, plugin.api)
+#     ]
 
 
 def plug_info():
@@ -22,17 +32,18 @@ def plug_info():
         "module": "users",
         "name": "Uživatelé",
         "icon": 'icon_users.svg',
-        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
+        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
     }
 
 
+# @perm_validator(permissions=['sudo'])
 class home(BaseHandler):
     role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
     def get(self, data=None):
+        # self.authorized(['users', 'users-sudo'])
         me = self.actual_user
         my_activity = list(self.mdb.operation_log.find({'user': me['user']}))
-
         if self.is_authorized(['users-editor', 'sudo-users']):
             users = self.mdb.users.find()
             self.render('users.home-sudo.hbs', title="TITLE", parent=self, users=users, me=me, my_activity=my_activity)
@@ -46,13 +57,8 @@ class home(BaseHandler):
 '''
 
 
-class ApiGetUsersHandler(BaseHandlerJson):
-    """
-    Odpověď na GET požadavek. Vytvoří seznam uživatelů jako JSON dokument a pošle je zpět.
-    Pokud je v url UID (_id), pošlou se pouze informace o konkrétním uživateli.
-    """
-    def get(self, uid=None):
-        print("getting")
+class get_users(BaseHandlerJson):
+    def post(self, uid=None):
         if not uid:
             self.authorized(['users', 'users-sudo'])
             skip = int(self.get_argument('skip', 0))

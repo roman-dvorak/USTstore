@@ -3,9 +3,25 @@
 {% block body %}
 
 <style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #body {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+
     #users-table-control-panel {
         width: 100%;
         padding: 5px;
+    }
+
+    #users-table-wrapper {
+        margin-left: -15px;
+        margin-right: -15px;
     }
 
     #save-btn {
@@ -20,60 +36,118 @@
     .tabulator {
         user-select: none;
     }
+
+    #new-user-form-wrapper {
+        width: 50%;
+        margin-left: auto;
+        margin-right: auto;
+    }
 </style>
 
-<div class="container-fluid" style="">
+<div class="container-fluid">
     <div class="row">
-
-        <div id="users-table-control-panel">
-            <div class="btn-group" role="group">
-                <button id="undo-btn" type="button" class="btn btn-light">Vzít zpět</button>
-                <button id="redo-btn" type="button" class="btn btn-light">Znovu</button>
+        <div class="col">
+            <h1>Tabulka uživatelů</h1>
+            <div id="users-table-wrapper">
+                <div id="users-table-control-panel">
+                    <div class="btn-group" role="group">
+                        <button id="undo-btn" type="button" class="btn btn-light" onclick="undoTableAction()">
+                            Vzít zpět
+                        </button>
+                        <button id="redo-btn" type="button" class="btn btn-light" onclick="redoTableAction()">
+                            Znovu
+                        </button>
+                    </div>
+                    <span id="messages-span"></span>
+                    <button id="save-btn" type="button" class="btn btn-light" onclick="saveUsersEdits()">Uložit</button>
+                </div>
+                <div id="users-table"></div>
             </div>
-            <span id="messages-span"></span>
-            <button id="save-btn" type="button" class="btn btn-light">Uložit</button>
         </div>
-        <div id="users-table"></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h1>Přidat uživatele</h1>
+
+            <div id="new-user-form-wrapper">
+                <form>
+                    <div class="form-group row">
+                        <label for="pre-name-title-input" class="col-3 col-form-label">Titul před jménem</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="pre-name-title-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="first-name-input" class="col-3 col-form-label">Jméno</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="first-name-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="surname-input" class="col-3 col-form-label">Příjmení</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="surname-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="post-name-title-input" class="col-3 col-form-label">Titul za jménem</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="post-name-title-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="email-input" class="col-3 col-form-label">Email</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="email-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="roles-input" class="col-3 col-form-label">Role</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="roles-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="assignment-input" class="col-3 col-form-label">Pracovní náplň</label>
+                        <div class="col">
+                            <input type="text" class="form-control" id="assignment-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" onclick="addUserSubmit()">Přidat uživatele</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <br><br><br>
     </div>
 </div>
 
 <script type="text/javascript">
 
-    let userData = [
-        {
-            "surname": "Novák",
-            "first_name": "Karel",
-            "id": "beberberberbthth",
-            "email": "novak@example.com",
-            "email_validate": true,
-            "role": "sudo, a, nejake, dalsi",
-            "created": "1. 1. 2017",
-            "birthdate": "14. 11. 1990",
-            "home_address": "Ulice 123, Někde",
-            "contact_address": null,
-            "phone_number": "123456789",
-            "account_number": "123456789/8555",
-            "assignment": "pracovat",
-            "contract_type": "DPP",
-            "contract_expiration_date": "4. 7. 2020",
-            "is_valid": true,
-            "hour_rate": 100,
-            "skills": "číst, psát, počítat",
-            "notes": "Nějaký sloh",
-            "hours_worked_this_month": 25,
-            "actual_gross_wage": 2500,
-            "hours_worked_last_month": 50,
-            "last_months_gross_wage": 5000,
-            "next_vacation": "1. 8. 2019 - 8. 8. 2019",
-            "certificate_of_study": "do 30. 9. 2019",
-            "tax_evasion": null,
-            "month_closed": false,
-        },
-    ];
-
-    let editedData = [];
-
-    // {"id": {"old_data": [...], "new_data": [...]}, ...}
+    /**
+     * Uchovává rozdíl mezi původními daty a daty změněnými administrátorem v tabulce.
+     *
+     * Formát: {
+     *     "old_data": {
+     *         <id uživatele 1>: {
+     *             <field1>: <nová hodnota fieldu 1>,
+     *             <field2>: <nová hodnota fieldu 2>,
+     *         }
+     *     }
+     *     "new_data": {
+     *         <id uživatele 1>: {
+     *             <field1>: <stará hodnota fieldu 1>,
+     *             <field2>: <stará hodnota fieldu 2>,
+     *         }
+     *     }
+     * }
+     */
+    let editedData = {
+        "old_data": {},
+        "new_data": {},
+    };
 
     /**
      * Připraví tabulátor a callbacky.
@@ -125,32 +199,46 @@
          *
          * Stará i nová data jsou uložena v proměnné editedData (viz dok.). Stará data jsou uložena jen
          * poprvé, tzn. je to původní hodnota v databázi. Odpovídá-li nová hodnota staré, obě jsou z
-         * editedData odstraněny.
+         * editedData odstraněny. Je-li odstraněna poslední upravená hodnota nějakého id, id se odstraní.
          *
          * Liší-li se stará a nová data, buňka je podbarvena šedě.
          */
         let cellDataEdited = function (cell) {
             let id = cell.getRow().getData().id;
-
-            if (!(id in editedData)) {
-                editedData[id] = {"old_data": {}, "new_data": {}};
-            }
-
             let field = cell.getField();
 
-            if (!(field in editedData[id].old_data)) {
-                editedData[id].old_data[field] = cell.getOldValue();
+            let oldV = cell.getOldValue();
+            let newV = cell.getValue();
+
+            if (oldV === newV) {
+                return
+            }
+
+            if (!(id in editedData.old_data)) {
+                editedData.old_data[id] = {};
+                editedData.new_data[id] = {};
+            }
+
+            if (!(field in editedData.old_data[id])) {
+                editedData.old_data[id][field] = oldV;
+
                 cell.getElement().style.backgroundColor = "#f5f5f5";
             }
-            editedData[id].new_data[field] = cell.getValue();
 
-            if (editedData[id].old_data[field] === editedData[id].new_data[field]) {
-                delete editedData[id].old_data[field];
-                delete editedData[id].new_data[field];
+            if (editedData.old_data[id][field] === newV) {
+                delete editedData.old_data[id][field];
+                delete editedData.new_data[id][field];
+
                 cell.getElement().style.backgroundColor = "";
-            }
 
-            console.log(editedData)
+                if ($.isEmptyObject(editedData.old_data[id])) {
+                    delete editedData.old_data[id];
+                    delete editedData.new_data[id];
+                }
+            } else {
+                editedData.new_data[id][field] = newV;
+            }
+            console.log(editedData);
         };
 
         /**
@@ -341,36 +429,96 @@
                     cellDblClick: dblClickEditFunc,
                 },
             ],
-            data: userData,
-            // ajaxURL: "users/api/get_users", //ajax URL
-            // ajaxConfig: {
-            //     method: "GET", //set request type to Position
-            //     headers: {
-            //         "Content-type": 'application/json; charset=utf-8', //set specific content type
-            //     },
-            // }
+            ajaxURL: "users/api/user/get",
+            ajaxConfig: {
+                method: "GET",
+                headers: {
+                    "Content-type": 'application/json; charset=utf-8', //set specific content type
+                },
+            }
         });
     }
 
     table = drawTable();
 
-    $("#undo-btn").on("click", () => {
+    /**
+     * onclick handler tlačítka vzít zpět.
+     * není-li co vzít zpět, zobrazí oznámení.
+     */
+    function undoTableAction() {
         let undone = table.undo();
         if (undone) {
             $("#messages-span").text("")
         } else {
             $("#messages-span").text("Není co vzít zpět")
         }
-    });
-    $("#redo-btn").on("click", () => {
+    }
+
+    /**
+     * onclick handler tlačítka znovu.
+     * není-li co provést znovu, zobrazí oznámení.
+     */
+    function redoTableAction() {
         let redone = table.redo();
         if (redone) {
             $("#messages-span").text("")
         } else {
             $("#messages-span").text("Není co provést znovu")
         }
-    });
+    }
 
+    /**
+     * onclick handler tlačítka přidat uživatele.
+     */
+    function addUserSubmit() {
+        let data = {
+            pre_name_title: $('#pre-name-title-input').val(),
+            first_name: $('#first-name-input').val(),
+            surname: $('#surname-input').val(),
+            post_name_title: $('#post-name-title-input').val(),
+            email: $('#email-input').val(),
+            roles: $('#roles-input').val(),
+            assignment: $('#assignment-input').val(),
+        };
+        $.ajax({
+            url: "/users/api/user/add",
+            type: "post",
+            data: data,
+            success: function (response) {
+                console.log(response);
+                console.log("yay!")
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                console.log("nay!")
+            }
+        });
+
+    }
+
+    /**
+     * onclick handler tlačítka uložit (změny dat v tabulce uživatelů)
+     * Ajaxem odesílá zřetězcovaný editedData.new_data
+     */
+    function saveUsersEdits() {
+        let data = {data: JSON.stringify(editedData.new_data)};
+
+        $.ajax({
+            url: "/users/api/user/edit",
+            type: "post",
+            data: data,
+            success: function (response) {
+                console.log(response);
+                console.log("yay!")
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                console.log("nay!")
+            }
+        });
+
+        console.log(data);
+    }
 </script>
 
 {% end %}{# block body#}
