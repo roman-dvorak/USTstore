@@ -1,19 +1,17 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+
 import bson.json_util
 
 from . import BaseHandler
-from . import BaseHandlerJson
+from .users_helpers import database as db
 
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
-        (r'/{}/api/user/(.*)/save'.format(plugin_name), plugin_namespace.save_user),
-        (r'/{}/api/get_users/(.*)/'.format(plugin_name), plugin_namespace.ApiGetUsersHandler),
-        (r'/{}/api/get_users'.format(plugin_name), plugin_namespace.ApiGetUsersHandler),
-        (r'/{}/api/get_companies/'.format(plugin_name), plugin_namespace.get_compa),
-        (r'/{}'.format(plugin_name), plugin_namespace.home),
-        (r'/{}/'.format(plugin_name), plugin_namespace.home),
+        (r'/{}/api/user/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
+        (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
+        (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
     ]
 
 
@@ -26,7 +24,7 @@ def plug_info():
     }
 
 
-class home(BaseHandler):
+class HomeHandler(BaseHandler):
     role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
     def get(self, data=None):
@@ -40,79 +38,38 @@ class home(BaseHandler):
             self.render('users.home.hbs', title="Nastavení účtu", parent=self, users=me, me=me, my_activity=my_activity)
 
 
-'''
-    Tato trida vytvori senzam uzivatelu jako json dokument a posled na POST pozadavek
-    Pokud obsahuje URL UID, poslou se pouze informace o uzivateli.
-'''
+class ApiAdminTableHandler(BaseHandler):
 
-
-class ApiGetUsersHandler(BaseHandlerJson):
-    """
-    Odpověď na GET požadavek. Vytvoří seznam uživatelů jako JSON dokument a pošle je zpět.
-    Pokud je v url UID (_id), pošlou se pouze informace o konkrétním uživateli.
-    """
     def get(self, uid=None):
-        print("getting")
-        if not uid:
-            self.authorized(['users', 'users-sudo'])
-            skip = int(self.get_argument('skip', 0))
-            limit = int(self.get_argument('limit', 50))
-            order = self.get_argument('order', 'user')
-            order_polarity = int(self.get_argument('order_polarity', 1))
+        data = db.get_users(self.mdb.users)
 
-            project = {'user': 1, 'name': 1, 'email': 1}
+        for item in data:
+            item["id"] = str(item["_id"])
+            if "created" in item:
+                item["created"] = item["created"].replace(microsecond=0).isoformat()
+            del item["_id"]
+            if "pass" in item:
+                del item["pass"]
 
-            out = list(self.mdb.users.aggregate([
-                {'$match': {'type': 'user'}},
-                {'$sort': {order: order_polarity}},
-                {'$skip': skip},
-                {'$limit': limit},
-                {'$project': project}
-            ]))
-            for u in out:
-                u['id'] = str(u['_id'])
-                u['pass'] = None
-
-        else:
-            self.authorized(['users', 'users-sudo'])
-            out = self.mdb.users.find_one({'_id': bson.ObjectId(uid)})
-            out['id'] = str(out['_id'])
-            out['pass'] = None
-            out['role_text'] = ','.join(out['role'])
-
-        out = bson.json_util.dumps(out)
+        out = bson.json_util.dumps(data)
         self.write(out)
 
-
-'''
-    Tato trida navrati ve formatu json, ktere seznamu firem...
-'''
-
-
-class get_compa(BaseHandlerJson):
     def post(self):
-        skip = int(self.get_argument('skip', 0))
-        limit = int(self.get_argument('limit', 50))
+        data = bson.json_util.loads(self.request.body.decode("utf-8"))
 
-        out = list(self.mdb.users.aggregate([
-            {'$match': {'type': 'company'}},
-            {'$skip': skip},
-            {'$limit': limit}
-        ]))
-        out = bson.json_util.dumps(out)
-        self.write(out)
+        edited = data["edited"]
+        new = data["new"]
+        deleted = data["deleted"]
 
+        db.update_users(self.mdb.users, edited)
 
-class save_user(BaseHandler):
+        if new:
+            new_formated = []
+            for _id, data in new.items():
+                data["_id"] = _id
+                data["type"] = "user"
+                new_formated.append(data)
 
-    def post(self, uid):
-        self.authorized(['users-sudo'])
-        print(uid)
-        data = {
-            'user': self.get_argument('user'),
-            'name': self.get_argument('name'),
-            'email': self.get_argument('email'),
-            'role': self.get_argument('role_text').strip().split(','),
-        }
-        self.mdb.users.update({'_id': bson.ObjectId(uid)}, {"$set": data})
-        self.write(uid)
+            db.add_users(self.mdb.users, new_formated)
+
+        db.delete_users(self.mdb.users, deleted)
