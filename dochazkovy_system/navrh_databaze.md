@@ -59,18 +59,17 @@ odvod daně se bude řešit každý měsíc individuálně
 ## Jméno "name"
 titulů, jmen i přijmení může mít člověk víc, ale nemá smysl to rozdělovat
 
-- titul před jménem "pre_nominal_title"
+- titul před jménem "pre_name_title"
 - jméno "first_name"
 - přijmení "surname"
-- titul za jménem "post_nominal_title"
+- titul za jménem "post_name_title"
 
 ## Adresa "address"
 - ulice "street"
-- městská část? "city_district"
 - město "city"
-- stát "country"
-- PSČ "postal_code"
-- typ "type" - "trvalý pobyt", "kontaktní adresa"...
+- stát "state"
+- PSČ "zip"
+- typ "type" - "trvalý pobyt (residence)", "kontaktní adresa (contact)"...
 
 ## Dokument "document"
 - typ "type" - potvrzení o studiu, prohlášení k dani...

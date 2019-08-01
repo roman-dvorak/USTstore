@@ -50,7 +50,11 @@
         background-color: rgba(0, 0, 0, 0.05)
     }
 
-    .edited-cell {
+    /*.edited-cell {*/
+    /*    background-color: rgba(0, 0, 0, 0.05)*/
+    /*}*/
+
+    .tabulator-row .edited-cell {
         background-color: rgba(0, 0, 0, 0.05)
     }
 </style>
@@ -62,6 +66,9 @@
             <div id="users-table-wrapper">
                 <div id="users-table-control-panel">
                     <div id="right-side-buttons">
+                        <button id="open-user-page" type="button" class="btn btn-light" onclick="showUserPage()">
+                            Zobrazit uživatele
+                        </button>
                         <div class="btn-group" role="group">
                             <button id="add-user-btn" type="button" class="btn btn-light" onclick="addUser()">
                                 Přidat
@@ -154,14 +161,12 @@
          * Zdroj: https://github.com/olifolkerd/tabulator/issues/631
          */
         let dblClickEditFunc = function (e, cell) {
+            clearMessage();
+
             if (cell.getField() === "email") {
                 setMessage("Pozor, změnou emailové adresy můžete uživateli znemožnit přihlášení");
-            } else {
-                clearMessage();
             }
-            console.log("here");
             deselectAllRows();
-            console.log("id dblClickEditFunc");
             cell.edit(true);
         };
 
@@ -183,6 +188,15 @@
         };
 
         /**
+         * Callback tabutatoru. Zobrazí varování po doubleclicku na zatím needitovatelnou buňku.
+         * Funkce pro vývoj, nebude ve výsledném produktu.
+         */
+        let yetUneditableMsg = function (e, cell) {
+            clearMessage();
+            setMessage("Editace není implementovaná")
+        };
+
+        /**
          * Callback tabulatoru. Volá se po změně dat v buňce.
          *
          * Při první úpravě řádku se starý obsah řádku uloží to originalData.
@@ -192,7 +206,7 @@
          * Liší-li se originální a nová data, buňka je podbarvena šedě.
          */
         let cellDataEdited = function (cell) {
-            let id = cell.getRow().getData().id;
+            let id = cell.getRow().getIndex();
             let field = cell.getField();
 
             let oldV = cell.getOldValue();
@@ -252,7 +266,7 @@
                 cellDataEdited(component);
             }
             if (action === "rowDelete") {
-                let id = component.getData().id;
+                let id = component.getIndex();
 
                 if (id in editedData) {
                     for (let field in editedData[id]) {
@@ -278,7 +292,7 @@
          * Nové řádky jsou podbarveny šedě.
          */
         let rowAdded = function (row) {
-            let id = row.getData().id;
+            let id = row.getIndex();
 
             // pokud byl tento řádek dříve odstraněn, už odstraněn není
             if (deletedData.has(id)) {
@@ -295,7 +309,7 @@
          * Callback tabulatoru. Přidá id řádku do deletedData.
          */
         let rowDeleted = function (row) {
-            let id = row.getData().id;
+            let id = row.getIndex();
 
             deletedData.add(id);
         };
@@ -308,6 +322,7 @@
             selectable: true,
             selectablePersistence: false,
             tooltipsHeader: true,
+            index: "_id",
             cellEdited: cellDataEdited,
             historyUndo: undoHappened,
             historyRedo: redoHappened,
@@ -332,8 +347,20 @@
                     validator: "string",
                 },
                 {
+                    title: "Celé jméno",
+                    field: "name",
+                    cellDblClick: uneditableMsg,
+                    headerTooltip: "Dočasný sloupec",
+                },
+                {
+                    title: "Přihlašovací jméno",
+                    field: "user",
+                    cellDblClick: uneditableMsg,
+                    headerTooltip: "Dočasný sloupec",
+                },
+                {
                     title: "ID",
-                    field: "id",
+                    field: "_id",
                     cellDblClick: uneditableMsg,
                 },
                 {
@@ -365,21 +392,21 @@
                     field: "birthdate",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: yetUneditableMsg, // TODO naimplementovat editor data
                 },
                 {
                     title: "Bydliště",
-                    field: "home_address",
+                    field: "residence_address",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: yetUneditableMsg, // TODO vymyslet editor adresy
                 },
                 {
                     title: "Kontaktní adresa",
                     field: "contact_address",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: yetUneditableMsg,
                 },
                 {
                     title: "Titul p. j.",
@@ -412,7 +439,7 @@
                     sorter: "string",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: yetUneditableMsg, // TODO vymyslet editor rolí
                 },
                 {
                     title: "Pracovní náplň",
@@ -561,7 +588,7 @@
      */
     function saveUsersEdits() {
         let data = {
-            "new": {},
+            "new": [],
             "edited": {},
             "deleted": [],
         };
@@ -569,7 +596,7 @@
         // ulož id nových řádků, které nebyly následně smazány
         for (let id of newData) {
             if (!(deletedData.has(id))) {
-                data["new"][id] = editedData[id];
+                data["new"].push(id);
             }
         }
 
@@ -583,7 +610,7 @@
         // ulož změny v řádcích
         for (let id in editedData) {
             if (editedData.hasOwnProperty(id)) {
-                if (!deletedData.has(id) && !newData.has(id)) {
+                if (!deletedData.has(id)) {
                     data["edited"][id] = editedData[id];
                 }
             }
@@ -597,11 +624,11 @@
             data: data,
             success: function (response) {
                 console.log(response);
-                setMessage("Změny uloženy")
+                setMessage("Změny uloženy");
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(textStatus, errorThrown);
-                setMessage("Nepodařilo se uložit změny")
+                setMessage("Nepodařilo se uložit změny");
             }
         });
     }
@@ -613,7 +640,7 @@
         let id = genMongoObjectID();
 
         newData.add(id);
-        table.addData([{id: id}], true);
+        table.addData([{_id: id}], true);
     }
 
     /**
@@ -623,7 +650,7 @@
         let selected = table.getSelectedRows();
 
         for (let row of selected) {
-            deletedData.add(row.getData().id);
+            deletedData.add(row.getIndex());
             row.delete();
         }
     }
@@ -636,6 +663,16 @@
         return timestamp + 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function () {
             return (Math.random() * 16 | 0).toString(16);
         }).toLowerCase();
+    }
+
+    function showUserPage() {
+        let selected = table.getSelectedRows();
+
+        for (let row of selected) {
+            let id = row.getIndex();
+            let url = `users/u/${id}`;
+            window.open(url, "_blank");
+        }
     }
 </script>
 
