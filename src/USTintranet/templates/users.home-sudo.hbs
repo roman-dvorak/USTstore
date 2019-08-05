@@ -2,6 +2,9 @@
 {% block title %} UST intranet | Adresář{%end%}
 {% block body %}
 
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+
 <style>
     body {
         overflow: hidden;
@@ -59,6 +62,46 @@
     }
 </style>
 
+<div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="address-editor-title">Editor Adresy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="address-column-field">
+                    <input type="hidden" id="address-row-id">
+                    <div class="form-group">
+                        <label for="address-street-input">Ulice, Č. P.</label>
+                        <input type="text" class="form-control" id="address-street-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-city-input">Město</label>
+                        <input type="text" class="form-control" id="address-city-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-state-input">Stát</label>
+                        <input type="text" class="form-control" id="address-state-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-zip-input">PSČ</label>
+                        <input type="text" class="form-control" id="address-zip-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="address-save-btn">Uložit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="container-fluid">
     <div class="row">
         <div class="col">
@@ -83,12 +126,12 @@
                     </div>
                     <div id="left-side-widgets">
                         <div class="btn-group" role="group">
-                        <button id="undo-btn" type="button" class="btn btn-light" onclick="undoTableAction()">
-                            Vzít zpět
-                        </button>
-                        <button id="redo-btn" type="button" class="btn btn-light" onclick="redoTableAction()">
-                            Znovu
-                        </button>
+                            <button id="undo-btn" type="button" class="btn btn-light" onclick="undoTableAction()">
+                                Vzít zpět
+                            </button>
+                            <button id="redo-btn" type="button" class="btn btn-light" onclick="redoTableAction()">
+                                Znovu
+                            </button>
                         </div>
                         <button id="deselect-all" type="button" class="btn btn-light" onclick="deselectAllRows()">
                             Odznačit vše
@@ -156,6 +199,10 @@
             elem.classList.remove("edited-cell");
         };
 
+        let reformatCell = function (cell) {
+            cell._cell._generateContents();
+        };
+
         /**
          * Callback tabulatoru. Editace buněk tabulatoru na doubleclick.
          * Zdroj: https://github.com/olifolkerd/tabulator/issues/631
@@ -177,6 +224,138 @@
             clearMessage();
             cell.setValue(!cell.getValue());
             e.preventDefault()
+        };
+
+        let addressEditor = function (e, cell, field) {
+            let data = cell.getData();
+            let id = cell.getRow().getIndex();
+            let street = data[field]["street"];
+            let city = data[field]["city"];
+            let state = data[field]["state"];
+            let zip = data[field]["zip"];
+
+            clearMessage();
+            $("#address-column-field").val(field);
+            $("#address-row-id").val(id);
+            $("#address-street-input").val(street);
+            $("#address-city-input").val(city);
+            $("#address-state-input").val(state);
+            $("#address-zip-input").val(zip);
+            $("#address-editor-modal").modal("show");
+        };
+
+        let dateEditor = function (cell, onRendered, success, cancel) {
+            //cell - the cell component for the editable cell
+            //onRendered - function to call when the editor has been rendered
+            //success - function to call to pass the successfuly updated value to Tabulator
+            //cancel - function to call to abort the edit and return to a normal cell
+
+            //create and style input
+
+            let input = document.createElement("input");
+            input.setAttribute("type", "date");
+            input.style.padding = "10px";
+            input.style.width = "100%";
+            input.style.boxSizing = "border-box";
+
+            let value = cell.getValue();
+
+            let cellValue = "";
+            if (value && typeof value !== "undefined") {
+                cellValue = value;
+            }
+
+            input.value = cellValue;
+
+            onRendered(function () {
+                input.focus();
+                input.style.height = "100%";
+            });
+
+            function onChange() {
+                if (input.value !== cellValue) {
+                    success(input.value);
+                } else {
+                    cancel();
+                }
+            }
+
+            //submit new value on blur or change
+            input.addEventListener("blur", onChange);
+
+            //submit new value on enter
+            input.addEventListener("keydown", function (e) {
+                if (e.keyCode === 13) {
+                    onChange();
+                }
+
+                if (e.keyCode === 27) {
+                    cancel();
+                }
+            });
+
+            return input;
+        };
+
+        let dateFormatter = function (cell, formatterParams, onRendered) {
+            let value = cell.getValue();
+
+            if (!value || typeof value === "undefined") {
+                return ""
+            }
+
+            moment.locale("cs");
+            return moment(value, "YYYY-MM-DD").format("l");
+        };
+
+        let saveAddressEditor = function () {
+            let id = $("#address-row-id").val();
+            let field = $("#address-column-field").val();
+
+            let street = $("#address-street-input").val();
+            let city = $("#address-city-input").val();
+            let state = $("#address-state-input").val();
+            let zip = $("#address-zip-input").val();
+
+            let row = table.getRow(id);
+
+            let setValueIfChanged = function (f, val) {
+                let cell = row.getCell(`${field}.${f}`);
+                if (cell.getValue() !== val) {
+                    cell.setValue(val);
+                }
+            };
+
+            setValueIfChanged("street", street);
+            setValueIfChanged("city", city);
+            setValueIfChanged("state", state);
+            setValueIfChanged("zip", zip);
+
+            reformatAddressCell(id, field);
+        };
+
+        $("#address-save-btn").on("click", saveAddressEditor);
+
+        let reformatAddressCell = function (id, field) {
+            reformatCell(table.getRow(id).getCell(`${field}_`));
+            let edited = false;
+
+            if (id in editedData) {
+                for (let f of ["street", "city", "state", "zip"]) {
+                    let key = `${field}.${f}`;
+                    if (key in editedData[id]) {
+                        if (originalData[id][key] !== editedData[id][key]) {
+                            edited = true;
+                        }
+                    }
+                }
+            }
+
+            if (edited) {
+                markElementEdited(table.getRow(id).getCell(`${field}_`).getElement());
+            } else {
+                unmarkElementEdited(table.getRow(id).getCell(`${field}_`).getElement());
+            }
         };
 
         /**
@@ -224,6 +403,11 @@
                 originalData[id][field] = oldV;
             }
 
+            if (!(field in originalData[id])) {
+                console.log("přidávám field do originalData");
+                originalData[id][field] = oldV;
+            }
+
             // dej id do editedData
             if (!(id in editedData)) {
                 console.log("dávám id do editedData");
@@ -262,8 +446,12 @@
          * nepamatuje podbarvení smazaných řádků).
          */
         let undoHappened = function (action, component, data) {
-            if (component.constructor.name === "CellComponent") {
+            if (action === "cellEdit") {
                 cellDataEdited(component);
+
+                if (component.getField().includes("address")) {
+                    reformatAddressCell(component.getRow().getIndex(), component.getField().split(".")[0]);
+                }
             }
             if (action === "rowDelete") {
                 let id = component.getIndex();
@@ -282,8 +470,12 @@
          * Callback tabulátoru. Pokud byla znovu provedena úprava buňky, zavolá cellDataEdited.
          */
         let redoHappened = function (action, component, data) {
-            if (component.constructor.name === "CellComponent") {
+            if (action === "cellEdit") {
                 cellDataEdited(component);
+
+                if (component.getField().includes("address")) {
+                    reformatAddressCell(component.getRow().getIndex(), component.getField().split(".")[0]);
+                }
             }
         };
 
@@ -314,6 +506,27 @@
             deletedData.add(id);
         };
 
+        let addressFormatter = function (cell, formatterParams, onRendered) {
+            let field = formatterParams.field;
+            let data = cell.getData();
+
+            if (!data[field] || typeof data[field] === "undefined") return "";
+
+            let street = data[field]["street"];
+            if (typeof street === "undefined") street = "";
+
+            let city = data[field]["city"];
+            if (typeof city === "undefined") city = "";
+
+            let state = data[field]["state"];
+            if (typeof state === "undefined") state = "";
+
+            let zip = data[field]["zip"];
+            if (typeof zip === "undefined") zip = "";
+
+            return `${street} ${city}, ${state}, ${zip}`;
+        };
+
         return new Tabulator("#users-table", {
             width: '100%',
             height: '500px',
@@ -331,7 +544,7 @@
             columns: [
                 {
                     title: "Přijmení",
-                    field: "surname",
+                    field: "name.surname",
                     frozen: true,
                     editor: "input",
                     editable: false,
@@ -340,7 +553,7 @@
                 },
                 {
                     title: "Jméno",
-                    field: "first_name",
+                    field: "name.first_name",
                     editor: "input",
                     editable: false,
                     cellDblClick: dblClickEditFunc,
@@ -348,7 +561,7 @@
                 },
                 {
                     title: "Celé jméno",
-                    field: "name",
+                    field: "full_name",
                     cellDblClick: uneditableMsg,
                     headerTooltip: "Dočasný sloupec",
                 },
@@ -390,27 +603,60 @@
                 {
                     title: "Datum narození",
                     field: "birthdate",
-                    editor: "input",
+                    editor: dateEditor,
                     editable: false,
-                    cellDblClick: yetUneditableMsg, // TODO naimplementovat editor data
+                    formatter: dateFormatter,
+                    cellDblClick: dblClickEditFunc, // TODO naimplementovat editor data
                 },
                 {
                     title: "Bydliště",
-                    field: "residence_address",
-                    editor: "input",
-                    editable: false,
-                    cellDblClick: yetUneditableMsg, // TODO vymyslet editor adresy
+                    field: "residence_address_",
+                    formatter: addressFormatter,
+                    formatterParams: {field: "residence_address"},
+                    cellDblClick: (e, cell) => addressEditor(e, cell, "residence_address")
+                },
+                {
+                    field: "residence_address.street",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.city",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.state",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.zip",
+                    visible: false,
                 },
                 {
                     title: "Kontaktní adresa",
-                    field: "contact_address",
-                    editor: "input",
-                    editable: false,
-                    cellDblClick: yetUneditableMsg,
+                    field: "contact_address_",
+                    formatter: addressFormatter,
+                    formatterParams: {field: "contact_address"},
+                    cellDblClick: (e, cell) => addressEditor(e, cell, "contact_address")
+                },
+                {
+                    field: "contact_address.street",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.city",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.state",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.zip",
+                    visible: false,
                 },
                 {
                     title: "Titul p. j.",
-                    field: "pre_name_title",
+                    field: "name.pre_name_title",
                     sorter: "string",
                     editor: "input",
                     editable: false,
@@ -419,7 +665,7 @@
                 },
                 {
                     title: "Titul z. j.",
-                    field: "post_name_title",
+                    field: "name.post_name_title",
                     sorter: "string",
                     editor: "input",
                     editable: false,

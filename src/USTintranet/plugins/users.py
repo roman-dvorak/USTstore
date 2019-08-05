@@ -193,6 +193,9 @@ class ApiAdminTableHandler(BaseHandler):
         residence_address = {key.split(".")[1]: data.pop(key) for key in keys if "residence_address" in key}
         contact_address = {key.split(".")[1]: data.pop(key) for key in keys if "contact_address" in key}
 
+        if "birthdate" in data:
+            data["birthdate"] = datetime.strptime(data["birthdate"], "%Y-%m-%d")
+
         if data:
             db.update_user(self.mdb.users, _id, data)
 
