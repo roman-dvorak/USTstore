@@ -144,10 +144,17 @@ class ApiAdminTableHandler(BaseHandler):
 
         for item in data:
             item["_id"] = str(item["_id"])
+
             if "created" in item:
                 item["created"] = item["created"].replace(microsecond=0).isoformat()
-            if "pass" in item:
-                del item["pass"]
+
+            item.pop("pass", None)
+
+            if "addresses" in item:
+                item["residence_address"] = next((a for a in item["addresses"] if a["type"] == "residence"), None)
+                item["contact_address"] = next((a for a in item["addresses"] if a["type"] == "contact"), None)
+
+                del item["addresses"]
 
         out = bson.json_util.dumps(data)
         self.write(out)
@@ -166,47 +173,36 @@ class ApiAdminTableHandler(BaseHandler):
         """
         data = bson.json_util.loads(self.request.body.decode("utf-8"))
 
-        edited_raw = data["edited"]
+        edited_data = data["edited"]
         new_ids = data["new"]
         deleted_ids = data["deleted"]
 
-        if deleted_ids:
-            db.delete_users(self.mdb.users, deleted_ids)
+        for _id in deleted_ids:
+            db.delete_user(self.mdb.users, _id)
 
-        edited_formatted = self.prepare_edited(edited_raw)
+        db.add_users(self.mdb.users, new_ids)
 
-        edited = {_id: fields for _id, fields in edited_formatted.items() if _id not in new_ids}
-        db.update_users(self.mdb.users, edited)
+        for _id, fields in edited_data.items():
+            self.process_and_update(_id, fields)
 
-        if new_ids:
-            new = self.prepare_new(edited_formatted, new_ids)
-            db.add_users(self.mdb.users, new)
+    def process_and_update(self, _id, data):
+        """
+        Zajistí, že data uživatele jsou v odpovídajícím tvaru pro uložení do databáze a uloží je.
+        """
+        keys = list(data.keys())
+        residence_address = {key.split(".")[1]: data.pop(key) for key in keys if "residence_address" in key}
+        contact_address = {key.split(".")[1]: data.pop(key) for key in keys if "contact_address" in key}
 
-    def prepare_edited(self, raw):
-        formatted = {}
+        if data:
+            db.update_user(self.mdb.users, _id, data)
 
-        for _id, fields in raw.items():
-            if any([key in fields for key in EMPTY_NAME_DOC.keys()]):
-                fields["name"] = {}
+        if residence_address:
+            residence_address["type"] = "residence"
+            db.update_user_address(self.mdb.users, _id, residence_address)
 
-            for key in EMPTY_NAME_DOC.keys():
-                if key in fields:
-                    fields["name"][key] = fields[key]
-
-            formatted[_id] = fields
-
-        return formatted
-
-    def prepare_new(self, data, ids):
-        prepared = []
-        for _id, fields in data.items():
-            if _id in ids:
-                fields["_id"] = _id
-                fields["type"] = "user"
-                fields["created"] = datetime.now().replace(microsecond=0)
-                prepared.append(fields)
-
-        return prepared
+        if contact_address:
+            contact_address["type"] = "contact"
+            db.update_user_address(self.mdb.users, _id, contact_address)
 
 
 class UserPageHandler(BaseHandler):
