@@ -1,9 +1,11 @@
 {% extends "base.hbs" %}
-{% block title %} UST intranet | Adresář{%end%}
+{% block title %} UST intranet | Tabulka uživatelů{%end%}
 {% block body %}
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
 
 <style>
     body {
@@ -102,6 +104,34 @@
 </div>
 
 
+<div class="modal fade" id="role-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="role-editor-title">Editor Rolí</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="role-column-field">
+                    <input type="hidden" id="role-row-id">
+                    <div class="form-group">
+                        <label for="tagify-input">Role</label>
+                        <input type="text" class="form-control form-control-sm" id="tagify-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="role-save-btn">Uložit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="container-fluid">
     <div class="row">
         <div class="col">
@@ -151,10 +181,12 @@
 
 <script type="text/javascript">
 
-    let originalData = {};
-    let editedData = {};
+    let originalData = {}; // formát {<user id>: {<row data>}}, obsahuje originály jen editovaných řádků
+    let editedData = {}; // formát {<user id>: {<editovaný field>: <nová hodnota>}}, obsahuje editované fieldy
     let newData = new Set(); // sem přijdou jen id nových uživatelů
-    let deletedData = new Set();
+    let deletedData = new Set(); // sem přijdou jen id smazaných uživatelů
+
+    let tagify = new Tagify(document.getElementById("tagify-input"));
 
     /**
      * Zobrazí oznámení v messages-span.
@@ -308,6 +340,39 @@
             return moment(value, "YYYY-MM-DD").format("l");
         };
 
+        let roleEditor = function (e, cell) { // TODO focus input on modal show
+            let data = cell.getRow().getData();
+            let id = cell.getRow().getIndex();
+            let field = cell.getField();
+
+            tagify.removeAllTags();
+            tagify.addTags(cell.getValue());
+
+            clearMessage();
+            $("#role-column-field").val(field);
+            $("#role-row-id").val(id);
+            $("#role-editor-modal").modal("show");
+        };
+
+        let saveRoleEditor = function () {
+            let id = $("#role-row-id").val();
+            let field = $("#role-column-field").val();
+            let cell = table.getRow(id).getCell(field);
+
+            let new_tags = [];
+            for (let tag of tagify.value) {
+                new_tags.push(tag.value);
+            }
+
+            let old_value = cell.getValue();
+            if (!Array.isArray(old_value) || old_value.join() !== new_tags.join()) {
+                cell.setValue(new_tags);
+            }
+
+            tagify.removeAllTags();
+        };
+
+
         let saveAddressEditor = function () {
             let id = $("#address-row-id").val();
             let field = $("#address-column-field").val();
@@ -335,6 +400,7 @@
         };
 
         $("#address-save-btn").on("click", saveAddressEditor);
+        $("#role-save-btn").on("click", saveRoleEditor);
 
         let reformatAddressCell = function (id, field) {
             reformatCell(table.getRow(id).getCell(`${field}_`));
@@ -683,9 +749,8 @@
                     title: "Role",
                     field: "role",
                     sorter: "string",
-                    editor: "input",
                     editable: false,
-                    cellDblClick: yetUneditableMsg, // TODO vymyslet editor rolí
+                    cellDblClick: roleEditor, // TODO vymyslet editor rolí
                 },
                 {
                     title: "Pracovní náplň",
@@ -705,7 +770,7 @@
                     title: "Datum založení účtu",
                     field: "created",
                     cellDblClick: uneditableMsg,
-                    // formatter: "datetime",
+                    formatter: dateFormatter,
                 },
                 {
                     title: "Typ smlouvy",
@@ -779,7 +844,7 @@
                     cellDblClick: dblClickEditFunc,
                 },
             ],
-            ajaxURL: "users/api/user/admintable",
+            ajaxURL: "users/api/admintable",
             ajaxConfig: {
                 method: "GET",
                 headers: {
@@ -789,7 +854,7 @@
         });
     }
 
-    table = drawTable();
+    let table = drawTable();
 
     /**
      * Zruší všechen výběr.
@@ -862,15 +927,14 @@
             }
         }
 
-        data = JSON.stringify(data);
-
         $.ajax({
-            url: "/users/api/user/admintable",
+            url: "/users/api/admintable",
             type: "post",
-            data: data,
+            data: JSON.stringify(data),
             success: function (response) {
                 console.log(response);
                 setMessage("Změny uloženy");
+                resetTable();
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(textStatus, errorThrown);
@@ -902,7 +966,19 @@
     }
 
     /**
+     * Resetuje tabulku. Znovu stáhne data ze serveru a zahodí neuložené změny.
+     */
+    function resetTable() {
+        table.replaceData();
+        originalData = {};
+        editedData = {};
+        newData = new Set();
+        deletedData = new Set();
+    }
+
+    /**
      * Vytvoří nové MongoDB ObjectID pro nového uživatele.
+     * zdroj: https://gist.github.com/solenoid/1372386
      */
     function genMongoObjectID() {
         let timestamp = (new Date().getTime() / 1000 | 0).toString(16);
@@ -913,12 +989,15 @@
 
     function showUserPage() {
         let selected = table.getSelectedRows();
-
-        for (let row of selected) {
-            let id = row.getIndex();
-            let url = `users/u/${id}`;
-            window.open(url, "_blank");
+        if (selected.length > 1) {
+            setMessage("Je vybráno více řádků");
+            return;
         }
+        clearMessage();
+        let row = selected[0];
+        let id = row.getIndex();
+        let url = `users/u/${id}`;
+        window.open(url, "_blank");
     }
 </script>
 

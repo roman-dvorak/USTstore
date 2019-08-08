@@ -1,9 +1,169 @@
 {% extends "base.hbs" %}
-{% block title %} UST intranet | Adresář{%end%}
+{% block title %} UST intranet | Karta uživatele{%end%}
 {% block body %}
 
+
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
+
+
+<style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #body {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+
+    .address-form-part {
+        padding-left: 1em;
+    }
+
+    #basic-info table td:first-child {
+        width: 40%;
+    }
+</style>
+
+
+<div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="user-editor-title">Editor informací o uživateli</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="user-editor-form">
+
+                    <div class="form-group">
+                        <label for="pre-name-title-input">Titul před jménem</label>
+                        <input type="text" class="form-control" id="pre-name-title-input" placeholder="{{pre_name_title}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="first-name-input">Jméno</label>
+                        <input type="text" class="form-control" id="first-name-input" placeholder="{{first_name}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="surname-input">Příjmení</label>
+                        <input type="text" class="form-control" id="surname-input" placeholder="{{surname}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="post-name-title">Titul za jménem</label>
+                        <input type="text" class="form-control" id="post-name-title" placeholder="{{post_name_title}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="birthdate-input">Datum narození</label>
+                        <input type="date" class="form-control" id="birthdate-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email-input">Email</label>
+                        <input type="text" class="form-control" id="email-input" placeholder="{{email}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone-number-input">Telefon</label>
+                        <input type="text" class="form-control" id="phone-number-input" placeholder="{{phone_number}}">
+                    </div>
+
+                    <h6>Adresa trvalého pobytu</h6>
+                    <div class="address-form-part">
+
+                        <div class="form-group">
+                            <label for="residence-street-input">Ulice, Č.P.</label>
+                            <input type="text" class="form-control" id="residence-street-input" placeholder="{{residence_street}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-city-input">Město</label>
+                            <input type="text" class="form-control" id="residence-city-input" placeholder="{{residence_city}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-state-input">Stát</label>
+                            <input type="text" class="form-control" id="residence-state-input" placeholder="{{residence_state}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-zip-input">PSČ</label>
+                            <input type="text" class="form-control" id="residence-zip-input" placeholder="{{residence_zip}}">
+                        </div>
+                    </div>
+
+                    <h6>Kontaktní adresa</h6>
+                    <div class="address-form-part">
+
+                        <div class="form-group">
+                            <label for="contact-street-input">Ulice, Č.P.</label>
+                            <input type="text" class="form-control" id="contact-street-input" placeholder="{{contact_street}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-city-input">Město</label>
+                            <input type="text" class="form-control" id="contact-city-input" placeholder="{{contact_city}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-state-input">Stát</label>
+                            <input type="text" class="form-control" id="contact-state-input" placeholder="{{contact_state}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-zip-input">PSČ</label>
+                            <input type="text" class="form-control" id="contact-zip-input" placeholder="{{contact_zip}}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="account-number-input">Číslo účtu</label>
+                        <input type="text" class="form-control" id="account-number-input" placeholder="{{account_number}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role-input">Role</label>
+                        <input type="text" class="form-control form-control-sm" id="role-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignment-input">Pracovní náplň</label>
+                        <input type="text" class="form-control" id="assignment-input" placeholder="{{assignment}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="skills-input">Dovednosti</label>
+                        <input type="text" class="form-control" id="skills-input" placeholder="{{skills}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes-input">Poznámky</label>
+                        <textarea class="form-control" rows="2" id="notes-input" placeholder="{{notes}}"></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="user-save-btn"
+                        onclick="saveUserEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="container">
-    <h1>Karta zaměstnance: <a href="#">Mgr. Jiří Novák</a></h1>
+    <h1>Karta uživatele: <a href="#">{{name}}</a></h1>
 
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -13,70 +173,70 @@
                     <tr>
                         <th>Základní informace</th>
                         <th class="text-right">
-                            <button type="button" class="btn btn-light">Změnit</button>
+                            <button type="button" class="btn btn-light" onclick="showUserEditorModal()">Změnit</button>
                         </th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr>
                         <td>Uživatelské jméno</td>
-                        <td>{{user_doc['user']}}</td>
+                        <td>{{user}}</td>
                     </tr>
                     <tr>
                         <td>Jméno</td>
-                        <td>{{user_doc['pre_name_title']}}</td>
+                        <td>{{name}}</td>
                     </tr>
                     <tr>
                         <td>Datum narození</td>
-                        <td>1. 1. 1990</td>
-                    </tr>
-                    <tr>
-                        <td>Adresa trvalého pobytu</td>
-                        <td>Někde 145, Praha</td>
-                    </tr>
-                    <tr>
-                        <td>Kontaktní adresa</td>
-                        <td>---</td>
+                        <td>{{birthdate}}</td>
                     </tr>
                     <tr>
                         <td>Email</td>
-                        <td>novak1@example.com</td>
+                        <td>{{email}}</td>
                     </tr>
                     <tr>
                         <td>Telefon</td>
-                        <td>123 456 789</td>
+                        <td>{{phone_number}}</td>
+                    </tr>
+                    <tr>
+                        <td>Adresa trvalého pobytu</td>
+                        <td>{{residence_address}}</td>
+                    </tr>
+                    <tr>
+                        <td>Kontaktní adresa</td>
+                        <td>{{contact_address}}</td>
                     </tr>
                     <tr>
                         <td>Číslo bankovního účtu</td>
-                        <td>48645646844/0123</td>
+                        <td>{{account_number}}</td>
                     </tr>
                     <tr>
                         <td>Role</td>
-                        <td>sudo</td>
+                        <td>{{role}}</td>
                     </tr>
                     <tr>
                         <td>Pracovní náplň</td>
-                        <td>Pracovat</td>
+                        <td>{{assignment}}</td>
                     </tr>
                     <tr>
                         <td>Platné prohlášení o dani</td>
-                        <td>Ne</td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td>Potvrzení o studiu</td>
-                        <td>Ne</td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td>Hodinová sazba</td>
-                        <td>100 Kč</td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td>Dovednosti</td>
-                        <td>Čtení, psaní</td>
+                        <td>{{skills}}</td>
                     </tr>
                     <tr>
                         <td>Poznámky</td>
-                        <td>Nejsou</td>
+                        <td>{{notes}}</td>
                     </tr>
                     </tbody>
                 </table>
@@ -156,7 +316,7 @@
                 </table>
             </div>
 
-            <div id="attachments">
+            <div id="documents">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -177,5 +337,95 @@
         </div>
     </div>
 </div>
+
+<script>
+
+    let role_tagify = new Tagify(document.getElementById("role-input"));
+
+    function showUserEditorModal() {
+        let inputs = document.forms["user-editor-form"].getElementsByTagName("input");
+        for (let input of inputs) {
+            input.value = ""
+        }
+        $("#notes-input").val("");
+
+        role_tagify.removeAllTags();
+        role_tagify.addTags("{{role}}".split(", "));
+
+        let birthdateInput = $("#birthdate-input");
+        birthdateInput.val("{{birthdate_iso}}");
+
+        $("#user-editor-modal").modal("show");
+    }
+
+    function saveUserEditor() {
+        let changes = {};
+        let residence = {};
+        let contact = {};
+
+        changes["name.pre_name_title"] = $("#pre-name-title-input").val();
+        changes["name.first_name"] = $("#first-name-input").val();
+        changes["name.surname"] = $("#surname-input").val();
+        changes["name.post_name_title"] = $("#post-name-title-input").val();
+
+        changes["email"] = $("#email-input").val();
+        changes["phone_number"] = $("#phone-number-input-input").val();
+        changes["account_number"] = $("#account-number-input").val();
+        changes["assignment"] = $("#assignment-input").val();
+        changes["skills"] = $("#skills-input").val();
+        changes["notes"] = $("#notes-input").val();
+
+        let new_roles = [];
+        for (let role of role_tagify.value) {
+            new_roles.push(role.value)
+        }
+        if (new_roles.join(", ") !== "{{role}}") {
+            changes["role"] = new_roles;
+        }
+
+        let new_birthdate = $("#birthdate-input").val();
+        if (new_birthdate !== "{{birthdate_iso}}") {
+            changes["birthdate"] = new_birthdate;
+        }
+
+        residence["street"] = $("#residence-street-input").val();
+        residence["city"] = $("#residence-city-input").val();
+        residence["state"] = $("#residence-state-input").val();
+        residence["zip"] = $("#residence-zip-input").val();
+
+        contact["street"] = $("#contact-street-input").val();
+        contact["city"] = $("#contact-city-input").val();
+        contact["state"] = $("#contact-state-input").val();
+        contact["zip"] = $("#contact-zip-input").val();
+
+        for (let obj of [changes, residence, contact]) {
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key) && !obj[key]) {
+                    delete obj[key];
+                }
+            }
+        }
+
+        if (!$.isEmptyObject(residence)) changes["residence_address"] = residence;
+        if (!$.isEmptyObject(contact)) changes["contact_address"] = contact;
+
+        console.log(changes);
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/edit",
+            type: "post",
+            data: JSON.stringify(changes),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+</script>
 
 {% end %}{# block body#}
