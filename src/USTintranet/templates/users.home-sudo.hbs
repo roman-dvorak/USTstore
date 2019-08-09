@@ -231,6 +231,10 @@
             elem.classList.remove("edited-cell");
         };
 
+        /**
+         * Znovu zavolá formatter pro danou buňku. (To se děje automaticky při změně dat v buňce, tato funkce je
+         * užitečná pro buňky, které nemají vlastní obsah a zobrazují kompilaci dat z ostatních sloupců)
+         */
         let reformatCell = function (cell) {
             cell._cell._generateContents();
         };
@@ -239,7 +243,7 @@
          * Callback tabulatoru. Editace buněk tabulatoru na doubleclick.
          * Zdroj: https://github.com/olifolkerd/tabulator/issues/631
          */
-        let dblClickEditFunc = function (e, cell) {
+        let dblClickStartEdit = function (e, cell) {
             clearMessage();
 
             if (cell.getField() === "email") {
@@ -258,7 +262,12 @@
             e.preventDefault()
         };
 
-        let addressEditor = function (e, cell, field) {
+        /**
+         * Callback tabulatoru. Zobrazí modal editor adresy a nastaví hodnoty v inputech.
+         * Jelikož samotné prvky adresy jsou uložené v neviditelných sloupcích <field>.<prvek>, je nutné funkci dát
+         * jméno fieldu.
+         */
+        let showAddressEditor = function (e, cell, field) {
             let data = cell.getData();
             let id = cell.getRow().getIndex();
             let street = data[field]["street"];
@@ -267,8 +276,11 @@
             let zip = data[field]["zip"];
 
             clearMessage();
+
+            // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
             $("#address-column-field").val(field);
             $("#address-row-id").val(id);
+
             $("#address-street-input").val(street);
             $("#address-city-input").val(city);
             $("#address-state-input").val(state);
@@ -276,13 +288,10 @@
             $("#address-editor-modal").modal("show");
         };
 
+        /**
+         * Umožňuje editovat buňky s informací o datu stejně jako běžné textové buňky ale pomocí time inputu.
+         */
         let dateEditor = function (cell, onRendered, success, cancel) {
-            //cell - the cell component for the editable cell
-            //onRendered - function to call when the editor has been rendered
-            //success - function to call to pass the successfuly updated value to Tabulator
-            //cancel - function to call to abort the edit and return to a normal cell
-
-            //create and style input
 
             let input = document.createElement("input");
             input.setAttribute("type", "date");
@@ -329,6 +338,9 @@
             return input;
         };
 
+        /**
+         * Formatter pro buňky s informací o datu. Formátuje datum v iso standardu na český standard zápisu data.
+         */
         let dateFormatter = function (cell, formatterParams, onRendered) {
             let value = cell.getValue();
 
@@ -340,7 +352,10 @@
             return moment(value, "YYYY-MM-DD").format("l");
         };
 
-        let roleEditor = function (e, cell) { // TODO focus input on modal show
+        /**
+         * Callback tabulatoru. Zobrazí modal editor rolí v podobě tagify inputu.
+         */
+        let showRoleEditor = function (e, cell) { // TODO focus input on modal show
             let data = cell.getRow().getData();
             let id = cell.getRow().getIndex();
             let field = cell.getField();
@@ -349,11 +364,17 @@
             tagify.addTags(cell.getValue());
 
             clearMessage();
+
+            // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
             $("#role-column-field").val(field);
             $("#role-row-id").val(id);
+
             $("#role-editor-modal").modal("show");
         };
 
+        /**
+         * Přeparsuje role tagy z tagify a jestli se změnily role, uloží změny do tabulky (a do editedData).
+         */
         let saveRoleEditor = function () {
             let id = $("#role-row-id").val();
             let field = $("#role-column-field").val();
@@ -372,7 +393,9 @@
             tagify.removeAllTags();
         };
 
-
+        /**
+         * Vezme data z editoru adres a uloží je do tabulky (a do editedData).
+         */
         let saveAddressEditor = function () {
             let id = $("#address-row-id").val();
             let field = $("#address-column-field").val();
@@ -399,9 +422,9 @@
             reformatAddressCell(id, field);
         };
 
-        $("#address-save-btn").on("click", saveAddressEditor);
-        $("#role-save-btn").on("click", saveRoleEditor);
-
+        /**
+         * Přeformátuje buňku adresy (zavolá formatter). Pokud byla adresa upravena, označí buňku jako upravenou.
+         */
         let reformatAddressCell = function (id, field) {
             reformatCell(table.getRow(id).getCell(`${field}_`));
             let edited = false;
@@ -572,6 +595,11 @@
             deletedData.add(id);
         };
 
+        /**
+         * Formatter buňky adresy. Protože buňka adresy nemá vlastní hodnotu, zobrazená hodnota je vytvořena ze
+         * skrytých sloupců <field>.<prvek adresy>. Buňka samotná neví, jak se jmenuje jí příslušný field adresy,
+         * proto je nutné tuto informaci předat ve formatterParams.
+         */
         let addressFormatter = function (cell, formatterParams, onRendered) {
             let field = formatterParams.field;
             let data = cell.getData();
@@ -592,6 +620,9 @@
 
             return `${street} ${city}, ${state}, ${zip}`;
         };
+
+        $("#address-save-btn").on("click", saveAddressEditor);
+        $("#role-save-btn").on("click", saveRoleEditor);
 
         return new Tabulator("#users-table", {
             width: '100%',
@@ -614,7 +645,7 @@
                     frozen: true,
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     validator: "string",
                 },
                 {
@@ -622,7 +653,7 @@
                     field: "name.first_name",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     validator: "string",
                 },
                 {
@@ -648,7 +679,7 @@
                     sorter: "string",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     validator: ["required", `regex:${regexEmail}`],
                 },
                 {
@@ -663,7 +694,7 @@
                     field: "phone_number",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     validator: `regex:${regexPhone}`
                 },
                 {
@@ -672,14 +703,14 @@
                     editor: dateEditor,
                     editable: false,
                     formatter: dateFormatter,
-                    cellDblClick: dblClickEditFunc, // TODO naimplementovat editor data
+                    cellDblClick: dblClickStartEdit, // TODO naimplementovat editor data
                 },
                 {
                     title: "Bydliště",
                     field: "residence_address_",
                     formatter: addressFormatter,
                     formatterParams: {field: "residence_address"},
-                    cellDblClick: (e, cell) => addressEditor(e, cell, "residence_address")
+                    cellDblClick: (e, cell) => showAddressEditor(e, cell, "residence_address")
                 },
                 {
                     field: "residence_address.street",
@@ -702,7 +733,7 @@
                     field: "contact_address_",
                     formatter: addressFormatter,
                     formatterParams: {field: "contact_address"},
-                    cellDblClick: (e, cell) => addressEditor(e, cell, "contact_address")
+                    cellDblClick: (e, cell) => showAddressEditor(e, cell, "contact_address")
                 },
                 {
                     field: "contact_address.street",
@@ -726,7 +757,7 @@
                     sorter: "string",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     headerTooltip: "Titul před jménem",
                 },
                 {
@@ -735,7 +766,7 @@
                     sorter: "string",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                     headerTooltip: "Titul za jménem",
                 },
                 {
@@ -743,28 +774,28 @@
                     field: "account_number",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                 },
                 {
                     title: "Role",
                     field: "role",
                     sorter: "string",
                     editable: false,
-                    cellDblClick: roleEditor, // TODO vymyslet editor rolí
+                    cellDblClick: showRoleEditor, // TODO vymyslet editor rolí
                 },
                 {
                     title: "Pracovní náplň",
                     field: "assignment",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                 },
                 {
                     title: "Dovednosti",
                     field: "skills",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                 },
                 {
                     title: "Datum založení účtu",
@@ -841,7 +872,7 @@
                     field: "notes",
                     editor: "input",
                     editable: false,
-                    cellDblClick: dblClickEditFunc,
+                    cellDblClick: dblClickStartEdit,
                 },
             ],
             ajaxURL: "users/api/admintable",
@@ -987,6 +1018,9 @@
         }).toLowerCase();
     }
 
+    /**
+     * Zobrazí kartu vybraného uživatele.
+     */
     function showUserPage() {
         let selected = table.getSelectedRows();
         if (selected.length > 1) {
