@@ -35,12 +35,14 @@ ADDRESS_DOC_KEYS = [
     "type",
 ]
 CONTRACT_DOC_KEYS = [
+    "_id",
     "type",
     "signing_date",
     "valid_from",
     "valid_until",
     "hour_rate",
     "is_valid",
+    "notes"
 ]
 DOCUMENT_DOC_KEYS = [
     "type",

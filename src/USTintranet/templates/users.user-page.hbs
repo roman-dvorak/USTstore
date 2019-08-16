@@ -26,6 +26,31 @@
     #basic-info table td:first-child {
         width: 40%;
     }
+
+    .contract-header {
+        cursor: pointer;
+    }
+
+    .contract-info {
+        display: none;
+    }
+
+    .contract-show-more {
+        display: none;
+        text-align: center;
+    }
+
+    .document-edit-btn {
+        float: right;
+    }
+
+    .document-header {
+        cursor: pointer;
+    }
+
+    .document-info {
+        display: none;
+    }
 </style>
 
 
@@ -43,7 +68,8 @@
 
                     <div class="form-group">
                         <label for="pre-name-title-input">Titul před jménem</label>
-                        <input type="text" class="form-control" id="pre-name-title-input" placeholder="{{pre_name_title}}">
+                        <input type="text" class="form-control" id="pre-name-title-input"
+                               placeholder="{{pre_name_title}}">
                     </div>
 
                     <div class="form-group">
@@ -81,22 +107,26 @@
 
                         <div class="form-group">
                             <label for="residence-street-input">Ulice, Č.P.</label>
-                            <input type="text" class="form-control" id="residence-street-input" placeholder="{{residence_street}}">
+                            <input type="text" class="form-control" id="residence-street-input"
+                                   placeholder="{{residence_street}}">
                         </div>
 
                         <div class="form-group">
                             <label for="residence-city-input">Město</label>
-                            <input type="text" class="form-control" id="residence-city-input" placeholder="{{residence_city}}">
+                            <input type="text" class="form-control" id="residence-city-input"
+                                   placeholder="{{residence_city}}">
                         </div>
 
                         <div class="form-group">
                             <label for="residence-state-input">Stát</label>
-                            <input type="text" class="form-control" id="residence-state-input" placeholder="{{residence_state}}">
+                            <input type="text" class="form-control" id="residence-state-input"
+                                   placeholder="{{residence_state}}">
                         </div>
 
                         <div class="form-group">
                             <label for="residence-zip-input">PSČ</label>
-                            <input type="text" class="form-control" id="residence-zip-input" placeholder="{{residence_zip}}">
+                            <input type="text" class="form-control" id="residence-zip-input"
+                                   placeholder="{{residence_zip}}">
                         </div>
                     </div>
 
@@ -105,28 +135,33 @@
 
                         <div class="form-group">
                             <label for="contact-street-input">Ulice, Č.P.</label>
-                            <input type="text" class="form-control" id="contact-street-input" placeholder="{{contact_street}}">
+                            <input type="text" class="form-control" id="contact-street-input"
+                                   placeholder="{{contact_street}}">
                         </div>
 
                         <div class="form-group">
                             <label for="contact-city-input">Město</label>
-                            <input type="text" class="form-control" id="contact-city-input" placeholder="{{contact_city}}">
+                            <input type="text" class="form-control" id="contact-city-input"
+                                   placeholder="{{contact_city}}">
                         </div>
 
                         <div class="form-group">
                             <label for="contact-state-input">Stát</label>
-                            <input type="text" class="form-control" id="contact-state-input" placeholder="{{contact_state}}">
+                            <input type="text" class="form-control" id="contact-state-input"
+                                   placeholder="{{contact_state}}">
                         </div>
 
                         <div class="form-group">
                             <label for="contact-zip-input">PSČ</label>
-                            <input type="text" class="form-control" id="contact-zip-input" placeholder="{{contact_zip}}">
+                            <input type="text" class="form-control" id="contact-zip-input"
+                                   placeholder="{{contact_zip}}">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="account-number-input">Číslo účtu</label>
-                        <input type="text" class="form-control" id="account-number-input" placeholder="{{account_number}}">
+                        <input type="text" class="form-control" id="account-number-input"
+                               placeholder="{{account_number}}">
                     </div>
 
                     <div class="form-group">
@@ -161,6 +196,121 @@
     </div>
 </div>
 
+<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="contract-editor-form">
+                    <input type="hidden" id="contract-id-input">
+
+                    <div class="form-group">
+                        <label for="contract-type-select">Typ smlouvy</label>
+                        <select class="form-control" id="contract-type-select" required>
+                            <option value="dpp">Dohoda o provedení práce</option>
+                            <option value="dpc">Dohoda o pracovní činnosti</option>
+                            <option value="ps">Pracovní smlouva</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-signing-date-input">Datum uzavření</label>
+                        <input type="date" class="form-control" id="contract-signing-date-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-valid-from-input">Platná od</label>
+                        <input type="date" class="form-control" id="contract-valid-from-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-valid-until-input">Platná do</label>
+                        <input type="date" class="form-control" id="contract-valid-until-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-hour-rate-input">Hodinová sazba</label>
+                        <input type="number" class="form-control" id="contract-hour-rate-input" required>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="contract-is-valid-input">
+                        <label for="contract-is-valid-input" class="form-check-label">
+                            Smlouva je podepsaná (platná)
+                        </label>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveContractEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="document-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="document-editor-title">Editor dokumentu</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="document-editor-form">
+                    <input type="hidden" id="document-id-input">
+
+                    <div class="form-group">
+                        <label for="document-valid-until-input">Soubor</label>
+                        <input type="file" class="form-control" id="document-file-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-type-select">Typ dokumentu</label>
+                        <select class="form-control" id="document-type-select" required>
+                            <option value="study_certificate">Potvrzení o studiu</option>
+                            <option value="tax_declaration">Prohlášení k dani</option>
+                            <option value="contract_scan">Sken podepsané smlouvy</option>
+                            <!--                            <option value="other">Jiné</option>-->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-valid-from-input">Platný od</label>
+                        <input type="date" class="form-control" id="document-valid-from-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-valid-until-input">Platný do</label>
+                        <input type="date" class="form-control" id="document-valid-until-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-notes-textarea">Poznámky</label>
+                        <textarea class="form-control" rows="2" id="document-notes-textarea"></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="document-save-btn"
+                        onclick="saveDocumentEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="container">
     <h1>Karta uživatele: <a href="#">{{name}}</a></h1>
@@ -257,15 +407,15 @@
                     <tbody>
                     <tr>
                         <td>Odpracované hodiny v tomto měsíci</td>
-                        <td>20</td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td>Aktuální finanční ohodnocení za tento měsíc</td>
-                        <td>2 000 Kč</td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td>Finanční ohodnocení za minulý měsíc</td>
-                        <td>6 200 Kč</td>
+                        <td></td>
                     </tr>
                     </tbody>
                 </table>
@@ -275,42 +425,58 @@
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
-                        <th>Smlouvy</th>
+                        <th class="align-text-bottom">
+                            <button type="button" class="btn btn-light" style="float: right;"
+                                    onclick="showContractEditor()">
+                                Přidat
+                            </button>
+                            Smlouvy
+                        </th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <th>Dohoda o provedení práce 2018 - 2020</th>
+                    {% for contract in contracts %}
+                    <tr class="contract-header" data-id="{{contract["_id"]}}">
+                        <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
+                        <th>{{contract["title"]}}</th>
                     </tr>
-                    <tr>
+                    <tr class="contract-info">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
                                 <tr>
                                     <td style="border-top: 0px">Druh smlouvy</td>
-                                    <td style="border-top: 0px">Dohoda o provedení práce</td>
+                                    <td style="border-top: 0px">{{contract["type"]}}</td>
                                 </tr>
                                 <tr>
                                     <td>Datum uzavření smlouvy</td>
-                                    <td>15. 12. 2017</td>
+                                    <td>{{contract["signing_date"]}}</td>
                                 </tr>
                                 <tr>
                                     <td>Začátek platnosti</td>
-                                    <td>1. 1. 2018</td>
+                                    <td>{{contract["valid_from"]}}</td>
                                 </tr>
                                 <tr>
                                     <td>Konec platnosti</td>
-                                    <td>31. 12. 2020</td>
+                                    <td>{{contract["valid_until"]}}</td>
+                                </tr>
+                                {% if contract.get("notes", None) %}
+                                <tr>
+                                    <td>Poznámka</td>
+                                    <td>{{contract["notes"]}}</td>
+                                </tr>
+                                {% end %}
+                                <tr>
+                                    <td>Je podepsaná?</td>
+                                    <td>{{contract["is_valid"]}}</td>
                                 </tr>
                                 </tbody>
                             </table>
                         </td>
                     </tr>
-                    <tr>
-                        <th>Dohoda o provedení práce 2017 - 2018</th>
-                    </tr>
-                    <tr>
-                        <th>Dohoda o provedení práce 2016 - 2017</th>
+                    {% end %}
+                    <tr class="contract-show-more">
+                        <th>Zobrazit starší</th>
                     </tr>
                     </tbody>
                 </table>
@@ -320,17 +486,68 @@
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
-                        <th>Dokumenty</th>
-                        <th class="text-right">
-                            <button type="button" class="btn btn-light">Přidat</button>
+                        <th>
+                            <button type="button" class="btn btn-light" style="float: right;"
+                                    onclick="showDocumentEditor(this, true)">
+                                Přidat
+                            </button>
+                            Dokumenty
                         </th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td>Potvrzení o studiu</td>
-                        <td><a href="#">zobrazit</a></td>
+                    {% for document in documents %}
+                    <tr class="document-header">
+                        <th>
+                            <button class="btn btn-dark btn-sm document-edit-btn" onclick="showDocumentEditor(this)">
+                                Upravit
+                            </button>
+                            {{document["title"]}}
+                        </th>
                     </tr>
+                    <tr class="document-info" data-id="{{document["_id"]}}">
+                        <td>
+                            <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
+                                <tbody>
+                                <tr>
+                                    <td style="border-top: 0px">Druh dokumentu</td>
+                                    <td style="border-top: 0px" class="document-type-cell"
+                                        data-raw="{{document["type"]}}">
+                                        {{document["type_text"]}}
+                                    </td>
+                                </tr>
+                                {% if document.get("valid_from_text", None) %}
+                                <tr>
+                                    <td>Začátek platnosti</td>
+                                    <td class="document-valid-from-cell" data-raw="{{document["valid_from"]}}">
+                                        {{document["valid_from_text"]}}
+                                    </td>
+                                </tr>
+                                {% end %}
+                                {% if document.get("valid_until_text", None) %}
+                                <tr>
+                                    <td>Konec platnosti</td>
+                                    <td class="document-valid-until-cell" data-raw="{{document["valid_until"]}}">
+                                        {{document["valid_until_text"]}}
+                                    </td>
+                                </tr>
+                                {% end %}
+                                {% if document.get("notes", None) %}
+                                <tr>
+                                    <td>Poznámka</td>
+                                    <td class="document-notes-cell" data-raw="{{document["notes"]}}">
+                                        {{document["notes"]}}
+                                    </td>
+                                </tr>
+                                {% end %}
+                                <tr>
+                                    <td colspan="2" class="document-show-file">Zobrazit soubor</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    {% end %}
                     </tbody>
                 </table>
             </div>
@@ -340,7 +557,38 @@
 
 <script>
 
-    let role_tagify = new Tagify(document.getElementById("role-input"));
+    let role_tagify = null;
+    $(document).ready(() => {
+        role_tagify = new Tagify(document.getElementById("role-input"));
+
+        let contractInfos = $(".contract-info");
+        contractInfos.first().show();
+
+        let contractHeaders = $(".contract-header");
+        contractHeaders.on("click", event => {
+            contractInfos.hide();
+            $(event.target).closest("tr").next().show();
+        });
+
+        let showMore = $(".contract-show-more");
+        showMore.on("click", () => {
+            contractHeaders.show();
+            showMore.hide();
+        });
+
+        if (contractInfos.length > 2) {
+            showMore.show();
+            contractHeaders.slice(2).hide();
+        }
+
+        let documentInfos = $(".document-info");
+        let documentHeaders = $(".document-header");
+        documentHeaders.on("click", event => {
+            documentInfos.hide();
+            $(event.target).closest("tr").next().show();
+        });
+    });
+
 
     function showUserEditorModal() {
         let inputs = document.forms["user-editor-form"].getElementsByTagName("input");
@@ -426,6 +674,104 @@
         });
     }
 
+    function showContractEditor() {
+        $("#contract-editor-modal").modal("show");
+    }
+
+    function saveContractEditor() {
+        let form = document.getElementsByName("contract-editor-form")[0];
+        console.log(form);
+        if (!form.checkValidity()) {
+            form.classList.add("was-validated");
+            return;
+        }
+
+        let data = {};
+        data["type"] = $("#contract-type-select").val();
+        data["signing_date"] = $("#contract-signing-date-input").val();
+        data["valid_from"] = $("#contract-valid-from-input").val();
+        data["valid_until"] = $("#contract-valid-until-input").val();
+        data["hour_rate"] = $("#contract-hour-rate-input").val();
+        data["is_valid"] = $("#contract-is-valid-input").prop("checked");
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/contracts",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function showDocumentEditor(button, is_new = false) {
+        if (is_new) {
+            $("#document-id-input").val("");
+            $("#document-valid-from-input").val("");
+            $("#document-valid-until-input").val("");
+            $("#document-notes-textarea").val("");
+            $("#document-type-select")[0].selectedIndex = 0;
+            $("#document-file-input").parent().show();
+        } else {
+            let documentInfo = $(button).closest("tr").next();
+            let id = documentInfo.data("id");
+            let type = documentInfo.find(".document-type-cell").data("raw");
+            let valid_from = documentInfo.find(".document-valid-from-cell").data("raw");
+            let valid_until = documentInfo.find(".document-valid-until-cell").data("raw");
+            let notes = documentInfo.find(".document-notes-cell").data("raw");
+
+            console.log(id);
+            console.log(type);
+            console.log(valid_from);
+            console.log(valid_until);
+            console.log(notes);
+
+            $("#document-id-input").val(id);
+            $("#document-valid-from-input").val(valid_from);
+            $("#document-valid-until-input").val(valid_until);
+            $("#document-notes-textarea").val(notes);
+            $("#document-type-select").val(type);
+            $("#document-file-input").parent().hide();
+        }
+
+        $("#document-editor-modal").modal("show");
+    }
+
+    function saveDocumentEditor() {
+        let data = {};
+
+        let id = $("#document-id-input").val();
+        let valid_from = $("#document-valid-from-input").val();
+        let valid_until = $("#document-valid-until-input").val();
+        let notes = $("#document-notes-textarea").val();
+
+        data["type"] = $("#document-type-select").val();
+        data["_id"] = id;
+        data["valid_from"] = valid_from;
+        data["valid_until"] = valid_until;
+        data["notes"] = notes;
+
+        data["file"] = null;
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/documents",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
 </script>
 
 {% end %}{# block body#}

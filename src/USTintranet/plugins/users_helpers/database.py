@@ -23,6 +23,16 @@ def get_user(coll: pymongo.collection.Collection, _id: str):
     return user
 
 
+def get_user_contracts(coll: pymongo.collection.Collection, _id: str, sort_by="signing_date"):
+    cursor = coll.aggregate([
+        {"$match": {"_id": ObjectId(_id)}},
+        {"$unwind": "$contracts"},
+        {"$sort": {f"contracts.{sort_by}": -1}},
+        {"$group": {"_id": "$_id", "contracts": {"$push": "$contracts"}}}
+    ])
+    return next(cursor, {}).get("contracts", [])
+
+
 def update_user(coll: pymongo.collection.Collection, _id: str, data: dict, embedded_1to1_docs=("name",)):
     """
     Updatuje data existujícího uživatele v databázi. Data by měla být first level fieldy a fieldy jednotlivě embedded
@@ -91,7 +101,6 @@ def delete_user_address(coll: pymongo.collection.Collection, _id: str, address_t
     """
     Smaže daný typ adresy z databáze.
     """
-    # TODO implementovat odstranění fieldu když je hodnota fieldu prázdná
     coll.update_one({"_id": ObjectId(_id)},
                     {"$pull": {
                         "addresses": {
@@ -125,3 +134,25 @@ def add_users(coll: pymongo.collection.Collection, ids: list = None, n: int = No
 
 def delete_user(coll: pymongo.collection.Collection, _id: str):
     coll.delete_one({"_id": ObjectId(_id)})
+
+
+def add_user_contract(coll: pymongo.collection.Collection, _id: str, contract: dict):
+    contract["_id"] = str(ObjectId())
+    coll.update_one({"_id": ObjectId(_id)},
+                    {"$addToSet": {
+                        "contracts": contract
+                    }
+                    })
+
+
+def add_user_document(coll: pymongo.collection.Collection, _id: str, document: dict):
+    document = {key: value for key, value in document.items() if value}
+    document["_id"] = str(ObjectId())
+    coll.update_one({"_id": ObjectId(_id)},
+                    {"$addToSet": {
+                        "documents": document
+                    }
+                    })
+
+def update_user_document(coll:pymongo.collection.Collection, user_id: str, document_id: str, document: dict):
+    pass

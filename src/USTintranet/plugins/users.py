@@ -4,15 +4,18 @@ from datetime import datetime
 
 import bson.json_util
 
+from .users_helpers.doc_keys import CONTRACT_DOC_KEYS
 from . import BaseHandler
 from .users_helpers import database as db
-from .users_helpers import tostr
+from .users_helpers import str_ops
 
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
+        (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -153,22 +156,22 @@ class UserPageHandler(BaseHandler):
             "user": user_document.get("user", ""),
             "_id": user_document.get("_id"),
 
-            "name": tostr.name_to_str(name_doc),
+            "name": str_ops.name_to_str(name_doc),
             "pre_name_title": name_doc.get("pre_name_title", ""),
             "first_name": name_doc.get("first_name", ""),
             "surname": name_doc.get("surname", ""),
             "post_name_title": name_doc.get("post_name_title", ""),
 
-            "birthdate": tostr.date_to_str(birthdate),
-            "birthdate_iso": tostr.date_to_iso_string(birthdate),
+            "birthdate": str_ops.date_to_str(birthdate),
+            "birthdate_iso": str_ops.date_to_iso_str(birthdate),
 
-            "residence_address": tostr.address_to_str(res_address_doc),
+            "residence_address": str_ops.address_to_str(res_address_doc),
             "residence_street": res_address_doc.get("street", ""),
             "residence_city": res_address_doc.get("city", ""),
             "residence_state": res_address_doc.get("state", ""),
             "residence_zip": res_address_doc.get("zip", ""),
 
-            "contact_address": tostr.address_to_str(cont_address_doc),
+            "contact_address": str_ops.address_to_str(cont_address_doc),
             "contact_street": cont_address_doc.get("street", ""),
             "contact_city": cont_address_doc.get("city", ""),
             "contact_state": cont_address_doc.get("state", ""),
@@ -183,4 +186,90 @@ class UserPageHandler(BaseHandler):
             "notes": user_document.get("notes", ""),
         }
 
+        contracts = db.get_user_contracts(self.mdb.users, _id)
+        template_params["contracts"] = self.prepare_contracts(contracts)
+        documents = user_document.get("documents", [])
+        template_params["documents"] = self.prepare_documents(documents)
+
         self.render("users.user-page.hbs", **template_params)
+
+    def prepare_contracts(self, contracts):
+        # TODO rozmyslet si líp fieldy smluv ("is_valid" vs "is_signed") a obarvit neplatné smlouvy šedě
+
+        possible_type = {
+            "dpp": "Dohoda o provedení práce",
+            "dpc": "Dohoda o pracovní činnosti",
+            "ps": "Pracovní smlouva",
+        }
+
+        result = []
+
+        for contract in contracts:
+            new = {}
+            contract_type = possible_type[contract["type"]]
+            valid_from = contract["valid_from"]
+            valid_until = contract["valid_until"]
+
+            new["_id"] = contract["_id"]
+            new["type"] = possible_type[contract["type"]]
+            new["signing_date"] = str_ops.date_to_str(contract["signing_date"])
+            new["valid_from"] = str_ops.date_to_str(valid_from)
+            new["valid_until"] = str_ops.date_to_str(valid_until)
+            new["notes"] = contract.get("notes", "")
+            new["is_valid"] = "Ano" if contract["is_valid"] else "Ne"
+            new["button_text"] = "Zneplatnit" if contract["is_valid"] else "Nastavit jako platnou"
+            new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
+
+            result.append(new)
+
+        return result
+
+    def prepare_documents(self, documents):
+        possible_type = {
+            "study_certificate": "Potvrzení o studiu",
+            "tax_declaration": "Prohlášení k dani",
+            "contract_scan": "Sken podepsané smlouvy"
+        }
+
+        for document in documents:
+            valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
+            valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
+
+            document["type_text"] = possible_type[document["type"]]
+            document["valid_from_text"] = valid_from_text
+            document["valid_until_text"] = valid_until_text
+            document["valid_from"] = str_ops.date_to_iso_str(document["valid_from"])
+            document["valid_until"] = str_ops.date_to_iso_str(document["valid_until"])
+
+            date_texts = [date for date in [valid_from_text, valid_until_text] if date]
+            document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
+
+        return documents
+
+
+class ApiUserContractsHandler(BaseHandler):
+
+    def post(self, _id):
+        req = self.request.body.decode("utf-8")
+        contract = bson.json_util.loads(req)
+
+        contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
+        contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
+        contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+
+        db.add_user_contract(self.mdb.users, _id, contract)
+
+
+class ApiUserDocumentsHandler(BaseHandler):
+
+    def post(self, _id):
+        req = self.request.body.decode("utf-8")
+        document = bson.json_util.loads(req)
+        print(document)
+        document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
+        document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
+
+        if document.get("_id", None):
+            db.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
+        else:
+            db.add_user_document(self.mdb.users, _id, document)

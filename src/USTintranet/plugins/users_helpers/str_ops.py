@@ -30,7 +30,7 @@ def date_to_str(date: datetime):
     return f"{date.day}. {date.month}. {date.year}"
 
 
-def date_to_iso_string(date: datetime):
+def date_to_iso_str(date: datetime):
     """
     Převede datetime objekt na řetězec podle českého standardu zápisu data (den. měsíc. rok).
     Je-li date None, vrací prázdný řetězec.
@@ -39,6 +39,17 @@ def date_to_iso_string(date: datetime):
         return ""
 
     return date.strftime("%Y-%m-%d")
+
+
+def date_from_iso_str(date: str):
+    """
+    Převede řetězec data v iso formátu (YYYY-MM-DD) na datetime objekt.
+    Je-li date prázdný řetězec, vrací None.
+    """
+    if not date:
+        return None
+
+    return datetime.strptime(date, "%Y-%m-%d")
 
 
 def address_to_str(address_document: dict):

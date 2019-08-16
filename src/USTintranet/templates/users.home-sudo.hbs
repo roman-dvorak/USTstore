@@ -186,7 +186,11 @@
     let newData = new Set(); // sem přijdou jen id nových uživatelů
     let deletedData = new Set(); // sem přijdou jen id smazaných uživatelů
 
-    let tagify = new Tagify(document.getElementById("tagify-input"));
+    let tagify = null;
+
+    $(document).ready(() => {
+        tagify = new Tagify(document.getElementById("tagify-input"));
+    });
 
     /**
      * Zobrazí oznámení v messages-span.
