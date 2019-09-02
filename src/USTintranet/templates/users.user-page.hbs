@@ -51,6 +51,11 @@
     .document-info {
         display: none;
     }
+
+    #delete-document-button {
+        width: 100%;
+        /*display: none;*/
+    }
 </style>
 
 
@@ -270,6 +275,10 @@
                 <form name="document-editor-form">
                     <input type="hidden" id="document-id-input">
 
+                    <button type="button" class="btn btn-secondary" id="delete-document-button"
+                            onclick="deleteDocument()">
+                        Smazat dokument
+                    </button>
                     <div class="form-group">
                         <label for="document-valid-until-input">Soubor</label>
                         <input type="file" class="form-control" id="document-file-input">
@@ -557,7 +566,8 @@
 
 <script>
 
-    let role_tagify = null;
+
+let role_tagify = null;
     $(document).ready(() => {
         role_tagify = new Tagify(document.getElementById("role-input"));
 
@@ -711,6 +721,7 @@
 
     function showDocumentEditor(button, is_new = false) {
         if (is_new) {
+            $("#delete-document-button").hide();
             $("#document-id-input").val("");
             $("#document-valid-from-input").val("");
             $("#document-valid-until-input").val("");
@@ -718,6 +729,7 @@
             $("#document-type-select")[0].selectedIndex = 0;
             $("#document-file-input").parent().show();
         } else {
+            $("#delete-document-button").show();
             let documentInfo = $(button).closest("tr").next();
             let id = documentInfo.data("id");
             let type = documentInfo.find(".document-type-cell").data("raw");
@@ -756,7 +768,7 @@
         data["valid_until"] = valid_until;
         data["notes"] = notes;
 
-        data["file"] = null;
+        // data["file"] = null;
 
         $.ajax({
             url: "/users/api/u/{{_id}}/documents",
@@ -771,6 +783,28 @@
                 alert("Serveru se něco nelíbí.")
             }
         });
+    }
+
+    function deleteDocument() {
+        let id = $("#document-id-input").val();
+        let data = {};
+        data["_id"] = id;
+        data["delete"] = true;
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/documents",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+
     }
 </script>
 

@@ -238,8 +238,8 @@ class UserPageHandler(BaseHandler):
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
             document["valid_until_text"] = valid_until_text
-            document["valid_from"] = str_ops.date_to_iso_str(document["valid_from"])
-            document["valid_until"] = str_ops.date_to_iso_str(document["valid_until"])
+            document["valid_from"] = str_ops.date_to_iso_str(document.get("valid_from", None))
+            document["valid_until"] = str_ops.date_to_iso_str(document.get("valid_until", None))
 
             date_texts = [date for date in [valid_from_text, valid_until_text] if date]
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
@@ -265,7 +265,11 @@ class ApiUserDocumentsHandler(BaseHandler):
     def post(self, _id):
         req = self.request.body.decode("utf-8")
         document = bson.json_util.loads(req)
-        print(document)
+
+        if "delete" in document:
+            db.delete_user_document(self.mdb.users, _id, document.pop("_id"))
+            return
+
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
 

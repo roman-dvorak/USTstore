@@ -176,10 +176,14 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
     to_set, to_unset = _get_mdocument_set_unset_dicts(document)
 
     operation_dict = {}
-    if document:  # některý z fieldů je neprázdný
-        operation_dict["$set"] = {f"documents.$.{key}": value for key, value in document.items()}
+    if to_set:  # některý z fieldů je neprázdný
+        operation_dict["$set"] = {f"documents.$.{key}": value for key, value in to_set.items()}
     if to_unset:
         operation_dict["$unset"] = {f"documents.$.{key}": value for key, value in to_unset.items()}
+
+    assert not (set(to_set.keys()).intersection(set(to_unset.keys())))
+    print("to_set", to_set)
+    print("to_unset", to_unset)
 
     updated = coll.find_one_and_update({"_id": ObjectId(user_id), "documents._id": document_id}, operation_dict,
                                        return_document=ReturnDocument.AFTER)
