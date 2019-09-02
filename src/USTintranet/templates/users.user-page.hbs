@@ -56,6 +56,14 @@
         width: 100%;
         /*display: none;*/
     }
+
+    .contract-black {
+        color: black;
+    }
+
+    .contract-grey {
+        color: grey;
+    }
 </style>
 
 
@@ -447,9 +455,9 @@
                     {% for contract in contracts %}
                     <tr class="contract-header" data-id="{{contract["_id"]}}">
                         <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
-                        <th>{{contract["title"]}}</th>
+                        <th class="contract-{{contract["color"]}}">{{contract["title"]}}</th>
                     </tr>
-                    <tr class="contract-info">
+                    <tr class="contract-info contract-{{contract["color"]}}">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
@@ -567,7 +575,7 @@
 <script>
 
 
-let role_tagify = null;
+    let role_tagify = null;
     $(document).ready(() => {
         role_tagify = new Tagify(document.getElementById("role-input"));
 
