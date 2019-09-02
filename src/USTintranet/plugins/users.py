@@ -3,9 +3,12 @@
 from datetime import datetime, timedelta
 
 import bson.json_util
+import tornado
+import tornado.options
+import os
 
-from .users_helpers.doc_keys import CONTRACT_DOC_KEYS
-from . import BaseHandler
+from plugins import BaseHandlerOwnCloud
+from . import BaseHandler, save_file, upload_file
 from .users_helpers import database as db
 from .users_helpers import str_ops
 
@@ -16,6 +19,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
+        (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -265,15 +269,19 @@ class ApiUserContractsHandler(BaseHandler):
         db.add_user_contract(self.mdb.users, _id, contract)
 
 
-class ApiUserDocumentsHandler(BaseHandler):
+class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
     def post(self, _id):
-        req = self.request.body.decode("utf-8")
-        document = bson.json_util.loads(req)
-
-        if "delete" in document:
-            db.delete_user_document(self.mdb.users, _id, document.pop("_id"))
-            return
+        document = {
+            "_id": self.get_argument("_id"),
+            "type": self.get_argument("type"),
+            "valid_from": self.get_argument("valid_from"),
+            "valid_until": self.get_argument("valid_until"),
+            "notes": self.get_argument("notes")
+        }
+        file = None
+        if self.request.files:
+            file = self.request.files["file"][0]
 
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
@@ -282,3 +290,21 @@ class ApiUserDocumentsHandler(BaseHandler):
             db.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
         else:
             db.add_user_document(self.mdb.users, _id, document)
+
+        if file:
+            with open("pic.png", "wb") as f:
+                f.write(file["body"])
+
+            owncloud_name = os.path.join(tornado.options.options.owncloud_root, "pic.png")
+            res = save_file(self.mdb, owncloud_name)
+            res = upload_file(self.oc, "pic.png", owncloud_name)
+            print("res of upload_file", res)
+
+        self.redirect(f"/users/u/{_id}", permanent=True)
+
+
+class ApiUserDeleteDocumentHandler(BaseHandler):
+
+    def post(self, _id):
+        document_id = self.request.body.decode("utf-8")
+        db.delete_user_document(self.mdb.users, _id, document_id)

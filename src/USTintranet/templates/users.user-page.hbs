@@ -280,8 +280,9 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form name="document-editor-form">
-                    <input type="hidden" id="document-id-input">
+                <form name="document-editor-form" action="/users/api/u/{{_id}}/documents"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="document-id-input" name="_id">
 
                     <button type="button" class="btn btn-secondary" id="delete-document-button"
                             onclick="deleteDocument()">
@@ -289,12 +290,12 @@
                     </button>
                     <div class="form-group">
                         <label for="document-valid-until-input">Soubor</label>
-                        <input type="file" class="form-control" id="document-file-input">
+                        <input type="file" class="form-control" id="document-file-input" name="file">
                     </div>
 
                     <div class="form-group">
                         <label for="document-type-select">Typ dokumentu</label>
-                        <select class="form-control" id="document-type-select" required>
+                        <select class="form-control" id="document-type-select" name="type" required>
                             <option value="study_certificate">Potvrzení o studiu</option>
                             <option value="tax_declaration">Prohlášení k dani</option>
                             <option value="contract_scan">Sken podepsané smlouvy</option>
@@ -304,17 +305,17 @@
 
                     <div class="form-group">
                         <label for="document-valid-from-input">Platný od</label>
-                        <input type="date" class="form-control" id="document-valid-from-input">
+                        <input type="date" class="form-control" id="document-valid-from-input" name="valid_from">
                     </div>
 
                     <div class="form-group">
                         <label for="document-valid-until-input">Platný do</label>
-                        <input type="date" class="form-control" id="document-valid-until-input">
+                        <input type="date" class="form-control" id="document-valid-until-input" name="valid_until">
                     </div>
 
                     <div class="form-group">
                         <label for="document-notes-textarea">Poznámky</label>
-                        <textarea class="form-control" rows="2" id="document-notes-textarea"></textarea>
+                        <textarea class="form-control" rows="2" id="document-notes-textarea" name="notes"></textarea>
                     </div>
 
                 </form>
@@ -763,6 +764,7 @@
     }
 
     function saveDocumentEditor() {
+        /*
         let data = {};
 
         let id = $("#document-id-input").val();
@@ -790,19 +792,17 @@
                 console.log(textStatus, errorThrown);
                 alert("Serveru se něco nelíbí.")
             }
-        });
+        }); */
+        document.forms["document-editor-form"].submit();
     }
 
     function deleteDocument() {
         let id = $("#document-id-input").val();
-        let data = {};
-        data["_id"] = id;
-        data["delete"] = true;
 
         $.ajax({
-            url: "/users/api/u/{{_id}}/documents",
+            url: "/users/api/u/{{_id}}/documents/delete",
             type: "post",
-            data: JSON.stringify(data),
+            data: id,
             success: function (response) {
                 alert("Podařilo se!");
                 location.reload();
