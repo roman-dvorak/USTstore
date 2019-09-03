@@ -279,9 +279,6 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "valid_until": self.get_argument("valid_until"),
             "notes": self.get_argument("notes")
         }
-        file = None
-        if self.request.files:
-            file = self.request.files["file"][0]
 
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
@@ -289,16 +286,27 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         if document.get("_id", None):
             db.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
         else:
-            db.add_user_document(self.mdb.users, _id, document)
+            document_id = db.add_user_document(self.mdb.users, _id, document)
 
-        if file:
-            with open("pic.png", "wb") as f:
-                f.write(file["body"])
+            file = None
+            if self.request.files:
+                file = self.request.files["file"][0]
 
-            owncloud_name = os.path.join(tornado.options.options.owncloud_root, "pic.png")
-            res = save_file(self.mdb, owncloud_name)
-            res = upload_file(self.oc, "pic.png", owncloud_name)
-            print("res of upload_file", res)
+            if file:
+                user_mdoc = db.get_user(self.mdb.users, _id)
+                surname = user_mdoc.get("name", {}).get("surname", "unknown")
+                doc_type = document["type"]
+                extension = os.path.splitext(file["filename"])[1]
+
+                new_filename = f"{document_id}_{surname}_{doc_type}{extension}"
+                local_path = os.path.join("static", "tmp", new_filename)
+
+                with open(local_path, "wb") as f:
+                    f.write(file["body"])
+
+                owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
+                remote = save_file(self.mdb, owncloud_path)
+                upload_file(self.oc, local_path, remote)
 
         self.redirect(f"/users/u/{_id}", permanent=True)
 
