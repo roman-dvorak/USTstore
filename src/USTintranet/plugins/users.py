@@ -223,11 +223,11 @@ class UserPageHandler(BaseHandler):
             new["is_valid"] = "Ano" if contract["is_valid"] else "Ne"
             new["button_text"] = "Zneplatnit" if contract["is_valid"] else "Nastavit jako platnou"
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
+
+            new["color"] = "grey"
             if contract["is_valid"]:
                 if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
                     new["color"] = "black"
-            else:
-                new["color"] = "grey"
 
             result.append(new)
 
