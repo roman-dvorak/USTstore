@@ -257,13 +257,13 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
 	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
-	        {title:"Cena",
-	            columns:[
-			        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
-			        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
-			        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
-				]
-			},
+	        //{title:"Cena",
+	        //    columns:[
+		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
+		//	        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
+		//	        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
+		//		]
+		//	},
 	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
 	    ],
     	addRowPos:"bottom",

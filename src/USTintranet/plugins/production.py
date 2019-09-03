@@ -550,11 +550,11 @@ class print_bom(BaseHandler):
         pdf.add_page()
 
         pdf.set_font('pt_sans', '', 12)
-        pdf.set_xy(10, 10)
+        pdf.set_xy(10, 9)
         pdf.cell(0,5, info.get('name', name))
 
         pdf.set_font('pt_sans', '', 8)
-        pdf.set_y(15)
+        pdf.set_y(20)
         pdf.cell(0,5, info.get('description', name))
 
         pdf.set_font('pt_sans', '', 8)
@@ -565,11 +565,17 @@ class print_bom(BaseHandler):
         if pdf.page_no() == 1:
             pdf.set_xy(170, 9)
             pdf.cell(0, 5, str("Sklad: {}".format('nazev')), border=0)
+            pdf.set_xy(10, 13)
+            pdf.cell(0, 5, str(name), border=0)
+
+            pdf.set_xy(10, 3)
+            pdf.cell(0, 5, "Universal Scientific Technologies s.r.o.")
+
 
         row = []
         used = []
 
-        rowh = 9+4
+        rowh = 9+8
         first_row = 28
         pdf.set_xy(10, 28)
 
@@ -604,7 +610,7 @@ class print_bom(BaseHandler):
                 category = []
 
             j += 1
-            if j > 28-9:
+            if j > 28-14:
                 j = 0
                 first_row = 10
                 print("New page...")
@@ -629,31 +635,31 @@ class print_bom(BaseHandler):
             pdf.set_xy(10, first_row+j*rowh)
             pdf.cell(0, 5, str(i)+'.', border=0)
 
-            pdf.set_xy(10, first_row+j*rowh + 3.5)
-            pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
-            pdf.set_xy(15, first_row+j*rowh + 3.5)
+            pdf.set_xy(15, first_row+j*rowh + 11)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
-            pdf.set_xy(163, first_row+j*rowh + 3.5)
+            pdf.set_xy(163, first_row+j*rowh)
             pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
 
-            pdf.set_xy(130, first_row+j*rowh)
-            pdf.cell(0, 5, component['_id'].get('Footprint', '--')[:45])
+            pdf.set_xy(90, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, component['_id'].get('Footprint', '--')[:30])
+
+            pdf.set_xy(90, first_row+j*rowh + 7.5)
+            pdf.cell(0, 5, str(component['_id'].get('note', '--')))
 
             pdf.set_font('pt_sans-bold', '', 7.5)
 
-            pdf.set_xy(15, first_row+j*rowh)
+            pdf.set_xy(90, first_row+j*rowh)
             pdf.cell(0, 5, component['_id'].get('Value', '--')[:30])
-
 
             pdf.set_font('pt_sans-bold', '', 9)
 
-            pdf.set_xy(60, first_row+j*rowh)
+            pdf.set_xy(15, first_row+j*rowh)
             pdf.cell(0, 5, name)
 
-            pdf.set_xy(130, first_row+j*rowh + 7)
-            pdf.cell(0, 5, str(component['_id'].get('note', '--')))
+            pdf.set_xy(10, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
             pdf.set_font('pt_sans', '', 8)
 
@@ -661,12 +667,12 @@ class print_bom(BaseHandler):
             pdf.set_xy(15, first_row+j*rowh + 7)
             pdf.cell(0, 5, str(', '.join(category)), border=0)
 
-            #for k, place in enumerate(item_places):
-            #    pdf.set_xy(15, first_row+j*rowh + 7)
-            #    pdf.cell(0, 5, place['info'][0]['name'])
+            for k, place in enumerate(item_places):
+                pdf.set_xy(15, first_row+j*rowh + 3.5)
+                pdf.cell(0, 5, place['info'][0]['name'])
 
 
-            pdf.line(10,first_row+j*rowh + 8+5, 200, first_row+j*rowh + 8 + 5)
+            pdf.line(10,first_row+j*rowh + 16, 200, first_row+j*rowh + 16)
             print("===================Value==========================================")
 
         pdf.alias_nb_pages()
