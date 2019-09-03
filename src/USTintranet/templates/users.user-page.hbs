@@ -65,6 +65,10 @@
     .item-grey {
         color: grey;
     }
+
+    .document-show-file {
+        text-align: center;
+    }
 </style>
 
 
@@ -235,6 +239,11 @@
                     <div class="form-group">
                         <label for="contract-signing-date-input">Datum uzavření</label>
                         <input type="date" class="form-control" id="contract-signing-date-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-signing-place-input">Místo uzavření</label>
+                        <input type="text" class="form-control" id="contract-signing-place-input" required>
                     </div>
 
                     <div class="form-group">
@@ -576,7 +585,11 @@
                                 </tr>
                                 {% end %}
                                 <tr>
-                                    <td colspan="2" class="document-show-file">Zobrazit soubor</td>
+                                    <td colspan="2" class="document-show-file">
+                                        <a href="#">
+                                            Zobrazit soubor
+                                        </a>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -728,13 +741,14 @@
     function saveContractEditor() {
         let form = document.forms["contract-editor-form"];
         console.log(form);
-        if (!validateContractsEditor()) {
+        if (!validateContractEditor()) {
             return;
         }
 
         let data = {};
         data["type"] = $("#contract-type-select").val();
         data["signing_date"] = $("#contract-signing-date-input").val();
+        data["signing_place"] = $("#contract-signing-place-input").val();
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
@@ -789,6 +803,47 @@
         $("#document-editor-modal").modal("show");
     }
 
+    function saveDocumentEditor() {
+        let form = document.forms["document-editor-form"];
+        console.log(form);
+        if (validateDocumentEditor()) {
+            form.submit();
+            // console.log("OK")
+        }
+    }
+
+    function deleteDocument() {
+        let id = $("#document-id-input").val();
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/documents/delete",
+            type: "post",
+            data: id,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+
+    }
+
+    function validateContractEditor() {
+        let isValid = validateRequired(document.forms["contract-editor-form"]);
+
+        let signing_date = $("#contract-signing-date-input");
+        let valid_from = $("#contract-valid-from-input");
+        let valid_until = $("#contract-valid-until-input");
+
+        isValid = validateOneDateBeforeOther(signing_date, valid_from) && isValid;
+        isValid = validateOneDateBeforeOther(valid_from, valid_until) && isValid;
+
+        return isValid;
+    }
+
     function validateDocumentEditor() {
         let isValid = validateRequired(document.forms["document-editor-form"]);
 
@@ -816,20 +871,8 @@
             markInvalid(soonerInput);
             return false;
         }
+        return true;
 
-    }
-
-    function validateContractsEditor() {
-        let isValid = validateRequired(document.forms["contract-editor-form"]);
-
-        let signing_date = $("#contract-signing-date-input");
-        let valid_from = $("#contract-valid-from-input");
-        let valid_until = $("#contract-valid-until-input");
-
-        isValid = validateOneDateBeforeOther(signing_date, valid_from) && isValid;
-        isValid = validateOneDateBeforeOther(valid_from, valid_until) && isValid;
-
-        return isValid;
     }
 
     function validateRequired(form) {
@@ -845,7 +888,8 @@
                 markValid(element);
             }
         });
-
+        console.log("vysledek validateRequired");
+        console.log(isValid);
         return isValid;
 
     }
@@ -869,34 +913,6 @@
             $("#document-select-contract-section").hide();
             $("#document-valid-dates-section").show();
         }
-    }
-
-    function saveDocumentEditor() {
-        let form = document.forms["document-editor-form"];
-        console.log(form);
-        if (validateDocumentEditor()) {
-            form.submit();
-            // console.log("OK")
-        }
-    }
-
-    function deleteDocument() {
-        let id = $("#document-id-input").val();
-
-        $.ajax({
-            url: "/users/api/u/{{_id}}/documents/delete",
-            type: "post",
-            data: id,
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
-        });
-
     }
 </script>
 
