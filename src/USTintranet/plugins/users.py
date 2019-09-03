@@ -249,6 +249,14 @@ class UserPageHandler(BaseHandler):
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
+            print(document["valid_from"])
+            print(document["valid_until"])
+
+            if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
+                document["color"] = "black"
+            else:
+                document["color"] = "grey"
+
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
             document["valid_until_text"] = valid_until_text
@@ -284,9 +292,12 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "valid_until": self.get_argument("valid_until"),
             "notes": self.get_argument("notes")
         }
+        print("document", document)
 
         if document["type"] == "contract_scan":
             document["contract_id"] = self.get_argument("document_contract")
+            document.pop("valid_from", None)
+            document.pop("valid_until", None)
 
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
@@ -303,7 +314,8 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             if file:
                 user_mdoc = db.get_user(self.mdb.users, _id)
                 file_name = self.make_document_name(user_mdoc, document, document_id)
-                self.process_file(file, file_name)
+                doc_owncloud_id = self.process_file(file, file_name)
+                document["owncloud_id"] = doc_owncloud_id
 
         self.redirect(f"/users/u/{_id}", permanent=True)
 
@@ -318,7 +330,10 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
         owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
         remote = save_file(self.mdb, owncloud_path)
-        upload_file(self.oc, local_path, remote)
+        res = upload_file(self.oc, local_path, remote)
+        print("res", res)
+
+        return remote[:24]
 
     def make_document_name(self, user_mdoc, document, document_id):
         surname = user_mdoc.get("name", {}).get("surname", "unknown")
@@ -330,3 +345,9 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
     def post(self, _id):
         document_id = self.request.body.decode("utf-8")
         db.delete_user_document(self.mdb.users, _id, document_id)
+
+
+class ApiUserDownloadDocumentHandler(BaseHandlerOwnCloud):
+
+    def get(self):
+        pass
