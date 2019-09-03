@@ -302,16 +302,29 @@
                             <!--                            <option value="other">Jiné</option>-->
                         </select>
                     </div>
+                    <div id="document-valid-dates-section">
+                        <div class="form-group">
+                            <label for="document-valid-from-input">Platný od</label>
+                            <input type="date" class="form-control" id="document-valid-from-input" name="valid_from">
+                        </div>
 
-                    <div class="form-group">
-                        <label for="document-valid-from-input">Platný od</label>
-                        <input type="date" class="form-control" id="document-valid-from-input" name="valid_from">
+                        <div class="form-group">
+                            <label for="document-valid-until-input">Platný do</label>
+                            <input type="date" class="form-control" id="document-valid-until-input" name="valid_until">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="document-valid-until-input">Platný do</label>
-                        <input type="date" class="form-control" id="document-valid-until-input" name="valid_until">
+                    <div id="document-select-contract-section">
+                        <div class="form-group">
+                        <label for="document-contract-select">Smlouva</label>
+                        <select class="form-control" id="document-contract-select" name="document_contract" required>
+                            {% for contract in contracts %}
+                            <option value="{{contract['_id']}}">{{contract["title"]}}</option>
+                            {% end %}
+                        </select>
                     </div>
+                    </div>
+
 
                     <div class="form-group">
                         <label for="document-notes-textarea">Poznámky</label>
@@ -341,7 +354,7 @@
                     <tr>
                         <th>Základní informace</th>
                         <th class="text-right">
-                            <button type="button" class="btn btn-light" onclick="showUserEditorModal()">Změnit</button>
+                            <button type="button" class="btn btn-light" onclick="showUserEditor()">Změnit</button>
                         </th>
                     </tr>
                     </thead>
@@ -578,8 +591,16 @@
 
     let role_tagify = null;
     $(document).ready(() => {
-        role_tagify = new Tagify(document.getElementById("role-input"));
+        initBasicInfo();
+        initContracts();
+        initDocuments();
+    });
 
+    function initBasicInfo() {
+        role_tagify = new Tagify(document.getElementById("role-input"));
+    }
+
+    function initContracts() {
         let contractInfos = $(".contract-info");
         contractInfos.first().show();
 
@@ -599,17 +620,20 @@
             showMore.show();
             contractHeaders.slice(2).hide();
         }
+    }
 
+    function initDocuments() {
         let documentInfos = $(".document-info");
         let documentHeaders = $(".document-header");
         documentHeaders.on("click", event => {
             documentInfos.hide();
             $(event.target).closest("tr").next().show();
         });
-    });
 
+        $("#document-type-select").on("change", handleDocumentTypeChange);
+    }
 
-    function showUserEditorModal() {
+    function showUserEditor() {
         let inputs = document.forms["user-editor-form"].getElementsByTagName("input");
         for (let input of inputs) {
             input.value = ""
@@ -729,6 +753,7 @@
     }
 
     function showDocumentEditor(button, is_new = false) {
+
         if (is_new) {
             $("#delete-document-button").hide();
             $("#document-id-input").val("");
@@ -746,12 +771,6 @@
             let valid_until = documentInfo.find(".document-valid-until-cell").data("raw");
             let notes = documentInfo.find(".document-notes-cell").data("raw");
 
-            console.log(id);
-            console.log(type);
-            console.log(valid_from);
-            console.log(valid_until);
-            console.log(notes);
-
             $("#document-id-input").val(id);
             $("#document-valid-from-input").val(valid_from);
             $("#document-valid-until-input").val(valid_until);
@@ -760,39 +779,23 @@
             $("#document-file-input").parent().hide();
         }
 
+        handleDocumentTypeChange();
+
         $("#document-editor-modal").modal("show");
     }
 
+    function handleDocumentTypeChange() {
+        let selectedType = $("#document-type-select").val();
+        if (selectedType === "contract_scan") {
+            $("#document-select-contract-section").show();
+            $("#document-valid-dates-section").hide();
+        } else {
+            $("#document-select-contract-section").hide();
+            $("#document-valid-dates-section").show();
+        }
+    }
+
     function saveDocumentEditor() {
-        /*
-        let data = {};
-
-        let id = $("#document-id-input").val();
-        let valid_from = $("#document-valid-from-input").val();
-        let valid_until = $("#document-valid-until-input").val();
-        let notes = $("#document-notes-textarea").val();
-
-        data["type"] = $("#document-type-select").val();
-        data["_id"] = id;
-        data["valid_from"] = valid_from;
-        data["valid_until"] = valid_until;
-        data["notes"] = notes;
-
-        // data["file"] = null;
-
-        $.ajax({
-            url: "/users/api/u/{{_id}}/documents",
-            type: "post",
-            data: JSON.stringify(data),
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
-        }); */
         document.forms["document-editor-form"].submit();
     }
 

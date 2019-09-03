@@ -153,7 +153,9 @@ def add_user_document(coll: pymongo.collection.Collection, user_id: str, documen
     """
     Přidá nový dokument daného uživatele. Dokument dostane vlastní "_id".
     """
-    _add_embedded_mdocument_to_user_array(coll, user_id, "documents", document, str(ObjectId()))
+    _id = str(ObjectId())
+    _add_embedded_mdocument_to_user_array(coll, user_id, "documents", document, _id)
+    return _id
 
 
 def delete_user_document(coll: pymongo.collection.Collection, user_id: str, document_id: str):

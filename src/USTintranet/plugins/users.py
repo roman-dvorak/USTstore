@@ -193,7 +193,7 @@ class UserPageHandler(BaseHandler):
         contracts = db.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        template_params["documents"] = self.prepare_documents(documents)
+        template_params["documents"] = self.prepare_documents(documents, contracts)
 
         self.render("users.user-page.hbs", **template_params)
 
@@ -233,7 +233,7 @@ class UserPageHandler(BaseHandler):
 
         return result
 
-    def prepare_documents(self, documents):
+    def prepare_documents(self, documents, contracts):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
             "tax_declaration": "Prohlášení k dani",
@@ -241,6 +241,11 @@ class UserPageHandler(BaseHandler):
         }
 
         for document in documents:
+            if document["type"] == "contract_scan":
+                contract = next(item for item in contracts if item["_id"] == document["contract_id"])
+                document["valid_from"] = contract["valid_from"]
+                document["valid_until"] = contract["valid_until"]
+
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
@@ -280,6 +285,9 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "notes": self.get_argument("notes")
         }
 
+        if document["type"] == "contract_scan":
+            document["contract_id"] = self.get_argument("document_contract")
+
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
 
@@ -294,21 +302,27 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
             if file:
                 user_mdoc = db.get_user(self.mdb.users, _id)
-                surname = user_mdoc.get("name", {}).get("surname", "unknown")
-                doc_type = document["type"]
-                extension = os.path.splitext(file["filename"])[1]
-
-                new_filename = f"{document_id}_{surname}_{doc_type}{extension}"
-                local_path = os.path.join("static", "tmp", new_filename)
-
-                with open(local_path, "wb") as f:
-                    f.write(file["body"])
-
-                owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
-                remote = save_file(self.mdb, owncloud_path)
-                upload_file(self.oc, local_path, remote)
+                file_name = self.make_document_name(user_mdoc, document, document_id)
+                self.process_file(file, file_name)
 
         self.redirect(f"/users/u/{_id}", permanent=True)
+
+    def process_file(self, file, document_name):
+        extension = os.path.splitext(file["filename"])[1]
+
+        new_filename = f"{document_name}{extension}"
+        local_path = os.path.join("static", "tmp", new_filename)
+
+        with open(local_path, "wb") as f:
+            f.write(file["body"])
+
+        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
+        remote = save_file(self.mdb, owncloud_path)
+        upload_file(self.oc, local_path, remote)
+
+    def make_document_name(self, user_mdoc, document, document_id):
+        surname = user_mdoc.get("name", {}).get("surname", "unknown")
+        return f"{document_id}_{surname}_{document['type']}"
 
 
 class ApiUserDeleteDocumentHandler(BaseHandler):
