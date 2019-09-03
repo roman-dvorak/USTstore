@@ -15,6 +15,7 @@ import datetime
 import os
 import bson
 from hashlib import blake2s
+from tornado.options import define, options
 
 def make_handlers(module, plugin):
         handlers = [
@@ -90,7 +91,8 @@ def perm_validator(method, permissions = [], sudo = True):
 
 
 def database_init():
-    return pymongo.MongoClient('localhost', 27017).USTintranet
+    print(options.as_dict())
+    return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[tornado.options.options.mdb_database]
 
 class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
     def prepare(self):

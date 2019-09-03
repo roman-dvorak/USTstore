@@ -505,6 +505,10 @@ class operation(BaseHandler):
             description = self.get_argument('description', '')
             bilance = self.get_argument('offset')
 
+            bilance = bilance.replace(",", ".").strip()
+            bilance = eval(bilance)
+            #if "=" == bilance[0]:
+
             print("service_push >>", id, stock, description, bilance)
             out = self.mdb.stock.update(
                     {'_id': id},
