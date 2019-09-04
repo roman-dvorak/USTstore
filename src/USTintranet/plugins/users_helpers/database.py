@@ -129,7 +129,10 @@ def add_users(coll: pymongo.collection.Collection, ids: list = None, n: int = No
         warnings.warn("Nebyla specifikována žádná id ani počet nových uživatelů. Nic se nestalo.")
         return
 
-    users = [{"_id": _id, "created": datetime.now().replace(microsecond=0)} for _id in oids]
+    users = [{"_id": _id,
+              "created": datetime.now().replace(microsecond=0),
+              "type": "user",
+              } for _id in oids]
     coll.insert_many(users)
 
     return ids

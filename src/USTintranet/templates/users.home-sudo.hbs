@@ -496,7 +496,7 @@
                 originalData[id][field] = oldV;
             }
 
-            if (!(field in originalData[id])) {
+            if ((id in originalData) && !(field in originalData[id])) {
                 console.log("přidávám field do originalData");
                 originalData[id][field] = oldV;
             }
@@ -885,6 +885,7 @@
                 headers: {
                     "Content-type": 'application/json; charset=utf-8', //set specific content type
                 },
+                body: undefined,
             }
         });
     }
