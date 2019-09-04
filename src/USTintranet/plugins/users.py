@@ -164,6 +164,9 @@ class UserPageHandler(BaseHandler):
         user_document = db.get_user(self.mdb.users, _id)
 
         name_doc = user_document.get("name", {})
+        if not isinstance(name_doc, dict):
+            name_doc = {}
+
         res_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "residence") or {}
         cont_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "contact") or {}
 
