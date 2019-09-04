@@ -35,6 +35,15 @@ def plug_info():
     }
 
 
+def find_type_in_addresses(addresses: list, addr_type: str):
+    """
+    Najde první adresu s daným typem v listu adres.
+    Adresy bez explicitního typu jsou chápány jako typ "residence"
+
+    """
+    return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
+
+
 class HomeHandler(BaseHandler):
     role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
@@ -66,21 +75,13 @@ class ApiAdminTableHandler(BaseHandler):
             item.pop("pass", None)
 
             if "addresses" in item:
-                item["residence_address"] = self.find_type_in_addresses(item["addresses"], "residence")
-                item["contact_address"] = self.find_type_in_addresses(item["addresses"], "contact")
+                item["residence_address"] = find_type_in_addresses(item["addresses"], "residence")
+                item["contact_address"] = find_type_in_addresses(item["addresses"], "contact")
 
                 del item["addresses"]
 
         out = bson.json_util.dumps(data)
         self.write(out)
-
-    def find_type_in_addresses(self, addresses: list, addr_type: str):
-        """
-        Najde první adresu s daným typem v listu adres.
-        Adresy bez explicitního typu jsou chápány jako typ "residence"
-
-        """
-        return next((a for a in addresses if a.get("type", "residence") == "residence"), None)
 
     def post(self):
         """
@@ -163,8 +164,8 @@ class UserPageHandler(BaseHandler):
         user_document = db.get_user(self.mdb.users, _id)
 
         name_doc = user_document.get("name", {})
-        res_address_doc = next((a for a in user_document.get("addresses", {}) if a["type"] == "residence"), {})
-        cont_address_doc = next((a for a in user_document.get("addresses", {}) if a["type"] == "contact"), {})
+        res_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "residence") or {}
+        cont_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "contact") or {}
 
         birthdate = user_document.get("birthdate", None)
 
