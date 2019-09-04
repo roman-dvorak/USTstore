@@ -55,6 +55,9 @@ class ApiAdminTableHandler(BaseHandler):
         data = db.get_users(self.mdb.users)
 
         for item in data:
+            if "name" in item and not isinstance(item["name"], dict):
+                item["full_name"] = item.pop("name")
+
             if "created" in item:
                 item["created"] = item["created"].replace(microsecond=0).isoformat()
             if "birthdate" in item:
@@ -63,13 +66,21 @@ class ApiAdminTableHandler(BaseHandler):
             item.pop("pass", None)
 
             if "addresses" in item:
-                item["residence_address"] = next((a for a in item["addresses"] if a["type"] == "residence"), None)
-                item["contact_address"] = next((a for a in item["addresses"] if a["type"] == "contact"), None)
+                item["residence_address"] = self.find_type_in_addresses(item["addresses"], "residence")
+                item["contact_address"] = self.find_type_in_addresses(item["addresses"], "contact")
 
                 del item["addresses"]
 
         out = bson.json_util.dumps(data)
         self.write(out)
+
+    def find_type_in_addresses(self, addresses: list, addr_type: str):
+        """
+        Najde první adresu s daným typem v listu adres.
+        Adresy bez explicitního typu jsou chápány jako typ "residence"
+
+        """
+        return next((a for a in addresses if a.get("type", "residence") == "residence"), None)
 
     def post(self):
         """
@@ -85,6 +96,7 @@ class ApiAdminTableHandler(BaseHandler):
         """
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
+        print(data)
 
         edited_data = data["edited"]
         new_ids = data["new"]
