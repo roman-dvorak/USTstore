@@ -39,6 +39,7 @@
     .contract-show-more {
         display: none;
         text-align: center;
+        cursor: pointer;
     }
 
     .document-edit-btn {
@@ -66,7 +67,7 @@
         color: grey;
     }
 
-    .document-show-file {
+    .link-show-file {
         text-align: center;
     }
 </style>
@@ -514,6 +515,13 @@
                                     <td>Je podepsaná?</td>
                                     <td>{{contract["is_valid"]}}</td>
                                 </tr>
+                                <tr>
+                                    <td colspan="2" class="link-show-file">
+                                        <a href="{{contract.get('url', '#')}}" target="_blank">
+                                            Zobrazit smlouvu
+                                        </a>
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </td>
@@ -585,8 +593,8 @@
                                 </tr>
                                 {% end %}
                                 <tr>
-                                    <td colspan="2" class="document-show-file">
-                                        <a href="#">
+                                    <td colspan="2" class="link-show-file">
+                                        <a href="{{document.get('url', '#')}}" target="_blank">
                                             Zobrazit soubor
                                         </a>
                                     </td>

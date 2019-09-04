@@ -7,6 +7,7 @@ import tornado
 import tornado.options
 import os
 
+from contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from . import BaseHandler, save_file, upload_file
 from .users_helpers import database as db
@@ -295,6 +296,8 @@ class ApiUserContractsHandler(BaseHandler):
         contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
         contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
 
+        local_url = generate_contract(db.get_user(self.mdb.users, _id), contract)
+
         db.add_user_contract(self.mdb.users, _id, contract)
 
 
@@ -330,8 +333,8 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             if file:
                 user_mdoc = db.get_user(self.mdb.users, _id)
                 file_name = self.make_document_name(user_mdoc, document, document_id)
-                doc_owncloud_id = self.process_file(file, file_name)
-                document["owncloud_id"] = doc_owncloud_id
+                owncloud_url = self.process_file(file, file_name)
+                db.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
 
         self.redirect(f"/users/u/{_id}", permanent=True)
 
@@ -349,7 +352,7 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         res = upload_file(self.oc, local_path, remote)
         print("res", res)
 
-        return remote[:24]
+        return res.get_link()
 
     def make_document_name(self, user_mdoc, document, document_id):
         surname = user_mdoc.get("name", {}).get("surname", "unknown")
