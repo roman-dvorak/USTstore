@@ -72,7 +72,6 @@
     }
 </style>
 
-
 <div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -263,8 +262,8 @@
                     </div>
 
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="contract-is-valid-input">
-                        <label for="contract-is-valid-input" class="form-check-label">
+                        <input type="checkbox" class="form-check-input" id="contract-is-signed-input">
+                        <label for="contract-is-signed-input" class="form-check-label">
                             Smlouva je podepsaná (platná)
                         </label>
                     </div>
@@ -483,9 +482,17 @@
                     {% for contract in contracts %}
                     <tr class="contract-header" data-id="{{contract["_id"]}}">
                         <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
-                        <th class="item-{{contract["color"]}}">{{contract["title"]}}</th>
+                        <th class="item-{{"black" if contract["is_valid"] else "grey"}}">
+                            {% if contract["is_valid"] %}
+                            <button type="button" class="btn btn-sm btn-secondary"
+                                    style="float: right; padding-bottom: 0" onclick="invalidateContract(this)">
+                                <i class="material-icons" style="font-size: 17px">close</i>
+                            </button>
+                            {% end %}
+                            {{contract["title"]}}
+                        </th>
                     </tr>
-                    <tr class="contract-info item-{{contract["color"]}}">
+                    <tr class="contract-info item-{{"black" if contract["is_valid"] else "grey"}}">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
@@ -513,8 +520,22 @@
                                 {% end %}
                                 <tr>
                                     <td>Je podepsaná?</td>
-                                    <td>{{contract["is_valid"]}}</td>
+                                    <td>
+                                        {% if not contract["is_signed_raw"] %}
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                style="float: right; padding-bottom: 0" onclick="signContract(this)">
+                                            <i class="material-icons" style="font-size: 17px">edit</i>
+                                        </button>
+                                        {% end %}
+                                        {{contract["is_signed"]}}
+                                    </td>
                                 </tr>
+                                {% if contract.get("invalidated", False) %}
+                                <tr>
+                                    <td>Zneplatněna dne</td>
+                                    <td>{{contract["invalidated"]}}</td>
+                                </tr>
+                                {% end %}
                                 <tr>
                                     <td colspan="2" class="link-show-file">
                                         <a href="{{contract.get('url', '#')}}" target="_blank">
@@ -549,7 +570,7 @@
                     </thead>
                     <tbody>
                     {% for document in documents %}
-                    <tr class="document-header item-{{document['color']}}">
+                    <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
                         <th>
                             <button class="btn btn-dark btn-sm document-edit-btn" onclick="showDocumentEditor(this)">
                                 Upravit
@@ -557,7 +578,8 @@
                             {{document["title"]}}
                         </th>
                     </tr>
-                    <tr class="document-info item-{{document['color']}}" data-id="{{document["_id"]}}">
+                    <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
+                        data-id="{{document["_id"]}}">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
@@ -760,8 +782,12 @@
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
-        data["is_valid"] = $("#contract-is-valid-input").prop("checked");
+        data["is_signed"] = $("#contract-is-signed-input").prop("checked");
 
+        sendContractDataAjax(data);
+    }
+
+    function sendContractDataAjax(data) {
         $.ajax({
             url: "/users/api/u/{{_id}}/contracts",
             type: "post",
@@ -921,6 +947,28 @@
             $("#document-select-contract-section").hide();
             $("#document-valid-dates-section").show();
         }
+    }
+
+    function invalidateContract(button) {
+        let contractHeaderRow = $(button).closest("tr");
+        let contractId = contractHeaderRow.data("id");
+
+        let data = {};
+        data["contract_id"] = contractId;
+        data["invalidated"] = true;
+
+        sendContractDataAjax(data);
+    }
+
+    function signContract(button) {
+        let contractHeaderRow = $(button).closest("tr.contract-info").prev();
+        let contractId = contractHeaderRow.data("id");
+
+        let data = {};
+        data["contract_id"] = contractId;
+        data["is_signed"] = true;
+
+        sendContractDataAjax(data);
     }
 </script>
 

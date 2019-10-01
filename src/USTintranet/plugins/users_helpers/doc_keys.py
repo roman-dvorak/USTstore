@@ -41,14 +41,14 @@ CONTRACT_DOC_KEYS = [
     "valid_from",
     "valid_until",
     "hour_rate",
-    "is_valid",
-    "notes"
+    "is_signed",
 ]
 DOCUMENT_DOC_KEYS = [
     "type",
     "valid_from",
     "valid_until",
     "path_to_file",
+    "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
 ]
 VACATION_DOC_KEYS = [
     "from",

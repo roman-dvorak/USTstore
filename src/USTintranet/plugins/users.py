@@ -215,8 +215,6 @@ class UserPageHandler(BaseHandler):
         self.render("users.user-page.hbs", **template_params)
 
     def prepare_contracts(self, contracts):
-        # TODO rozmyslet si líp fieldy smluv ("is_valid" vs "is_signed") a obarvit neplatné smlouvy šedě
-
         possible_type = {
             "dpp": "Dohoda o provedení práce",
             "dpc": "Dohoda o pracovní činnosti",
@@ -237,14 +235,18 @@ class UserPageHandler(BaseHandler):
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["is_valid"] = "Ano" if contract["is_valid"] else "Ne"
-            new["button_text"] = "Zneplatnit" if contract["is_valid"] else "Nastavit jako platnou"
+            new["is_signed"] = "Ano" if contract["is_signed"] else "Ne"
+            new["is_signed_raw"] = contract["is_signed"]
+            # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
 
-            new["color"] = "grey"
-            if contract["is_valid"]:
+            new["is_valid"] = False
+            if contract["is_signed"] and not contract.get("invalidated", False):
                 if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
-                    new["color"] = "black"
+                    new["is_valid"] = True
+
+            if contract.get("invalidated", False):
+                new["invalidated"] = str_ops.date_to_str(contract["invalidated"])
 
             result.append(new)
 
@@ -270,9 +272,9 @@ class UserPageHandler(BaseHandler):
             print(document["valid_until"])
 
             if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
-                document["color"] = "black"
+                document["is_valid"] = True
             else:
-                document["color"] = "grey"
+                document["is_valid"] = False
 
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
@@ -292,13 +294,29 @@ class ApiUserContractsHandler(BaseHandler):
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
-        contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
-        contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
-        contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+        if "contract_id" in contract:
+            if contract.get("invalidated", False):
+                db.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
 
-        local_url = generate_contract(db.get_user(self.mdb.users, _id), contract)
+            if contract.get("is_signed", False):
+                db.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
+        else:
+            contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
+            contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
+            contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
 
-        db.add_user_contract(self.mdb.users, _id, contract)
+            local_path = generate_contract(db.get_user(self.mdb.users, _id), contract,
+                                          "Universal Scientific Technologies s.r.o.",
+                                          "U Jatek 19, 392 01 Soběslav",
+                                          "28155319")
+
+            owncloud_path = os.path.join(tornado.options.options.owncloud_root,
+                                         "contracts",
+                                         os.path.basename(local_path))
+            remote = save_file(self.mdb, owncloud_path)
+            res = upload_file(self.oc, local_path, remote)
+
+            db.add_user_contract(self.mdb.users, _id, contract)
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):

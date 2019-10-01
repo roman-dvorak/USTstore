@@ -152,6 +152,26 @@ def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contrac
     _add_embedded_mdocument_to_user_array(coll, user_id, "contracts", contract, str(ObjectId()))
 
 
+def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
+    """
+    Přidá do mdocumentu smlouvy key "invalidated" obsahující aktuální datum. Toto značí zneplatnění smlouvy,
+    nelze vzít zpět.
+    """
+    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+                    {"$set": {
+                        "contracts.$.invalidated": datetime.now().replace(microsecond=0)
+                    }})
+
+def sign_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
+    """
+    Nastaví key smlouvy "is_signed" na true.
+    """
+    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+                    {"$set": {
+                        "contracts.$.is_signed": True
+                    }})
+
+
 def add_user_document(coll: pymongo.collection.Collection, user_id: str, document: dict):
     """
     Přidá nový dokument daného uživatele. Dokument dostane vlastní "_id".
