@@ -430,25 +430,30 @@ function draw_supplier(){
 function draw_stock(count){
   console.log("Count>>", count);
   $("#inputSTOCK_list").empty();
-  //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
   console.log(count.count_part || 0);
+
   if( count.count_part.suma[0] != undefined){
     $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count_part.suma[0].count || -999 + ' u </div>');
   }
 
   for (lci in count.count_part.by_warehouse){
-      var lc = count.count_part.by_warehouse[lci];
+        try {
+            var lc = count.count_part.by_warehouse[lci];
 
-      console.log("TEST...", lc)
-      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position.text + "<br>" + lc.count +" units </div>";
-      $("#inputSTOCK_list").append(html);
-  }
+            console.log("TEST...", lc)
+            var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position.text + "<br>" + lc.count +" units </div>";
+            $("#inputSTOCK_list").append(html);
+        }catch(err) {
+            console.log("Err", err);
+        }
+    }
 }
 
 function draw_warehouse_positions(positions){
+    console.info("[draw_warehouse_positions]");
+
     $("#inputPOSITION_list").empty();
     for (pos in positions.positions_local){
-        //console.log((positions.positions_local[pos]));
         var html = "<div class='card m-0 p-2 mr-2";
         if (positions.positions_local[pos]['primary'] == true){
             html += ' bg-warning';
@@ -456,7 +461,20 @@ function draw_warehouse_positions(positions){
         html +="'>"+ positions.positions_local[pos]['info'][0]['text'] +" </div>";
         $("#inputPOSITION_list").append(html);
     }
-}
+
+    console.log(positions.overview);
+    for (var stock in positions.overview) { 
+        var html = "<div class='card m-0 p-2 mr-2";
+        //if (positions.positions_loca[pos]['primary'] == true){
+         html += ' bg-info';
+        //}
+        html +="'>"+ stock + "\n" +positions.overview[stock]['count']['onstock'] +" </div>";
+        $("#inputPOSITION_list").append(html);
+                
+      }
+    }
+  
+
 
 
 function draw_tags(){

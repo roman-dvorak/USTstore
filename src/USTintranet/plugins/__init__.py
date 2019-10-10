@@ -16,6 +16,7 @@ import os
 import bson
 from hashlib import blake2s
 from tornado.options import define, options
+from termcolor import colored
 
 def make_handlers(module, plugin):
         handlers = [
@@ -215,12 +216,45 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code',1)]))
 
+    '''
+    Ze zadaneho ObjectID pozice to vyhleda sklad
+    '''
+    def get_warehousese_by_position(self, position: bson.ObjectId):
+        print(colored("[get_warehousese_by_position]", "green"))
+
+        warehouse = self.mdb.store_positions.aggregate([
+            {"$match": {'_id': position}}
+        ])
+        warehouse = list(warehouse)
+        if len(warehouse) < 1:
+            return None
+
+        return warehouse[0]['warehouse']
+
+    '''
+    Ze zadaneho ObjectID skladu vrati informace o skladu
+    '''
+    def get_warehouse(self, warehouseid: bson.ObjectId):
+        warehouse = list(self.mdb.warehouse.aggregate([
+            {"$match": {'_id': warehouseid}}
+        ]))[0]
+        return(warehouse)
+
     def warehouse_get_positions(self, warehouse):
         data = self.mdb.store_positions.aggregate([
             {"$match": {'warehouse': warehouse}},
             #{"$project": {''}}
         ])
         return (data)
+
+    '''
+    Ze zadaneho ObjectID skladu vrati informace o pozici
+    '''
+    def get_position(self, position: bson.ObjectId):
+        position = self.mdb.store_positions.aggregate([
+            {"$match": {'_id': position}}
+        ])
+        return(list(position)[0])
 
 
     def component_get_counts(self, id, warehouse = False):
@@ -283,6 +317,57 @@ class BaseHandler(tornado.web.RequestHandler):
         #print(out[0]['by_warehouse'])
 
         return out[0]
+
+    '''
+        Tato funkce vezme historii polozky a z ni to vytvori soucty do jednotlivych skladu a pozic
+    '''
+    def component_update_counts(self, id):
+        print(colored("[component_update_counts]", "green", attrs=["bold"]))
+        out = list(self.mdb.stock.aggregate([
+            {"$match": {"_id": id}},
+            {"$unwind": "$history"},
+
+        ]))
+        out = list(out)
+        count = {
+            'count':{
+                'onstock': 0,
+                'requested': 0,
+                'ordered': 0
+            }
+        }
+        overview = {}
+        for operation in out:
+            operation = operation['history']
+            warehouse = str(operation.get('stock', "5c67444e7e875154440cc28f"))
+            print(warehouse)
+            
+            if warehouse not in overview:
+                overview[warehouse] = {
+                    'count':{
+                        'onstock': 0,
+                        'requested': 0,
+                        'ordered': 0
+                    },
+                    #'name': self.get_warehouse(warehouse)['name']
+                }
+
+            if "operation" not in operation:
+                overview[warehouse]['count']['onstock'] += operation['bilance']
+
+            elif operation['operation'] in ['inventory', 'service', 'sell', 'buy']:
+                overview[warehouse]['count']['onstock'] += operation['bilance']
+
+            elif operation['operation'] in ['buy_request']:
+                overview[warehouse]['count']['requested'] += operation['bilance']
+
+            else:
+                print("[NEZNAMA OPERACE]", operation['operation'])
+                print(operation)
+
+        self.mdb.stock.update({"_id": id}, {"$set": {"overview": overview}})
+        print(bson.json_util.dumps(overview, indent=2))
+        print(colored("![component_update_counts]", "yellow", attrs=["bold"]))
 
     def component_get_buyrequests(self, id):
         out = list(self.mdb.stock.aggregate([#{

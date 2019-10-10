@@ -248,6 +248,7 @@ class api(BaseHandler):
             print(self.request.arguments.get('selected[]', None))
             #ZDE POSILAT JEN ID jako je to nize....
             id = bson.ObjectId(self.get_argument('value', ''))
+            self.component_update_counts(id)
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
                     {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
@@ -371,6 +372,7 @@ class api(BaseHandler):
 
 
         elif data == 'update_tag':
+            print(">[update_tag]")
             component = self.get_argument('component')
             tag  = self.get_argument('tag')
             state = self.get_argument('state', 'true')  # True nebo False, nastavit nebo odstranit tag
@@ -391,6 +393,7 @@ class api(BaseHandler):
             dout = list(self.mdb.category.find({}))
 
         elif data == 'get_history':
+            print("> [get_history]")
             output_type = self.get_argument('output', 'json')
             dbcursor = self.mdb.stock.aggregate([
                     {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
@@ -579,6 +582,8 @@ class operation(BaseHandler):
         ## Move components from place to place...
         elif data == 'move':
             id = bson.ObjectId(self.get_argument('component'))
+            self.component_update_counts(id)
+            print("")
 
             current_places = self.component_get_counts(id)
             print("CURRENT...")
@@ -619,9 +624,12 @@ class operation(BaseHandler):
         elif data == 'setposition':
             id = bson.ObjectId(self.get_argument('component'))
             current_places = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
+            all_places = self.component_get_positions(id, stock = False)
             print(bson.json_util.dumps(current_places))
+            print(bson.json_util.dumps(all_places))
             places = list(self.mdb.store_positions.find({'warehouse': bson.ObjectId(self.get_cookie('warehouse', False))}).sort([('name', 1)]))
-            self.render("store/store.comp_operation.setposition.hbs", current_places = current_places, all_places = places, stock_positions = [])
+            print(bson.json_util.dumps(places))
+            self.render("store/store.comp_operation.setposition.hbs", current_places = current_places, all_places = places, all_positions = all_places, stock_positions = [])
 
         elif data == 'setposition_push':
             id = bson.ObjectId(self.get_argument('component'))

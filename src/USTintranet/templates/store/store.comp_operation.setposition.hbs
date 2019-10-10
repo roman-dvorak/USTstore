@@ -5,7 +5,14 @@
          <i onclick="compo_update_push_remove_position('{{current['posid']}}')">X </i>  <i onclick="compo_update_push_set_primary('{{current['posid']}}')">P</i> {% end %}
 {%end%}
 </ul>
-<small class="text-muted">Jsou zobrazeny pouze pozice ve vybraném skladě.</small>
+<small class="text-muted">
+<p> Ve všěech skladech:</p>
+<p style="padding-left: 3em;">
+{%for pos in all_positions %}
+    <li>{{pos['info'][0]['warehouse']}} {%if pos['primary']%}<b>{%end%} {{pos['info'][0]['name']}} {%if pos['primary']%}</b><small>(primary)</small>{%else%}
+         <i onclick="compo_update_push_remove_position('{{current['posid']}}')">X </i>  <i onclick="compo_update_push_set_primary('{{current['posid']}}')">P</i> {% end %}
+{%end%}
+</p></small>
 <hr>
 <h3>Nastavit pozici</h3>
 <div class="container">
