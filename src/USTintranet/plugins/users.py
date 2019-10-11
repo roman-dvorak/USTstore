@@ -7,6 +7,7 @@ import tornado
 import tornado.options
 import os
 
+from contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from . import BaseHandler, save_file, upload_file
 from .users_helpers import database as db
@@ -35,6 +36,15 @@ def plug_info():
     }
 
 
+def find_type_in_addresses(addresses: list, addr_type: str):
+    """
+    Najde první adresu s daným typem v listu adres.
+    Adresy bez explicitního typu jsou chápány jako typ "residence"
+
+    """
+    return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
+
+
 class HomeHandler(BaseHandler):
     role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
@@ -55,6 +65,9 @@ class ApiAdminTableHandler(BaseHandler):
         data = db.get_users(self.mdb.users)
 
         for item in data:
+            if "name" in item and not isinstance(item["name"], dict):
+                item["full_name"] = item.pop("name")
+
             if "created" in item:
                 item["created"] = item["created"].replace(microsecond=0).isoformat()
             if "birthdate" in item:
@@ -63,8 +76,8 @@ class ApiAdminTableHandler(BaseHandler):
             item.pop("pass", None)
 
             if "addresses" in item:
-                item["residence_address"] = next((a for a in item["addresses"] if a["type"] == "residence"), None)
-                item["contact_address"] = next((a for a in item["addresses"] if a["type"] == "contact"), None)
+                item["residence_address"] = find_type_in_addresses(item["addresses"], "residence")
+                item["contact_address"] = find_type_in_addresses(item["addresses"], "contact")
 
                 del item["addresses"]
 
@@ -85,6 +98,7 @@ class ApiAdminTableHandler(BaseHandler):
         """
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
+        print(data)
 
         edited_data = data["edited"]
         new_ids = data["new"]
@@ -151,8 +165,11 @@ class UserPageHandler(BaseHandler):
         user_document = db.get_user(self.mdb.users, _id)
 
         name_doc = user_document.get("name", {})
-        res_address_doc = next((a for a in user_document.get("addresses", {}) if a["type"] == "residence"), {})
-        cont_address_doc = next((a for a in user_document.get("addresses", {}) if a["type"] == "contact"), {})
+        if not isinstance(name_doc, dict):
+            name_doc = {}
+
+        res_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "residence") or {}
+        cont_address_doc = find_type_in_addresses(user_document.get("addresses", {}), "contact") or {}
 
         birthdate = user_document.get("birthdate", None)
 
@@ -193,13 +210,11 @@ class UserPageHandler(BaseHandler):
         contracts = db.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        template_params["documents"] = self.prepare_documents(documents)
+        template_params["documents"] = self.prepare_documents(documents, contracts)
 
         self.render("users.user-page.hbs", **template_params)
 
     def prepare_contracts(self, contracts):
-        # TODO rozmyslet si líp fieldy smluv ("is_valid" vs "is_signed") a obarvit neplatné smlouvy šedě
-
         possible_type = {
             "dpp": "Dohoda o provedení práce",
             "dpc": "Dohoda o pracovní činnosti",
@@ -220,20 +235,24 @@ class UserPageHandler(BaseHandler):
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["is_valid"] = "Ano" if contract["is_valid"] else "Ne"
-            new["button_text"] = "Zneplatnit" if contract["is_valid"] else "Nastavit jako platnou"
+            new["is_signed"] = "Ano" if contract["is_signed"] else "Ne"
+            new["is_signed_raw"] = contract["is_signed"]
+            # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
-            if contract["is_valid"]:
+
+            new["is_valid"] = False
+            if contract["is_signed"] and not contract.get("invalidated", False):
                 if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
-                    new["color"] = "black"
-            else:
-                new["color"] = "grey"
+                    new["is_valid"] = True
+
+            if contract.get("invalidated", False):
+                new["invalidated"] = str_ops.date_to_str(contract["invalidated"])
 
             result.append(new)
 
         return result
 
-    def prepare_documents(self, documents):
+    def prepare_documents(self, documents, contracts):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
             "tax_declaration": "Prohlášení k dani",
@@ -241,8 +260,21 @@ class UserPageHandler(BaseHandler):
         }
 
         for document in documents:
+            if document["type"] == "contract_scan":
+                contract = next(item for item in contracts if item["_id"] == document["contract_id"])
+                document["valid_from"] = contract["valid_from"]
+                document["valid_until"] = contract["valid_until"]
+
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
+
+            print(document["valid_from"])
+            print(document["valid_until"])
+
+            if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
+                document["is_valid"] = True
+            else:
+                document["is_valid"] = False
 
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
@@ -262,11 +294,29 @@ class ApiUserContractsHandler(BaseHandler):
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
-        contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
-        contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
-        contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+        if "contract_id" in contract:
+            if contract.get("invalidated", False):
+                db.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
 
-        db.add_user_contract(self.mdb.users, _id, contract)
+            if contract.get("is_signed", False):
+                db.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
+        else:
+            contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
+            contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
+            contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+
+            local_path = generate_contract(db.get_user(self.mdb.users, _id), contract,
+                                          "Universal Scientific Technologies s.r.o.",
+                                          "U Jatek 19, 392 01 Soběslav",
+                                          "28155319")
+
+            owncloud_path = os.path.join(tornado.options.options.owncloud_root,
+                                         "contracts",
+                                         os.path.basename(local_path))
+            remote = save_file(self.mdb, owncloud_path)
+            res = upload_file(self.oc, local_path, remote)
+
+            db.add_user_contract(self.mdb.users, _id, contract)
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
@@ -279,9 +329,12 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "valid_until": self.get_argument("valid_until"),
             "notes": self.get_argument("notes")
         }
-        file = None
-        if self.request.files:
-            file = self.request.files["file"][0]
+        print("document", document)
+
+        if document["type"] == "contract_scan":
+            document["contract_id"] = self.get_argument("document_contract")
+            document.pop("valid_from", None)
+            document.pop("valid_until", None)
 
         document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
@@ -289,18 +342,39 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         if document.get("_id", None):
             db.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
         else:
-            db.add_user_document(self.mdb.users, _id, document)
+            document_id = db.add_user_document(self.mdb.users, _id, document)
 
-        if file:
-            with open("pic.png", "wb") as f:
-                f.write(file["body"])
+            file = None
+            if self.request.files:
+                file = self.request.files["file"][0]
 
-            owncloud_name = os.path.join(tornado.options.options.owncloud_root, "pic.png")
-            res = save_file(self.mdb, owncloud_name)
-            res = upload_file(self.oc, "pic.png", owncloud_name)
-            print("res of upload_file", res)
+            if file:
+                user_mdoc = db.get_user(self.mdb.users, _id)
+                file_name = self.make_document_name(user_mdoc, document, document_id)
+                owncloud_url = self.process_file(file, file_name)
+                db.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
 
         self.redirect(f"/users/u/{_id}", permanent=True)
+
+    def process_file(self, file, document_name):
+        extension = os.path.splitext(file["filename"])[1]
+
+        new_filename = f"{document_name}{extension}"
+        local_path = os.path.join("static", "tmp", new_filename)
+
+        with open(local_path, "wb") as f:
+            f.write(file["body"])
+
+        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
+        remote = save_file(self.mdb, owncloud_path)
+        res = upload_file(self.oc, local_path, remote)
+        print("res", res)
+
+        return res.get_link()
+
+    def make_document_name(self, user_mdoc, document, document_id):
+        surname = user_mdoc.get("name", {}).get("surname", "unknown")
+        return f"{document_id}_{surname}_{document['type']}"
 
 
 class ApiUserDeleteDocumentHandler(BaseHandler):
@@ -308,3 +382,9 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
     def post(self, _id):
         document_id = self.request.body.decode("utf-8")
         db.delete_user_document(self.mdb.users, _id, document_id)
+
+
+class ApiUserDownloadDocumentHandler(BaseHandlerOwnCloud):
+
+    def get(self):
+        pass

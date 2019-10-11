@@ -129,7 +129,10 @@ def add_users(coll: pymongo.collection.Collection, ids: list = None, n: int = No
         warnings.warn("Nebyla specifikována žádná id ani počet nových uživatelů. Nic se nestalo.")
         return
 
-    users = [{"_id": _id, "created": datetime.now().replace(microsecond=0)} for _id in oids]
+    users = [{"_id": _id,
+              "created": datetime.now().replace(microsecond=0),
+              "type": "user",
+              } for _id in oids]
     coll.insert_many(users)
 
     return ids
@@ -149,11 +152,33 @@ def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contrac
     _add_embedded_mdocument_to_user_array(coll, user_id, "contracts", contract, str(ObjectId()))
 
 
+def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
+    """
+    Přidá do mdocumentu smlouvy key "invalidated" obsahující aktuální datum. Toto značí zneplatnění smlouvy,
+    nelze vzít zpět.
+    """
+    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+                    {"$set": {
+                        "contracts.$.invalidated": datetime.now().replace(microsecond=0)
+                    }})
+
+def sign_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
+    """
+    Nastaví key smlouvy "is_signed" na true.
+    """
+    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+                    {"$set": {
+                        "contracts.$.is_signed": True
+                    }})
+
+
 def add_user_document(coll: pymongo.collection.Collection, user_id: str, document: dict):
     """
     Přidá nový dokument daného uživatele. Dokument dostane vlastní "_id".
     """
-    _add_embedded_mdocument_to_user_array(coll, user_id, "documents", document, str(ObjectId()))
+    _id = str(ObjectId())
+    _add_embedded_mdocument_to_user_array(coll, user_id, "documents", document, _id)
+    return _id
 
 
 def delete_user_document(coll: pymongo.collection.Collection, user_id: str, document_id: str):

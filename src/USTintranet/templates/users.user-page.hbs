@@ -2,7 +2,8 @@
 {% block title %} UST intranet | Karta uživatele{%end%}
 {% block body %}
 
-
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
 
@@ -38,6 +39,7 @@
     .contract-show-more {
         display: none;
         text-align: center;
+        cursor: pointer;
     }
 
     .document-edit-btn {
@@ -57,15 +59,18 @@
         /*display: none;*/
     }
 
-    .contract-black {
+    .item-black {
         color: black;
     }
 
-    .contract-grey {
+    .item-grey {
         color: grey;
     }
-</style>
 
+    .link-show-file {
+        text-align: center;
+    }
+</style>
 
 <div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -237,6 +242,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="contract-signing-place-input">Místo uzavření</label>
+                        <input type="text" class="form-control" id="contract-signing-place-input" required>
+                    </div>
+
+                    <div class="form-group">
                         <label for="contract-valid-from-input">Platná od</label>
                         <input type="date" class="form-control" id="contract-valid-from-input" required>
                     </div>
@@ -252,8 +262,8 @@
                     </div>
 
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="contract-is-valid-input">
-                        <label for="contract-is-valid-input" class="form-check-label">
+                        <input type="checkbox" class="form-check-input" id="contract-is-signed-input">
+                        <label for="contract-is-signed-input" class="form-check-label">
                             Smlouva je podepsaná (platná)
                         </label>
                     </div>
@@ -281,7 +291,7 @@
             </div>
             <div class="modal-body">
                 <form name="document-editor-form" action="/users/api/u/{{_id}}/documents"
-                      method="post" enctype="multipart/form-data">
+                      method="post" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="document-id-input" name="_id">
 
                     <button type="button" class="btn btn-secondary" id="delete-document-button"
@@ -290,7 +300,7 @@
                     </button>
                     <div class="form-group">
                         <label for="document-valid-until-input">Soubor</label>
-                        <input type="file" class="form-control" id="document-file-input" name="file">
+                        <input type="file" class="form-control" id="document-file-input" name="file" required>
                     </div>
 
                     <div class="form-group">
@@ -302,16 +312,32 @@
                             <!--                            <option value="other">Jiné</option>-->
                         </select>
                     </div>
+                    <div id="document-valid-dates-section">
+                        <div class="form-group">
+                            <label for="document-valid-from-input">Platný od</label>
+                            <input type="date" class="form-control" id="document-valid-from-input"
+                                   name="valid_from" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="document-valid-from-input">Platný od</label>
-                        <input type="date" class="form-control" id="document-valid-from-input" name="valid_from">
+                        <div class="form-group">
+                            <label for="document-valid-until-input">Platný do</label>
+                            <input type="date" class="form-control" id="document-valid-until-input"
+                                   name="valid_until" required>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="document-valid-until-input">Platný do</label>
-                        <input type="date" class="form-control" id="document-valid-until-input" name="valid_until">
+                    <div id="document-select-contract-section">
+                        <div class="form-group">
+                            <label for="document-contract-select">Smlouva</label>
+                            <select class="form-control" id="document-contract-select" name="document_contract"
+                                    required>
+                                {% for contract in contracts %}
+                                <option value="{{contract['_id']}}">{{contract["title"]}}</option>
+                                {% end %}
+                            </select>
+                        </div>
                     </div>
+
 
                     <div class="form-group">
                         <label for="document-notes-textarea">Poznámky</label>
@@ -341,7 +367,7 @@
                     <tr>
                         <th>Základní informace</th>
                         <th class="text-right">
-                            <button type="button" class="btn btn-light" onclick="showUserEditorModal()">Změnit</button>
+                            <button type="button" class="btn btn-light" onclick="showUserEditor()">Změnit</button>
                         </th>
                     </tr>
                     </thead>
@@ -456,9 +482,17 @@
                     {% for contract in contracts %}
                     <tr class="contract-header" data-id="{{contract["_id"]}}">
                         <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
-                        <th class="contract-{{contract["color"]}}">{{contract["title"]}}</th>
+                        <th class="item-{{"black" if contract["is_valid"] else "grey"}}">
+                            {% if contract["is_valid"] %}
+                            <button type="button" class="btn btn-sm btn-secondary"
+                                    style="float: right; padding-bottom: 0" onclick="invalidateContract(this)">
+                                <i class="material-icons" style="font-size: 17px">close</i>
+                            </button>
+                            {% end %}
+                            {{contract["title"]}}
+                        </th>
                     </tr>
-                    <tr class="contract-info contract-{{contract["color"]}}">
+                    <tr class="contract-info item-{{"black" if contract["is_valid"] else "grey"}}">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
@@ -486,7 +520,28 @@
                                 {% end %}
                                 <tr>
                                     <td>Je podepsaná?</td>
-                                    <td>{{contract["is_valid"]}}</td>
+                                    <td>
+                                        {% if not contract["is_signed_raw"] %}
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                style="float: right; padding-bottom: 0" onclick="signContract(this)">
+                                            <i class="material-icons" style="font-size: 17px">edit</i>
+                                        </button>
+                                        {% end %}
+                                        {{contract["is_signed"]}}
+                                    </td>
+                                </tr>
+                                {% if contract.get("invalidated", False) %}
+                                <tr>
+                                    <td>Zneplatněna dne</td>
+                                    <td>{{contract["invalidated"]}}</td>
+                                </tr>
+                                {% end %}
+                                <tr>
+                                    <td colspan="2" class="link-show-file">
+                                        <a href="{{contract.get('url', '#')}}" target="_blank">
+                                            Zobrazit smlouvu
+                                        </a>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -515,7 +570,7 @@
                     </thead>
                     <tbody>
                     {% for document in documents %}
-                    <tr class="document-header">
+                    <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
                         <th>
                             <button class="btn btn-dark btn-sm document-edit-btn" onclick="showDocumentEditor(this)">
                                 Upravit
@@ -523,7 +578,8 @@
                             {{document["title"]}}
                         </th>
                     </tr>
-                    <tr class="document-info" data-id="{{document["_id"]}}">
+                    <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
+                        data-id="{{document["_id"]}}">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
@@ -559,7 +615,11 @@
                                 </tr>
                                 {% end %}
                                 <tr>
-                                    <td colspan="2" class="document-show-file">Zobrazit soubor</td>
+                                    <td colspan="2" class="link-show-file">
+                                        <a href="{{document.get('url', '#')}}" target="_blank">
+                                            Zobrazit soubor
+                                        </a>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -578,8 +638,16 @@
 
     let role_tagify = null;
     $(document).ready(() => {
-        role_tagify = new Tagify(document.getElementById("role-input"));
+        initBasicInfo();
+        initContracts();
+        initDocuments();
+    });
 
+    function initBasicInfo() {
+        role_tagify = new Tagify(document.getElementById("role-input"));
+    }
+
+    function initContracts() {
         let contractInfos = $(".contract-info");
         contractInfos.first().show();
 
@@ -599,17 +667,20 @@
             showMore.show();
             contractHeaders.slice(2).hide();
         }
+    }
 
+    function initDocuments() {
         let documentInfos = $(".document-info");
         let documentHeaders = $(".document-header");
         documentHeaders.on("click", event => {
             documentInfos.hide();
             $(event.target).closest("tr").next().show();
         });
-    });
 
+        $("#document-type-select").on("change", handleDocumentTypeChange);
+    }
 
-    function showUserEditorModal() {
+    function showUserEditor() {
         let inputs = document.forms["user-editor-form"].getElementsByTagName("input");
         for (let input of inputs) {
             input.value = ""
@@ -698,21 +769,25 @@
     }
 
     function saveContractEditor() {
-        let form = document.getElementsByName("contract-editor-form")[0];
+        let form = document.forms["contract-editor-form"];
         console.log(form);
-        if (!form.checkValidity()) {
-            form.classList.add("was-validated");
+        if (!validateContractEditor()) {
             return;
         }
 
         let data = {};
         data["type"] = $("#contract-type-select").val();
         data["signing_date"] = $("#contract-signing-date-input").val();
+        data["signing_place"] = $("#contract-signing-place-input").val();
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
-        data["is_valid"] = $("#contract-is-valid-input").prop("checked");
+        data["is_signed"] = $("#contract-is-signed-input").prop("checked");
 
+        sendContractDataAjax(data);
+    }
+
+    function sendContractDataAjax(data) {
         $.ajax({
             url: "/users/api/u/{{_id}}/contracts",
             type: "post",
@@ -729,12 +804,14 @@
     }
 
     function showDocumentEditor(button, is_new = false) {
+
         if (is_new) {
             $("#delete-document-button").hide();
             $("#document-id-input").val("");
             $("#document-valid-from-input").val("");
             $("#document-valid-until-input").val("");
             $("#document-notes-textarea").val("");
+            $("#document-file-input").val("");
             $("#document-type-select")[0].selectedIndex = 0;
             $("#document-file-input").parent().show();
         } else {
@@ -746,54 +823,27 @@
             let valid_until = documentInfo.find(".document-valid-until-cell").data("raw");
             let notes = documentInfo.find(".document-notes-cell").data("raw");
 
-            console.log(id);
-            console.log(type);
-            console.log(valid_from);
-            console.log(valid_until);
-            console.log(notes);
-
             $("#document-id-input").val(id);
             $("#document-valid-from-input").val(valid_from);
             $("#document-valid-until-input").val(valid_until);
             $("#document-notes-textarea").val(notes);
             $("#document-type-select").val(type);
             $("#document-file-input").parent().hide();
+            $("#document-type-select").parent().hide();
         }
+
+        handleDocumentTypeChange();
 
         $("#document-editor-modal").modal("show");
     }
 
     function saveDocumentEditor() {
-        /*
-        let data = {};
-
-        let id = $("#document-id-input").val();
-        let valid_from = $("#document-valid-from-input").val();
-        let valid_until = $("#document-valid-until-input").val();
-        let notes = $("#document-notes-textarea").val();
-
-        data["type"] = $("#document-type-select").val();
-        data["_id"] = id;
-        data["valid_from"] = valid_from;
-        data["valid_until"] = valid_until;
-        data["notes"] = notes;
-
-        // data["file"] = null;
-
-        $.ajax({
-            url: "/users/api/u/{{_id}}/documents",
-            type: "post",
-            data: JSON.stringify(data),
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
-        }); */
-        document.forms["document-editor-form"].submit();
+        let form = document.forms["document-editor-form"];
+        console.log(form);
+        if (validateDocumentEditor()) {
+            form.submit();
+            // console.log("OK")
+        }
     }
 
     function deleteDocument() {
@@ -813,6 +863,112 @@
             }
         });
 
+    }
+
+    function validateContractEditor() {
+        let isValid = validateRequired(document.forms["contract-editor-form"]);
+
+        let signing_date = $("#contract-signing-date-input");
+        let valid_from = $("#contract-valid-from-input");
+        let valid_until = $("#contract-valid-until-input");
+
+        isValid = validateOneDateBeforeOther(signing_date, valid_from) && isValid;
+        isValid = validateOneDateBeforeOther(valid_from, valid_until) && isValid;
+
+        return isValid;
+    }
+
+    function validateDocumentEditor() {
+        let isValid = validateRequired(document.forms["document-editor-form"]);
+
+        let type = $("#document-type-select").val();
+        if (type !== "contract_scan") {
+            let valid_from = $("#document-valid-from-input");
+            let valid_until = $("#document-valid-until-input");
+
+            let areDatesValid = validateOneDateBeforeOther(valid_from, valid_until);
+            isValid = isValid && areDatesValid;
+        }
+
+        return isValid;
+    }
+
+    function validateOneDateBeforeOther(soonerInput, laterInput) {
+        let soonerVal = $(soonerInput).val();
+        let laterVal = $(laterInput).val();
+        console.log(soonerVal);
+
+        if (soonerVal === "" || laterVal === "") return false;
+
+        if (moment(soonerVal).isAfter(moment(laterVal))) {
+            markInvalid(laterInput);
+            markInvalid(soonerInput);
+            return false;
+        }
+        return true;
+
+    }
+
+    function validateRequired(form) {
+        let isValid = true;
+        let inputs = $(form).find("input, textarea, select");
+
+        inputs.each((index, element) => {
+            element = $(element);
+            if (element.is(":required") && element.is(":visible") && element.val() === "") {
+                markInvalid(element);
+                isValid = false;
+            } else {
+                markValid(element);
+            }
+        });
+        console.log("vysledek validateRequired");
+        console.log(isValid);
+        return isValid;
+
+    }
+
+    function markValid(input) {
+        input.addClass("is-valid");
+        setTimeout(() => input.removeClass("is-valid"), 2000)
+    }
+
+    function markInvalid(input) {
+        input.addClass("is-invalid");
+        setTimeout(() => input.removeClass("is-invalid"), 2000)
+    }
+
+    function handleDocumentTypeChange() {
+        let selectedType = $("#document-type-select").val();
+        if (selectedType === "contract_scan") {
+            $("#document-select-contract-section").show();
+            $("#document-valid-dates-section").hide();
+        } else {
+            $("#document-select-contract-section").hide();
+            $("#document-valid-dates-section").show();
+        }
+    }
+
+    function invalidateContract(button) {
+        let contractHeaderRow = $(button).closest("tr");
+        let contractId = contractHeaderRow.data("id");
+
+        let data = {};
+        data["contract_id"] = contractId;
+        data["invalidated"] = true;
+
+        sendContractDataAjax(data);
+    }
+
+    function signContract(button) {
+        let contractHeaderRow = $(button).closest("tr.contract-info").prev();
+        let contractId = contractHeaderRow.data("id");
+
+        let data = {};
+        data["contract_id"] = contractId;
+        data["is_signed"] = true;
+
+        sendContractDataAjax(data);
     }
 </script>
 
