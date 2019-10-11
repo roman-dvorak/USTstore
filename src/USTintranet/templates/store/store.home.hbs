@@ -7,11 +7,11 @@
 <script type="text/javascript"  src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js" charset="utf-8"></script>
 
 <script type="text/javascript">
-	var product_json;		// promena, ktera slouzi pro upravu JSONu polozky... Pozor! je globalni.
-  {% if permis %} var permis = 1; {%else%} var permis = 0; {%end%}
+	var product_json;		// promena, ktera slouzi pro upravu JSONu polozky.. je globalni.
+  {% if permis %}var permis = 1; {%else%}var permis = 0; {%end%}
 	var current_page = [];
 	var selected = [];
-	var current_detail = 0 // aktualne zobrazeny produkt
+	var current_detail = 0; // aktualne zobrazeny produkt
 </script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />

@@ -216,6 +216,11 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code',1)]))
 
+    def get_current_warehouse_id(self):
+        print(colored("[get_current_warehouse]", "green"))
+        oid = bson.ObjectId(self.get_cookie('warehouse', None))
+        return oid
+
     '''
     Ze zadaneho ObjectID pozice to vyhleda sklad
     '''
@@ -234,7 +239,9 @@ class BaseHandler(tornado.web.RequestHandler):
     '''
     Ze zadaneho ObjectID skladu vrati informace o skladu
     '''
-    def get_warehouse(self, warehouseid: bson.ObjectId):
+    def get_warehouse(self, warehouseid = None):
+        if not warehouseid: warehouseid = self.get_current_warehouse_id()
+        print(warehouseid)
         warehouse = list(self.mdb.warehouse.aggregate([
             {"$match": {'_id': warehouseid}}
         ]))[0]
@@ -257,66 +264,26 @@ class BaseHandler(tornado.web.RequestHandler):
         return(list(position)[0])
 
 
-    def component_get_counts(self, id, warehouse = False):
-        if not warehouse:
-            out = list(self.mdb.stock.aggregate([{
-                "$facet":{
-                    "suma":[
-                        {"$match": {"_id": id}},
-                        {"$unwind": "$history"},
-                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
-                        {"$project": {"count": 1, "_id":0}}
-                    ],
-                     "by_warehouse":[
-                         {"$match": {"_id": id}},
-                         {"$unwind": "$history"},
-                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
-                         {"$sort": {"warehouse": 1}},
-                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
-                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
-                         {"$project": {
-                            "_id":0,
-                            "warehouse":1,
-                            "count": 1,
-                            "position": { "$arrayElemAt": [ "$position", 0 ] },
-                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
-                            }},
-                     ]
-                }
-            }]))
-        else:
-            print(warehouse, type(warehouse))
-            out = list(self.mdb.stock.aggregate([{
-                "$facet":{
-                    "suma":[
-                        {"$match": {"_id": id}},
-                        {"$unwind": "$history"},
-                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
-                        {"$project": {"count": 1, "_id":0}}
-                    ],
-                     "by_warehouse":[
-                         {"$match": {"_id": id}},
-                         {"$unwind": "$history"},
-                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
-                         {"$sort": {"warehouse": 1}},
-                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
-                         {"$match": {"position.warehouse": warehouse}},
-                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
-                         {"$project": {
-                            "_id":0,
-                            "warehouse":1,
-                            "count": 1,
-                            "position": { "$arrayElemAt": [ "$position", 0 ] },
-                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
-                            }},
-                     ]
-                }
-            }]))
+    def component_get_counts(self, id, warehouse = None):
+        out = list(self.mdb.stock.aggregate([
+            {"$match":{"_id": id}},
+            {"$project": {"overview":1}}
+        ]))
 
-        #print("GET Component COUNTS....")
-        #print(out[0]['by_warehouse'])
+        dout = {}
+        dout['stocks'] = out[0]['overview']
+        dout['count'] = {
+                        'onstock': 0,
+                        'requested': 0,
+                        'ordered': 0
+                    }
 
-        return out[0]
+        for stock in out[0]['overview']:
+            dout['count']['onstock'] += out[0]['overview'][stock]['count']['onstock']
+            dout['count']['requested'] += out[0]['overview'][stock]['count']['requested']
+            dout['count']['ordered'] += out[0]['overview'][stock]['count']['ordered']
+            
+        return dout
 
     '''
         Tato funkce vezme historii polozky a z ni to vytvori soucty do jednotlivych skladu a pozic
