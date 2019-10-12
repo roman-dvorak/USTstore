@@ -8,6 +8,8 @@
 
     <!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
     <script src="/static/jquery/dist/jquery.min.js"></script>
+    <!-- <script  type="module" src="/static/js-cookie/src/js.cookie.mjs"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/latest/js.cookie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
     <script src="/static/bootstrap/js/bootstrap.min.js"></script>
     <!-- <script src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js" integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U" crossorigin="anonymous"></script> -->
@@ -45,20 +47,8 @@
     <link href="/static/material-design-icons/iconfont/material-icons.css" rel="stylesheet">
 
 
-
-    <script type="text/javascript">
-        Lobibox.base.DEFAULTS = $.extend({}, Lobibox.base.DEFAULTS, {
-        soundPath: '/static/lobibox/sounds/'
-        });
-
-        Lobibox.notify.DEFAULTS = $.extend({}, Lobibox.notify.DEFAULTS, {
-        	soundPath: '/static/lobibox/sounds/'
-        });
-
-        $.fn.select2.defaults.set( "theme", "bootstrap" );
-      </script>
-
       <script type="text/javascript" src="/static/cart_tools.js"></script>
+      <script type="text/javascript" src="/static/base.js"></script>
       <script type="text/javascript" src="/static/barcode_reader.js"></script>
 
 
@@ -101,7 +91,7 @@
     }
 
     .table_style {
-      border: 1pt gray solid;
+      /*border: 1pt gray solid;*/
     }
 
 	</style>

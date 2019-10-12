@@ -429,15 +429,28 @@ function draw_supplier(){
 
 function draw_stock(count){
   console.log("Count>>", count);
+  //count = count.overview;
   $("#inputSTOCK_list").empty();
 
 // Soucet vsech polozek ve vesch skladech.
-  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count.onstock + "<small class='text-muted'>(" + count.count.requested +",  "+  count.count.ordered +')</small> </div>');
+  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-info"> Celkem <br>' + count.count.onstock + "<small class='text-muted'>(" + count.count.requested +",  "+  count.count.ordered +')</small> </div>');
 
   for (lci in count.stocks){
         try {
             var lc = count.stocks[lci];
-            var html = "<div class='card m-0 p-2 mr-2'>"+ lci + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
+            var s = get_stock(lci)
+            if (s.length > 0){
+              s = s[0];
+            }else{
+              s = {"code": lci};
+            }
+            console.log(s);
+            console.log(lc.count);
+            if (s._id.$oid == get_current_stock()){
+              var html = "<div class='card m-0 p-2 mr-2 bg-warning'>"+ s.code + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
+            }else{
+              var html = "<div class='card m-0 p-2 mr-2 bg-light'>"+ s.code + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
+            }
             $("#inputSTOCK_list").append(html);
         
         }catch(err) {
@@ -460,18 +473,7 @@ function draw_warehouse_positions(positions){
         html +="'>"+ positions.positions_local[pos]['info'][0]['text'] +" </div>";
         $("#inputPOSITION_list").append(html);
     }
-
-    console.log(positions.overview);
-    for (var stock in positions.overview) { 
-        var html = "<div class='card m-0 p-2 mr-2";
-        //if (positions.positions_loca[pos]['primary'] == true){
-         html += ' bg-info';
-        //}
-        html +="'>"+ stock + "\n" +positions.overview[stock]['count']['onstock'] +" </div>";
-        $("#inputPOSITION_list").append(html);
-                
-      }
-    }
+}
   
 
 

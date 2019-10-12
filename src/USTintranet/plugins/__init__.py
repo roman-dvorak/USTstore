@@ -241,6 +241,7 @@ class BaseHandler(tornado.web.RequestHandler):
     '''
     def get_warehouse(self, warehouseid = None):
         if not warehouseid: warehouseid = self.get_current_warehouse_id()
+        else: warehouseid = bson.ObjectId(warehouseid)
         print(warehouseid)
         warehouse = list(self.mdb.warehouse.aggregate([
             {"$match": {'_id': warehouseid}}
@@ -270,20 +271,20 @@ class BaseHandler(tornado.web.RequestHandler):
             {"$project": {"overview":1}}
         ]))
 
-        dout = {}
-        dout['stocks'] = out[0]['overview']
-        dout['count'] = {
-                        'onstock': 0,
-                        'requested': 0,
-                        'ordered': 0
-                    }
+        #dout = {}
+        #dout['stocks'] = out[0]['overview']
+        #dout['count'] = {
+        #                'onstock': 0,
+        #                'requested': 0,
+        #                'ordered': 0
+        #            }
 
-        for stock in out[0]['overview']:
-            dout['count']['onstock'] += out[0]['overview'][stock]['count']['onstock']
-            dout['count']['requested'] += out[0]['overview'][stock]['count']['requested']
-            dout['count']['ordered'] += out[0]['overview'][stock]['count']['ordered']
-            
-        return dout
+        #for stock in out[0]['overview']:
+        #    dout['count']['onstock'] += out[0]['overview'][stock]['count']['onstock']
+        #    dout['count']['requested'] += out[0]['overview'][stock]['count']['requested']
+        #    dout['count']['ordered'] += out[0]['overview'][stock]['count']['ordered']
+
+        return out[0]['overview']
 
     '''
         Tato funkce vezme historii polozky a z ni to vytvori soucty do jednotlivych skladu a pozic
@@ -296,37 +297,40 @@ class BaseHandler(tornado.web.RequestHandler):
 
         ]))
         out = list(out)
-        count = {
+
+        overview = {
             'count':{
                 'onstock': 0,
                 'requested': 0,
                 'ordered': 0
-            }
+            },
+            'stocks': {}
         }
-        overview = {}
         for operation in out:
             operation = operation['history']
             warehouse = str(operation.get('stock', "5c67444e7e875154440cc28f"))
             print(warehouse)
-            
-            if warehouse not in overview:
-                overview[warehouse] = {
+
+            if warehouse not in overview['stocks']:
+                overview['stocks'][warehouse] = {
                     'count':{
                         'onstock': 0,
                         'requested': 0,
                         'ordered': 0
-                    },
-                    #'name': self.get_warehouse(warehouse)['name']
+                    }
                 }
 
             if "operation" not in operation:
-                overview[warehouse]['count']['onstock'] += operation['bilance']
+                overview['stocks'][warehouse]['count']['onstock'] += operation['bilance']
+                overview['count']['onstock'] += operation['bilance']
 
-            elif operation['operation'] in ['inventory', 'service', 'sell', 'buy']:
-                overview[warehouse]['count']['onstock'] += operation['bilance']
+            elif operation['operation'] in ['inventory', 'service', 'sell', 'buy', 'move_in', 'move_out']:
+                overview['stocks'][warehouse]['count']['onstock'] += operation['bilance']
+                overview['count']['onstock'] += operation['bilance']
 
             elif operation['operation'] in ['buy_request']:
-                overview[warehouse]['count']['requested'] += operation['bilance']
+                overview['stocks'][warehouse]['count']['requested'] += operation['bilance']
+                overview['count']['requested'] += operation['bilance']
 
             else:
                 print("[NEZNAMA OPERACE]", operation['operation'])

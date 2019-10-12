@@ -19,22 +19,18 @@
 
 	.product_list_element {
 		margin: 0pt;
-		margin-top: 10pt;
 		padding: 5pt;
 	}
 
 	.product_list_element_table{
 		width: 100%;
-		background: white;
-		border: #aaa solid 1pt;
-		padding: 5pt;
+		padding: 0pt;
 		margin: 0pt;
 		display: inline-flex;
 	}
 
 	.table_input{
 		width: 8em;
-		border: #ccc solid thin;
 		background: #fafafa;
 	}
 
@@ -316,8 +312,10 @@
 		<button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
 		<button class="btn btn-default btn-sm" onclick="update_list()">obnovit</button>
     Načteno <span id="item_count"></span> položek
-
 	</div>
+</div>
+<div>
+
 	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
 	<div id="product_list"> </div>                                                <!--  TABULKA S PRODUKTY -->
 
@@ -461,10 +459,8 @@
     $('#mcat_cat_name_cs').val(cs);
     $('#mcat_cat_desc').val(ds);
     $('#mcat_cat_path').val(path);
-  }
+  }{%end%}
 
-
-  {%end%}
 
 	function mcat_update(){
 		$.ajax({
@@ -617,6 +613,7 @@ function update_view(){
     $('#product_list').empty();
     for (var i = 0; i < current_page.length; i++) {
         var element = current_page[i];
+        console.log("ELEMENT", element.overview);
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
@@ -639,26 +636,19 @@ function update_view(){
         tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
 
         if ($('#display_select').val() == 'table'){
-            tmpl.querySelector('.stock_count').innerText = element.count + " u";
+            try{var warehouse_count = element.overview.stocks[Cookies.get("warehouse")].count.onstock;}
+            catch(err){var warehouse_count = 0; console.log(err);}
+            console.log(warehouse_count)
+            tmpl.querySelector('.stock_count').innerHTML = "<b>"+warehouse_count +
+                      "</b><small class='text-muted'> (" + element.overview.count.onstock + ")</small>";
             if (element.tags){
-              //console.log("Tag",_.get(element, 'tags.id'));
-              if(_.findKey(element.tags, { 'id': "inventura2019"})){
+
+              if(_.findKey(element.tags, { 'id': "inventura2020"})){
                 tmpl.querySelector('.stock_count').style.background = "#94e991";
               }
-              //console.log(element.tags);
-              //for (var i = element.tags.length - 1; i >= 0; i--) {
-                //if (element.tags[i].id == 'inventura2019'){
-                //  tmpl.querySelector('.stock_count').style.background = "#94e991";
-                //}
-              //}
-              //if (element.tags['inventura2019']){
-              //tmpl.querySelector('.stock_tag_selected').checked = true;
-              //  tmpl.querySelector('.category_name').style.color = "#94e991";
-              //  tmpl.querySelector('.stock_count').style.color = "#94e991";
             }
 
             tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
-            //tmpl.querySelector('.stock_tag_selected').setAttribute('onchange', 'update_product_from_line("tag","'+element['_id']+'", this.checked)');
         }
 
         if(current_detail == element['_id']){

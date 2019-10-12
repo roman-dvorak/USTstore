@@ -392,6 +392,9 @@ class api(BaseHandler):
         elif data == 'get_categories':
             dout = list(self.mdb.category.find({}))
 
+        elif data == 'get_warehouses':
+            dout = self.get_warehouseses()
+
         elif data == 'get_history':
             print("> [get_history]")
             output_type = self.get_argument('output', 'json')
@@ -407,7 +410,7 @@ class api(BaseHandler):
             if output_type == "html_tab":
                 self.set_header('Content-Type', 'text/html; charset=UTF-8')
                 print(dout)
-                self.render('store/store.api.history_tab_view.hbs', dout = dout)
+                self.render('store/store.api.history_tab_view.hbs', dout = dout, parent = self)
                 return None
 
         elif data == 'update_category':
@@ -468,6 +471,7 @@ class api(BaseHandler):
                 }], useCursor=True)
             dout = list(dbcursor)
 
+        print("operace:", data)
         output = bson.json_util.dumps(dout)
         self.write(output)
 
@@ -503,17 +507,19 @@ class operation(BaseHandler):
 
         elif data == 'service_push': # vlozeni 'service do skladu'
             id = bson.ObjectId(self.get_argument('component'))
-            stock = self.get_warehouseses()
+            #stock_list = self.get_warehouseses()
+            stock = (self.get_warehouse()['_id'])
             description = self.get_argument('description', '')
             bilance = self.get_argument('offset')
             bilance = bilance.replace(",", ".").strip()
 
 
             if '=' == bilance[0]:
-                pass
+                counts = self.component_get_counts(id)['stocks'][str(stock)]['count']['onstock']
+                bilance = float(bilance[1:]) - counts
+                description += "oprava z %d na %d ks".format(counts, bilance)
 
-
-            print("service_push >>", id, stock, description, bilance)
+            print("service_push >>", id, stock, description, float(bilance))
             out = self.mdb.stock.update(
                     {'_id': id},
                     {'$push': {'history':

@@ -23,14 +23,13 @@ for i, comp in enumerate(components):
     try:
         #print("====================================")
         for j, h in enumerate(comp['history']):
-            if h['stock'] in [ObjectId("5c709fa012875079fd76e238"), ObjectId("5c709fb412875079fd76e249")]:
+            if h['stock'] in [ObjectId("5c67446b7e875154440cc299"), ObjectId("5c67444e7e875154440cc28f"), ObjectId("5c67445b7e875154440cc297")]:
                 pass
-                #print("..", h)
             else:
                 print("Spatne", h)
                 db.stock.update(
                     {"_id": ObjectId(comp['_id'])},
-                    {"$set": {"history.{}.stock".format(j): ObjectId("5c709fb412875079fd76e249")}}
+                    {"$set": {"history.{}.stock".format(j): ObjectId("5c67444e7e875154440cc28f")}}
                 )
 
 
