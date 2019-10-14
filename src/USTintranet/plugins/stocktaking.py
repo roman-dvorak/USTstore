@@ -125,20 +125,30 @@ class load_item(BaseHandler):
         print("ARGUMENT JE....", item)
         #self.write(item)
         out = {}
+
+        # zjistit, jestli se jedna o ObjectID a v jake forme. Pokud je to cisto, tak prevest
+        # Nasledne je potreba nacist data z DB
+        try:
+            if item.isdecimal():
+                item = "{:x}".format(int(item))
+            item = bson.ObjectId(item)
+        except Exception as e:
+            raise(e)
+
+            # TODO: vyhledavani pomoci jinych parametru
+
+        print("ObjectID pro nacteni", item)
+        self.component_update_counts(item)
         out['item'] = self.mdb.stock.find_one({'_id': item})
-        out['history'] = list(self.mdb.stock.aggregate([
-                {
-                    '$match':{'_id': item}
-                },{
-                    '$unwind': '$history'
-                },{
-                    '$group' : {
-                        '_id' : '$history.stock',
-                        'bilance': { '$sum': '$history.bilance' },
-                    }
-                }]))
+        out['warehouse'] = self.get_warehouse()
+        out['invetury'] = self.get_inventory()
         out = bson.json_util.dumps(out)
         self.write(out)
+
+    def get_inventory(self):
+        current_id = self.mdb.intranet.find_one({'_id': 'stock_taking'})
+        current = self.mdb.stock_taking.find_one({'_id': current_id['current']})
+        return list(current)
 
 class save_stocktaking(BaseHandler):
     def post(self):
@@ -154,15 +164,17 @@ class save_stocktaking(BaseHandler):
         if not current:
             raise tornado.web.HTTPError(403)
         else:
+
+            current_st = self.mdb.stock_taking.find_one({'_id': current})
             print("service_push >>", item, stock, description, bilance, absolute)
             data = {
                     '_id': bson.ObjectId(),
-                    'stock': stock,
+                    'stock': self.get_warehouse()['_id'],
                     'operation': 'inventory',
                     'bilance': float(bilance),
                     'absolute': float(absolute),
                     'inventory': current,
-                    'description': description,
+                    'description': "{} | {}".format(current_st['name'], description),
                     'user':self.logged,
                     }
             
@@ -191,7 +203,9 @@ class stocktaking_events(BaseHandler):
     '''
     def get(self):
         self.authorized(['inventory-sudo'], True)
-        self.render('stocktaking.events.hbs')
+        warehouse = self.get_warehouse()
+        print("Vybrany sklad je", warehouse)
+        self.render('stocktaking.events.hbs', warehouse = warehouse)
 
     def post(self):
         self.authorized(['inventory-sudo'], True)
@@ -253,6 +267,8 @@ class stocktaking_eventsave(BaseHandler):
                 'author': self.get_argument('author'),
                 }
 
+        data['warehouse'] = self.get_warehouse()['_id']
+            
         if id == 'new':
             data['history'] = []
             data['documents'] = []
