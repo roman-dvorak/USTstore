@@ -1,5 +1,3 @@
-
-
 from pprint import pprint
 import csv
 import pymongo
@@ -13,11 +11,11 @@ import hashids
 from hashlib import blake2b, blake2s
 import time
 
-
 client = pymongo.MongoClient('localhost', 27017)
 db = client.USTintranet
 
 components = db.stock.find()
+
 
 for i, comp in enumerate(components):
     try:
