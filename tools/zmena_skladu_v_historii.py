@@ -15,7 +15,7 @@ import time
 
 
 client = pymongo.MongoClient('localhost', 27017)
-db = client.USTintranet
+db = client.USTdev
 
 components = db.stock.find()
 
