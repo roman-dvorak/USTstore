@@ -122,7 +122,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
                                  "zaměstnanec a jedno zaměstnavatel.")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=0, txt=f"V Soběslavi, dne {str_ops.date_to_str(signing_date)}")
+    pdf.cell(w=0, txt=f"V Praze, dne {str_ops.date_to_str(signing_date)}")
     pdf.ln(SPACE_SIZE * 3)
 
     pdf.cell(w=100, txt="." * 50)

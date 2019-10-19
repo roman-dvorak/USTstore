@@ -7,7 +7,7 @@ import tornado
 import tornado.options
 import os
 
-from contract_generation import generate_contract
+from .users_helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from . import BaseHandler, save_file, upload_file
 from .users_helpers import database as db
@@ -239,6 +239,7 @@ class UserPageHandler(BaseHandler):
             new["is_signed_raw"] = contract["is_signed"]
             # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
+            new["url"] = contract["url"]
 
             new["is_valid"] = False
             if contract["is_signed"] and not contract.get("invalidated", False):
@@ -268,9 +269,6 @@ class UserPageHandler(BaseHandler):
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
-            print(document["valid_from"])
-            print(document["valid_until"])
-
             if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
                 document["is_valid"] = True
             else:
@@ -288,7 +286,7 @@ class UserPageHandler(BaseHandler):
         return documents
 
 
-class ApiUserContractsHandler(BaseHandler):
+class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
     def post(self, _id):
         req = self.request.body.decode("utf-8")
@@ -315,6 +313,8 @@ class ApiUserContractsHandler(BaseHandler):
                                          os.path.basename(local_path))
             remote = save_file(self.mdb, owncloud_path)
             res = upload_file(self.oc, local_path, remote)
+
+            contract["url"] = res.get_link()
 
             db.add_user_contract(self.mdb.users, _id, contract)
 
@@ -383,8 +383,3 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
         document_id = self.request.body.decode("utf-8")
         db.delete_user_document(self.mdb.users, _id, document_id)
 
-
-class ApiUserDownloadDocumentHandler(BaseHandlerOwnCloud):
-
-    def get(self):
-        pass
