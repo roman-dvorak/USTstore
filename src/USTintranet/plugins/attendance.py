@@ -2,9 +2,10 @@ from datetime import datetime
 
 import bson.json_util
 
-from .users_helpers import str_ops
+from .helpers import str_ops
 from plugins import BaseHandler
-from .users_helpers import database as db
+from .helpers import database_user as udb
+from .helpers import database_attendance as adb
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -36,7 +37,7 @@ class UserAttendanceHandler(BaseHandler):
 
     def get(self, user_id, date_str=None):
         date = str_ops.date_from_iso_str(date_str)
-        user_document = db.get_user(self.mdb.users, user_id)
+        user_document = udb.get_user(self.mdb.users, user_id)
 
         template_params = {
             "_id": user_id,
@@ -54,4 +55,9 @@ class ApiAddWorkSpanHandler(BaseHandler):
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
 
-        print(data)
+        data["from"] = str_ops.datetime_from_iso_string_and_time_string(data["date"], data["from"])
+        del data["date"]
+
+        data["hours"] = float(data["hours"])
+
+        adb.add_user_workspan(self.mdb.attendance, user_id, data)

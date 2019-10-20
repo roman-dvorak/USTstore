@@ -65,6 +65,5 @@ WAGE_DOC_KEYS = [
 WORKSPAN_DOC_KEYS = [
     "from",
     "hours",
-    "note",
     "assignment",
 ]

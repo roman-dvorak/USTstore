@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .doc_keys import NAME_DOC_KEYS
 
@@ -77,3 +77,12 @@ def address_to_str(address_document: dict):
 
     return address
 
+
+def datetime_from_iso_string_and_time_string(date: str, time: str):
+    if not date or not time:
+        return None
+
+    hours, minutes = time.split(":")
+    delta = timedelta(hours=int(hours), minutes=int(minutes))
+
+    return date_from_iso_str(date) + delta

@@ -1,8 +1,8 @@
 import fpdf
 import os
 
-import plugins.users_helpers.str_ops as str_ops
-from plugins.users_helpers.doc_keys import NAME_DOC_KEYS
+import plugins.helpers.str_ops as str_ops
+from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
 SPACE_SIZE = 6
 MULTICELL_SPACE_SIZE = 2

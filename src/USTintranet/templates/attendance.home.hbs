@@ -194,7 +194,11 @@
                         <td>Do: <input class="workspan-to" type="time" step="1800" style="border-width: thin"></td>
                         <td>Počet hodin: <input class="workspan-hours" type="number" style="width: 50px"
                                                 min="0" max="12" step="0.5"></td>
-                        <td>Poznámka: <input class="workspan-notes" type="text"></td>
+                        <td>Projekt:
+                            <select class="workspan-assignment" style="border-width: thin; width: 200px">
+                                <option value="hmm">Pracovat</option>
+                            </select>
+                        </td>
                         <td>
                             <button class="btn btn-secondary" onclick="saveWorkSpan(this)">OK</button>
                             <button class="btn btn-secondary">Zrušit</button>
@@ -288,12 +292,13 @@
 
     function saveWorkSpan(button) {
         let row = $(button).closest("tr");
-        console.log(row.find(".workspan-notes").val());
+        console.log(row.find(".workspan-assignment").val());
 
         let data = {
             "from": row.find(".workspan-from").val(),
             "hours": row.find(".workspan-hours").val(),
-            "notes": row.find(".workspan-notes").val(),
+            "assignment": row.find(".workspan-assignment").val(),
+            "date": "2019-05-11",
         };
 
         $.ajax({
