@@ -1,28 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Docházková karta {%end%}
+{% block body %}
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="global.css">
+<!--<link rel="stylesheet" href="global.css">-->
 
-    <title>Docházková karta</title>
+<style>
+</style>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-            crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-            crossorigin="anonymous"></script>
-</head>
-<body>
 <div class="container">
-    <h1>Docházková karta: <a href="#">Mgr. Jiří Novák</a></h1>
+    <h1>Docházková karta: <a href="/users/u/{{_id}}">{{name}}</a></h1>
 
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -199,17 +185,18 @@
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
-                        <th colspan="5">7. května 2019</th>
+                        <th colspan="5">{{date_pretty if date_pretty else "nic"}}</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Od: <input type="time" step="1800" style="border-width: thin"></td>
-                        <td>Do: <input type="time" step="1800" style="border-width: thin"></td>
-                        <td>Počet hodin: <input type="number" style="width: 50px"></td>
-                        <td>Poznámka: <input type="text"></td>
+                        <td>Od: <input class="workspan-from" type="time" step="1800" style="border-width: thin"></td>
+                        <td>Do: <input class="workspan-to" type="time" step="1800" style="border-width: thin"></td>
+                        <td>Počet hodin: <input class="workspan-hours" type="number" style="width: 50px"
+                                                min="0" max="12" step="0.5"></td>
+                        <td>Poznámka: <input class="workspan-notes" type="text"></td>
                         <td>
-                            <button class="btn btn-secondary">OK</button>
+                            <button class="btn btn-secondary" onclick="saveWorkSpan(this)">OK</button>
                             <button class="btn btn-secondary">Zrušit</button>
                         </td>
                     </tr>
@@ -224,5 +211,105 @@
         </div>
     </div>
 </div>
-</body>
-</html>
+
+
+<script>
+    $(document).ready(() => {
+        initWorkSpans();
+    });
+
+    function initWorkSpans() {
+        $(".workspan-from, .workspan-to").on("change", (event) => {
+            let et = $(event.target);
+
+            let row = et.closest("tr");
+            let from_input = row.find(".workspan-from");
+            let to_input = row.find(".workspan-to");
+            let hours_input = row.find(".workspan-hours");
+
+            if (to_input.val() && from_input.val()) {
+                let hours = strTimeDifference(from_input.val(), to_input.val());
+                if (hours >= 0) {
+                    hours_input.val(hours);
+                } else {
+                    to_input.val(from_input.val());
+                    hours_input.val(0);
+                }
+            }
+        });
+
+        $(".workspan-hours").on("change", (event) => {
+            let et = $(event.target);
+
+            let row = et.closest("tr");
+            let from_input = row.find(".workspan-from");
+            let to_input = row.find(".workspan-to");
+            let hours_input = row.find(".workspan-hours");
+
+            if (from_input.val()) {
+                let newTime = addToStrTime(from_input.val(), parseFloat(hours_input.val()));
+                let newTimeHours = newTime.split(":")[0];
+                if (parseInt(newTimeHours) > 23) {
+                    newTime = "23:30"
+                }
+                to_input.val(newTime);
+            } else if (to_input.val()) {
+                let newTime = addToStrTime(to_input.val(), -parseFloat(hours_input.val()));
+                let newTimeHours = newTime.split(":")[0];
+                if (parseInt(newTimeHours) < 0) {
+                    newTime = "00:00"
+                }
+                from_input.val(newTime)
+            }
+            from_input.change();
+        })
+    }
+
+    function strTimeDifference(start, end) {
+        start = start.split(":");
+        end = end.split(":");
+        let hours = parseInt(end[0]) - parseInt(start[0]);
+        let minutes = parseInt(end[1]) - parseInt(start[1]);
+        return hours + minutes / 60;
+    }
+
+    function addToStrTime(time, delta) {
+        time = time.split(":");
+        let floatTime = parseInt(time[0]) + parseInt(time[1]) / 60;
+        let newTime = floatTime + delta;
+
+        let sign = newTime >= 0 ? "" : "-";
+
+        newTime = Math.abs(newTime);
+        let newHours = Math.trunc(newTime);
+        let newMinutes = Math.round((newTime - newHours) * 60);
+        return sign + newHours.toString().padStart(2, "0") + ":" + newMinutes.toString().padStart(2, "0");
+    }
+
+    function saveWorkSpan(button) {
+        let row = $(button).closest("tr");
+        console.log(row.find(".workspan-notes").val());
+
+        let data = {
+            "from": row.find(".workspan-from").val(),
+            "hours": row.find(".workspan-hours").val(),
+            "notes": row.find(".workspan-notes").val(),
+        };
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/workspans",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+</script>
+
+{% end %}{# block body#}

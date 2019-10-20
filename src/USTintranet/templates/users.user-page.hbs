@@ -357,7 +357,7 @@
 </div>
 
 <div class="container">
-    <h1>Karta uživatele: <a href="#">{{name}}</a></h1>
+    <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
 
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -444,7 +444,9 @@
                     <tr>
                         <th>Docházka a ohodnocení</th>
                         <th class="text-right">
-                            <button type="button" class="btn btn-light">Docházková karta</button>
+                            <a href="/attendance/u/{{_id}}" role="button" class="btn btn-light">
+                                Docházková karta
+                            </a>
                         </th>
                     </tr>
                     </thead>

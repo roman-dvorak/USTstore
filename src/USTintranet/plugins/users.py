@@ -299,9 +299,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             if contract.get("is_signed", False):
                 db.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
         else:
-            contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
-            contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
-            contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+            contract["signing_date"] = str_ops.date_from_iso_str(contract["signing_date"])
+            contract["valid_from"] = str_ops.date_from_iso_str(contract["valid_from"])
+            contract["valid_until"] = str_ops.date_from_iso_str(contract["valid_until"])
 
             local_path = generate_contract(db.get_user(self.mdb.users, _id), contract,
                                           "Universal Scientific Technologies s.r.o.",
