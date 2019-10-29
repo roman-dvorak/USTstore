@@ -15,7 +15,7 @@ USER_DOC_KEYS = [
     "contracts",
     "skills",
     "notes",
-    "work_spans",
+    "workspans",
     "vacations",
     "documents",
     "wages",

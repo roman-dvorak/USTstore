@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 import bson.json_util
 
 from .helpers import str_ops
 from plugins import BaseHandler
 from .helpers import database_user as udb
-from .helpers import database_attendance as adb
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -37,15 +37,32 @@ class UserAttendanceHandler(BaseHandler):
 
     def get(self, user_id, date_str=None):
         date = str_ops.date_from_iso_str(date_str)
+        if not date:
+            date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
         user_document = udb.get_user(self.mdb.users, user_id)
+
+        day_workspans = udb.get_user_workspans(self.mdb.users, user_id, date, date + timedelta(days=1))
+        for ws in day_workspans:
+            ws["to"] = str_ops.date_to_time_str(ws["from"] + timedelta(minutes=round(ws["hours"] * 60)))
+            ws["from"] = str_ops.date_to_time_str(ws["from"])
+
+        start_of_month = date.replace(day=1)
+        end_of_month = start_of_month + relativedelta(months=1)
+        month_workspans = udb.get_user_workspans(self.mdb.users, user_id, start_of_month, end_of_month)
+
+        month_hours_worked = sum([ws["hours"] for ws in month_workspans])
 
         template_params = {
             "_id": user_id,
             "name": str_ops.name_to_str(user_document["name"]),
             "date": str_ops.date_to_iso_str(date),
-            "date_pretty": str_ops.date_to_str(date)
+            "date_pretty": str_ops.date_to_str(date),
+            "workspans": day_workspans,
+            "month_hours_worked": month_hours_worked,
         }
 
+        print("month workspans", month_workspans)
         self.render("attendance.home.hbs", **template_params)
 
 
@@ -60,4 +77,4 @@ class ApiAddWorkSpanHandler(BaseHandler):
 
         data["hours"] = float(data["hours"])
 
-        adb.add_user_workspan(self.mdb.attendance, user_id, data)
+        udb.add_user_workspan(self.mdb.users, user_id, data)

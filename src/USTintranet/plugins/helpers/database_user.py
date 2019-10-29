@@ -162,6 +162,7 @@ def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, 
                         "contracts.$.invalidated": datetime.now().replace(microsecond=0)
                     }})
 
+
 def sign_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
     """
     Nastaví key smlouvy "is_signed" na true.
@@ -214,6 +215,31 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
                                        return_document=ReturnDocument.AFTER)
     if not list(updated):
         raise ValueError("Uživatel nemá dokument s tímto _id")
+
+
+def add_user_workspan(coll: pymongo.collection.Collection, user_id, workspan):
+    workspan_id = str(ObjectId())
+
+    _add_embedded_mdocument_to_user_array(coll, user_id, "workspans", workspan, workspan_id)
+
+    return workspan_id
+
+
+def get_user_workspans(coll: pymongo.collection.Collection, user_id, since: datetime, to: datetime):
+    cursor = coll.aggregate([
+        {"$match": {"_id": ObjectId(user_id)}},
+        {"$unwind": "$workspans"},
+        {"$match": {
+            "workspans.from": {
+                "$gte": since,
+                "$lt": to,
+            }
+        }},
+        {"$sort": {"workspans.from": 1}},
+        {"$group": {"_id": "$_id", "workspans": {"$push": "$workspans"}}}
+    ])
+
+    return next(cursor, {}).get("workspans", [])
 
 
 def _get_mdocument_set_unset_dicts(document, unset_values=(None, "")):

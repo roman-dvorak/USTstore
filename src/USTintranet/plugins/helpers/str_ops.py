@@ -86,3 +86,7 @@ def datetime_from_iso_string_and_time_string(date: str, time: str):
     delta = timedelta(hours=int(hours), minutes=int(minutes))
 
     return date_from_iso_str(date) + delta
+
+
+def date_to_time_str(date: datetime):
+    return f"{date.hour:02}:{date.minute:02}"

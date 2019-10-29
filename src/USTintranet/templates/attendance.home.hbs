@@ -133,7 +133,7 @@
                     <tbody>
                     <tr>
                         <td>Počet odpracovaných hodin</td>
-                        <td>20</td>
+                        <td>{{month_hours_worked}}</td>
                     </tr>
                     <tr>
                         <td>Maximální počet hodin v měsíci</td>
@@ -189,6 +189,17 @@
                     </tr>
                     </thead>
                     <tbody>
+                    {% for workspan in workspans %}
+                    <tr>
+                        <td>
+                            Od: {{workspan["from"]}}
+                        </td>
+                        <td>Do: {{workspan["to"]}}</td>
+                        <td>Počet hodin: {{workspan["hours"]}}</td>
+                        <td>Projekt: {{workspan["assignment"]}}</td>
+                        <td></td>
+                    </tr>
+                    {% end %}
                     <tr>
                         <td>Od: <input class="workspan-from" type="time" step="1800" style="border-width: thin"></td>
                         <td>Do: <input class="workspan-to" type="time" step="1800" style="border-width: thin"></td>
@@ -204,11 +215,6 @@
                             <button class="btn btn-secondary">Zrušit</button>
                         </td>
                     </tr>
-                    <tr>
-                        <td colspan="5" class="text-center">
-                            <button class="btn btn-primary">Přidat</button>
-                        </td>
-                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -218,6 +224,8 @@
 
 
 <script>
+    const DATE = "{{date}}";
+
     $(document).ready(() => {
         initWorkSpans();
     });
@@ -298,7 +306,7 @@
             "from": row.find(".workspan-from").val(),
             "hours": row.find(".workspan-hours").val(),
             "assignment": row.find(".workspan-assignment").val(),
-            "date": "2019-05-11",
+            "date": DATE,
         };
 
         $.ajax({
