@@ -2,6 +2,7 @@ import fpdf
 import os
 
 import plugins.helpers.str_ops as str_ops
+from mdoc_ops import find_type_in_addresses
 from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
 SPACE_SIZE = 6
@@ -18,7 +19,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     full_name = " ".join([name_doc[key] for key in NAME_DOC_KEYS if name_doc.get(key, None)])
     birthdate = str_ops.date_to_str(user["birthdate"])
 
-    address = str_ops.address_to_str(next(address for address in user["addresses"] if address["type"] == "residence"))
+    address = str_ops.address_to_str(find_type_in_addresses(user["addresses"], "residence"))
 
     assignment = user["assignment"]
 

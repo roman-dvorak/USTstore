@@ -7,6 +7,7 @@ import tornado
 import tornado.options
 import os
 
+from mdoc_ops import find_type_in_addresses
 from .helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from . import BaseHandler, save_file, upload_file
@@ -34,15 +35,6 @@ def plug_info():
         "icon": 'icon_users.svg',
         "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
-
-
-def find_type_in_addresses(addresses: list, addr_type: str):
-    """
-    Najde první adresu s daným typem v listu adres.
-    Adresy bez explicitního typu jsou chápány jako typ "residence"
-
-    """
-    return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
 
 
 class HomeHandler(BaseHandler):
@@ -302,9 +294,10 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             contract["signing_date"] = str_ops.date_from_iso_str(contract["signing_date"])
             contract["valid_from"] = str_ops.date_from_iso_str(contract["valid_from"])
             contract["valid_until"] = str_ops.date_from_iso_str(contract["valid_until"])
+            contract["hour_rate"] = int(contract["hour_rate"])
 
             local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
-                                          "Universal Scientific Technologies s.r.o.",
+                                          "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
                                           "U Jatek 19, 392 01 Soběslav",
                                           "28155319")
 
