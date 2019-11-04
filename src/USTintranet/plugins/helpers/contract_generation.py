@@ -2,7 +2,7 @@ import fpdf
 import os
 
 import plugins.helpers.str_ops as str_ops
-from mdoc_ops import find_type_in_addresses
+from plugins.helpers.mdoc_ops import find_type_in_addresses
 from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
 SPACE_SIZE = 6
