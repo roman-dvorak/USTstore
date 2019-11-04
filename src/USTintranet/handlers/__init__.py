@@ -151,7 +151,11 @@ class BaseHandler(tornado.web.RequestHandler):
             cart = self.get_cookie('cart', None)
             print("Nakupni kosik", bson.ObjectId(cart))
             if cart:
-                self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
+                try:
+                    self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
+                except:
+                    print("chyba pri nacitani kosiku ze skladu")
+                    self.cart = None
             else:
                 self.cart = None
             print(self.cart)
