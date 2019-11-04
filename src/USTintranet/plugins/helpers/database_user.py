@@ -1,11 +1,12 @@
 from datetime import datetime
-from pprint import pprint
 
 import pymongo
 from bson import ObjectId
 import warnings
 
 from pymongo.collection import ReturnDocument
+
+from database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts
 
 coll = pymongo.MongoClient().USTintranet.users
 
@@ -76,7 +77,7 @@ def update_user_address(coll: pymongo.collection.Collection, _id: str, address: 
     """
     address_type = address["type"]
 
-    to_set, to_unset = _get_mdocument_set_unset_dicts(address)
+    to_set, to_unset = get_mdocument_set_unset_dicts(address)
 
     # pokud už je tento typ adresy v databázi
     if coll.find_one({"_id": ObjectId(_id), "addresses.type": address_type}):
@@ -97,7 +98,7 @@ def update_user_address(coll: pymongo.collection.Collection, _id: str, address: 
 
     # jinak přidej adresu do databáze, pokud obsahuje víc než jen "type"
     elif len(address) > 1:
-        _add_embedded_mdocument_to_user_array(coll, _id, "addresses", address, filter_values=None)
+        add_embedded_mdoc_to_mdoc_array(coll, _id, "addresses", address, filter_values=None)
 
 
 def delete_user_address(coll: pymongo.collection.Collection, _id: str, address_type: str):
@@ -149,7 +150,7 @@ def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contrac
     """
     Přidá novou smlouvu daného uživatele. Smlouva dostane vlastní "_id".
     """
-    _add_embedded_mdocument_to_user_array(coll, user_id, "contracts", contract, str(ObjectId()))
+    add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, str(ObjectId()))
 
 
 def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
@@ -161,6 +162,7 @@ def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, 
                     {"$set": {
                         "contracts.$.invalidated": datetime.now().replace(microsecond=0)
                     }})
+
 
 def sign_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
     """
@@ -177,7 +179,7 @@ def add_user_document(coll: pymongo.collection.Collection, user_id: str, documen
     Přidá nový dokument daného uživatele. Dokument dostane vlastní "_id".
     """
     _id = str(ObjectId())
-    _add_embedded_mdocument_to_user_array(coll, user_id, "documents", document, _id)
+    add_embedded_mdoc_to_mdoc_array(coll, user_id, "documents", document, _id)
     return _id
 
 
@@ -198,7 +200,7 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
     Upraví dokument s daným document_id daného uživatele. Má-li field hodnotu "" (prázdný řetězec) nebo None,
     je z mdokumentu odstraněn.
     """
-    to_set, to_unset = _get_mdocument_set_unset_dicts(document)
+    to_set, to_unset = get_mdocument_set_unset_dicts(document)
 
     operation_dict = {}
     if to_set:  # některý z fieldů je neprázdný
@@ -216,34 +218,20 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
         raise ValueError("Uživatel nemá dokument s tímto _id")
 
 
-def _get_mdocument_set_unset_dicts(document, unset_values=(None, "")):
-    """
-    Rozdělí mdokument na dva dicts pro operaci $set a $unset. Do to_unset jdou fieldy s hodnotami z unset_values.
-    """
-    to_set = dict(document)
-    to_unset = {key: to_set.pop(key) for key, value in document.items() if value in unset_values}
+def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str):
+    now = datetime.now()
 
-    return to_set, to_unset
+    cursor = coll.find({
+        "_id": ObjectId(user_id),
+        "contracts": {
+            "$elemMatch": {
+                "valid_from": {"$lte": now},
+                "valid_until": {"$gte": now},
+                "invalidated": {"$exists": False}
+            }
+        }
+    }, {"contracts.$": 1})
 
+    contracts = next(cursor, {}).get("contracts", {})
 
-def _add_embedded_mdocument_to_user_array(coll: pymongo.collection.Collection,
-                                          user_id: str,
-                                          array_field: str,
-                                          document: dict,
-                                          document_id: str = "",
-                                          filter_values=(None, "")):
-    """
-    Přidá embedded mdokument do daného pole uživatele. Nepřidají se fieldy, které mají hodnotu z filter_values.
-    Dokumentu se přiřadí _id z parametru document_id. Je li document_id prázdné, _id se nepřiřadí.
-    """
-    if filter_values:
-        document = {key: value for key, value in document.items() if value not in filter_values}
-
-    if document_id:
-        document["_id"] = str(document_id)
-
-    coll.update_one({"_id": ObjectId(user_id)},
-                    {"$addToSet": {
-                        array_field: document
-                    }
-                    })
+    return next(iter(contracts), None)

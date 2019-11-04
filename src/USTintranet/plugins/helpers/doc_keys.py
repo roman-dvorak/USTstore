@@ -15,7 +15,7 @@ USER_DOC_KEYS = [
     "contracts",
     "skills",
     "notes",
-    "work_spans",
+    "workspans",
     "vacations",
     "documents",
     "wages",
@@ -65,6 +65,5 @@ WAGE_DOC_KEYS = [
 WORKSPAN_DOC_KEYS = [
     "from",
     "hours",
-    "note",
     "assignment",
 ]

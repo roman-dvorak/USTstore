@@ -7,11 +7,12 @@ import tornado
 import tornado.options
 import os
 
-from contract_generation import generate_contract
+from mdoc_ops import find_type_in_addresses
+from .helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from . import BaseHandler, save_file, upload_file
-from .users_helpers import database as db
-from .users_helpers import str_ops
+from .helpers import database_user as udb
+from .helpers import str_ops
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -36,15 +37,6 @@ def plug_info():
     }
 
 
-def find_type_in_addresses(addresses: list, addr_type: str):
-    """
-    Najde první adresu s daným typem v listu adres.
-    Adresy bez explicitního typu jsou chápány jako typ "residence"
-
-    """
-    return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
-
-
 class HomeHandler(BaseHandler):
     role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
@@ -62,7 +54,7 @@ class HomeHandler(BaseHandler):
 class ApiAdminTableHandler(BaseHandler):
 
     def get(self, uid=None):
-        data = db.get_users(self.mdb.users)
+        data = udb.get_users(self.mdb.users)
 
         for item in data:
             if "name" in item and not isinstance(item["name"], dict):
@@ -105,10 +97,10 @@ class ApiAdminTableHandler(BaseHandler):
         deleted_ids = data["deleted"]
 
         for _id in deleted_ids:
-            db.delete_user(self.mdb.users, _id)
+            udb.delete_user(self.mdb.users, _id)
 
         if new_ids:
-            db.add_users(self.mdb.users, new_ids)
+            udb.add_users(self.mdb.users, new_ids)
 
         for _id, fields in edited_data.items():
             self.process_and_update(_id, fields)
@@ -125,15 +117,15 @@ class ApiAdminTableHandler(BaseHandler):
             data["birthdate"] = datetime.strptime(data["birthdate"], "%Y-%m-%d")
 
         if data:
-            db.update_user(self.mdb.users, _id, data)
+            udb.update_user(self.mdb.users, _id, data)
 
         if residence_address:
             residence_address["type"] = "residence"
-            db.update_user_address(self.mdb.users, _id, residence_address)
+            udb.update_user_address(self.mdb.users, _id, residence_address)
 
         if contact_address:
             contact_address["type"] = "contact"
-            db.update_user_address(self.mdb.users, _id, contact_address)
+            udb.update_user_address(self.mdb.users, _id, contact_address)
 
 
 class ApiEditUserHandler(BaseHandler):
@@ -149,20 +141,20 @@ class ApiEditUserHandler(BaseHandler):
             changes["birthdate"] = datetime.strptime(changes["birthdate"], "%Y-%m-%d")
 
         if changes:
-            db.update_user(self.mdb.users, _id, changes)
+            udb.update_user(self.mdb.users, _id, changes)
 
         if residence_address:
             residence_address["type"] = "residence"
-            db.update_user_address(self.mdb.users, _id, residence_address)
+            udb.update_user_address(self.mdb.users, _id, residence_address)
         if contact_address:
             contact_address["type"] = "contact"
-            db.update_user_address(self.mdb.users, _id, contact_address)
+            udb.update_user_address(self.mdb.users, _id, contact_address)
 
 
 class UserPageHandler(BaseHandler):
 
     def get(self, _id):
-        user_document = db.get_user(self.mdb.users, _id)
+        user_document = udb.get_user(self.mdb.users, _id)
 
         name_doc = user_document.get("name", {})
         if not isinstance(name_doc, dict):
@@ -207,7 +199,7 @@ class UserPageHandler(BaseHandler):
             "notes": user_document.get("notes", ""),
         }
 
-        contracts = db.get_user_contracts(self.mdb.users, _id)
+        contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
         template_params["documents"] = self.prepare_documents(documents, contracts)
@@ -239,6 +231,7 @@ class UserPageHandler(BaseHandler):
             new["is_signed_raw"] = contract["is_signed"]
             # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
+            new["url"] = contract["url"]
 
             new["is_valid"] = False
             if contract["is_signed"] and not contract.get("invalidated", False):
@@ -268,9 +261,6 @@ class UserPageHandler(BaseHandler):
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
-            print(document["valid_from"])
-            print(document["valid_until"])
-
             if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
                 document["is_valid"] = True
             else:
@@ -288,7 +278,7 @@ class UserPageHandler(BaseHandler):
         return documents
 
 
-class ApiUserContractsHandler(BaseHandler):
+class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
     def post(self, _id):
         req = self.request.body.decode("utf-8")
@@ -296,17 +286,18 @@ class ApiUserContractsHandler(BaseHandler):
 
         if "contract_id" in contract:
             if contract.get("invalidated", False):
-                db.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
+                udb.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
 
             if contract.get("is_signed", False):
-                db.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
+                udb.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
         else:
-            contract["signing_date"] = datetime.strptime(contract["signing_date"], "%Y-%m-%d")
-            contract["valid_from"] = datetime.strptime(contract["valid_from"], "%Y-%m-%d")
-            contract["valid_until"] = datetime.strptime(contract["valid_until"], "%Y-%m-%d")
+            contract["signing_date"] = str_ops.date_from_iso_str(contract["signing_date"])
+            contract["valid_from"] = str_ops.date_from_iso_str(contract["valid_from"])
+            contract["valid_until"] = str_ops.date_from_iso_str(contract["valid_until"])
+            contract["hour_rate"] = int(contract["hour_rate"])
 
-            local_path = generate_contract(db.get_user(self.mdb.users, _id), contract,
-                                          "Universal Scientific Technologies s.r.o.",
+            local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
+                                          "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
                                           "U Jatek 19, 392 01 Soběslav",
                                           "28155319")
 
@@ -316,7 +307,9 @@ class ApiUserContractsHandler(BaseHandler):
             remote = save_file(self.mdb, owncloud_path)
             res = upload_file(self.oc, local_path, remote)
 
-            db.add_user_contract(self.mdb.users, _id, contract)
+            contract["url"] = res.get_link()
+
+            udb.add_user_contract(self.mdb.users, _id, contract)
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
@@ -340,19 +333,19 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
 
         if document.get("_id", None):
-            db.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
+            udb.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
         else:
-            document_id = db.add_user_document(self.mdb.users, _id, document)
+            document_id = udb.add_user_document(self.mdb.users, _id, document)
 
             file = None
             if self.request.files:
                 file = self.request.files["file"][0]
 
             if file:
-                user_mdoc = db.get_user(self.mdb.users, _id)
+                user_mdoc = udb.get_user(self.mdb.users, _id)
                 file_name = self.make_document_name(user_mdoc, document, document_id)
                 owncloud_url = self.process_file(file, file_name)
-                db.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
+                udb.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
 
         self.redirect(f"/users/u/{_id}", permanent=True)
 
@@ -381,10 +374,5 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
 
     def post(self, _id):
         document_id = self.request.body.decode("utf-8")
-        db.delete_user_document(self.mdb.users, _id, document_id)
+        udb.delete_user_document(self.mdb.users, _id, document_id)
 
-
-class ApiUserDownloadDocumentHandler(BaseHandlerOwnCloud):
-
-    def get(self):
-        pass
