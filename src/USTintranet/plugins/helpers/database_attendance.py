@@ -3,7 +3,7 @@ from datetime import datetime
 import pymongo
 from bson import ObjectId
 
-from database_utils import add_embedded_mdoc_to_mdoc_array
+from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array
 
 
 def add_user_workspan(coll: pymongo.collection.Collection, user_id, workspan):

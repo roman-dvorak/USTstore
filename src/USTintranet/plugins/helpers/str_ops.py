@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from .doc_keys import NAME_DOC_KEYS
+from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
 
 def name_to_str(name_document: dict):

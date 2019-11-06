@@ -4,9 +4,9 @@ import bson.json_util
 from dateutil.relativedelta import relativedelta
 
 from plugins import BaseHandler
-from .helpers import database_attendance as adb
-from .helpers import database_user as udb
-from .helpers import str_ops
+from plugins.helpers import database_attendance as adb
+from plugins.helpers import database_user as udb
+from plugins.helpers import str_ops
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -77,7 +77,7 @@ class UserAttendanceHandler(BaseHandler):
 
         # TODO doplnit DPČ a pracovní smlouvu, tahat z databáze
         if active_contract["type"] == "dpp":
-            result["year_max_hours"] = 300
+            result["year_max_hours"] = 300  # todo na zítra, tohle by mělo být v modulu
             result["month_max_hours"] = int(2 * 10000 / active_contract["hour_rate"]) / 2
             result["month_available_hours"] = result["month_max_hours"] - result["month_hours_worked"]
             result["year_available_hours"] = result["year_max_hours"] - result["year_hours_worked"]
@@ -93,12 +93,27 @@ class UserAttendanceHandler(BaseHandler):
 class ApiAddWorkSpanHandler(BaseHandler):
 
     def post(self, user_id):
+        # TODO upravování poslaných dat (jsonovaného dictu) a ukládaní přímo jich do db je potenciálně problematické
+        # lepší by asi bylo postavit nový dict a items které není potřeba upravovat prostě zkopírovat
+        # možná trochu porušuje DRY ale je to čitelnější (je jasnější co se ukládá do db)
         req = self.request.body.decode("utf-8")
-        data = bson.json_util.loads(req)
+        workspan = bson.json_util.loads(req)
 
-        data["from"] = str_ops.datetime_from_iso_string_and_time_string(data["date"], data["from"])
-        del data["date"]
+        workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(workspan["date"], workspan["from"])
+        del workspan["date"]
 
-        data["hours"] = float(data["hours"])
+        workspan["hours"] = float(workspan["hours"])
 
-        adb.add_user_workspan(self.mdb.users, user_id, data)
+        today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorow = today + relativedelta(days=1)
+        todays_workspans = adb.get_user_workspans(self.mdb.users, user_id, today, tomorow)
+
+        workspan_end = workspan["from"] + relativedelta(minutes=int(workspan["hours"] * 60))
+        for other_ws in todays_workspans:
+            latest_start = max(workspan["from"], other_ws["from"])
+            earliest_end = min(workspan_end, other_ws["from"] + relativedelta(minutes=int(other_ws["hours"]) * 60))
+
+            if latest_start < earliest_end:
+                raise ValueError()  # TODO mělo by se ohlásit ve frontendu
+
+        adb.add_user_workspan(self.mdb.users, user_id, workspan)

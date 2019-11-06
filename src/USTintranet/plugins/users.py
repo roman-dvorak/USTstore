@@ -7,12 +7,12 @@ import tornado
 import tornado.options
 import os
 
-from mdoc_ops import find_type_in_addresses
-from .helpers.contract_generation import generate_contract
+from plugins.helpers.mdoc_ops import find_type_in_addresses
+from plugins.helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
-from . import BaseHandler, save_file, upload_file
-from .helpers import database_user as udb
-from .helpers import str_ops
+from plugins import BaseHandler, save_file, upload_file
+from plugins.helpers import database_user as udb
+from plugins.helpers import str_ops
 
 
 def make_handlers(plugin_name, plugin_namespace):
