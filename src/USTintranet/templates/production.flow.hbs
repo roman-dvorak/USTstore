@@ -241,7 +241,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 			if(value[x].full_url == undefined){
 				row += "<a>"+ value[x].supplier + "</a>";
 			}else{
-				row += "<a href = "+ value[x].full_url +"target='_blank'>"+ value[x].supplier + "</a>";
+				row += "<a href = '"+ value[x].full_url +"' target='_blank'>"+ value[x].supplier + "</a>";
 			}
 		}
     	return row;
