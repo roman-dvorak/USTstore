@@ -237,7 +237,12 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		console.log("VALUE", value);
 		var row = "";
 		for(x in value){
-			row += "<a href = "+ value[x].full_url +">"+ value[x].supplier + "</a>";
+			if(x>0){row+=' ';}
+			if(value[x].full_url == undefined){
+				row += "<a>"+ value[x].supplier + "</a>";
+			}else{
+				row += "<a href = "+ value[x].full_url +">"+ value[x].supplier + "</a>";
+			}
 		}
     	return row;
 	};
