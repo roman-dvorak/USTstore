@@ -1,8 +1,9 @@
 import fpdf
 import os
 
-import plugins.users_helpers.str_ops as str_ops
-from plugins.users_helpers.doc_keys import NAME_DOC_KEYS
+import plugins.helpers.str_ops as str_ops
+from plugins.helpers.mdoc_ops import find_type_in_addresses
+from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
 SPACE_SIZE = 6
 MULTICELL_SPACE_SIZE = 2
@@ -18,7 +19,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     full_name = " ".join([name_doc[key] for key in NAME_DOC_KEYS if name_doc.get(key, None)])
     birthdate = str_ops.date_to_str(user["birthdate"])
 
-    address = str_ops.address_to_str(next(address for address in user["addresses"] if address["type"] == "residence"))
+    address = str_ops.address_to_str(find_type_in_addresses(user["addresses"], "residence"))
 
     assignment = user["assignment"]
 
@@ -122,7 +123,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
                                  "zaměstnanec a jedno zaměstnavatel.")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=0, txt=f"V Soběslavi, dne {str_ops.date_to_str(signing_date)}")
+    pdf.cell(w=0, txt=f"V Praze, dne {str_ops.date_to_str(signing_date)}")
     pdf.ln(SPACE_SIZE * 3)
 
     pdf.cell(w=100, txt="." * 50)
