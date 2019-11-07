@@ -241,7 +241,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 			if(value[x].full_url == undefined){
 				row += "<a>"+ value[x].supplier + "</a>";
 			}else{
-				row += "<a href = "+ value[x].full_url +">"+ value[x].supplier + "</a>";
+				row += "<a href = "+ value[x].full_url +"target='_blank'>"+ value[x].supplier + "</a>";
 			}
 		}
     	return row;
@@ -271,7 +271,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
-	        {title:"UST id", field:"stock", editor: ust_id_autocomplete},
+	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
 	        //{title:"Cena",
 	        //    columns:[
 		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
