@@ -819,9 +819,10 @@ function load_product(id){
 
 					$('#supplier_list').empty();
 					for (var i in element['supplier']){
-              var url = get_supplier_url(element['supplier'][i]);
+              //var url = get_supplier_url(element['supplier'][i]);
+              var full_url = element['supplier'][i].full_url;
 						  var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
-              if(url != null) tmpl.querySelector('.supplier_name').href = url;
+              if(full_url != null) tmpl.querySelector('.supplier_name').href = full_url;
 			  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['symbol'];
 			  			tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
 						  document.getElementById('supplier_list').append(tmpl);

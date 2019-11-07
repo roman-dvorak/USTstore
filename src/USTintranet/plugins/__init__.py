@@ -458,6 +458,42 @@ class BaseHandler(tornado.web.RequestHandler):
         print(bson.json_util.dumps(data, indent=4))
         return data
 
+    def component_update_suppliers_url(self, id):
+        '''
+        'id': id polozky, ktera bude vyhledana
+        '''
+        print("Component update component_update_suppliers_url")
+        out = list(self.mdb.stock.find({"_id": id}))[0]
+        
+        try:
+            for i, x in enumerate(out.get('supplier', [])):
+                print("Supplier:")
+                print(x)
+                x['full_url'] = x.get('url', '')
+
+                if x['supplier'].lower() == 'tme':
+                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'mouser':
+                    x['full_url'] = "https://cz.mouser.com/ProductDetail/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'farnell':
+                    x['full_url'] = "https://cz.farnell.com/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'ecom':
+                    x['full_url'] = "https://www.ecom.cz/?q={}&sAction=product_list&x=0&y=0".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'digikey':
+                    x['full_url'] = "https://www.digikey.com/products/en?keywords={}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'killich':
+                    x['full_url'] = "https://eshop.killich.cz/?search=+{}".format(x['symbol'])
+
+                self.mdb.stock.update({"_id": id}, {"$set": {"supplier.{}".format(i): x}})
+        
+        except Exception as e:
+            print(e)
+
     def barcode(self, hex):
         print(int(hex, 16))
         code = blake2s(bytes(hex, 'utf-8'), digest_size=6)

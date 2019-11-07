@@ -7,7 +7,7 @@
         <td>{{supplier['supplier'].get('supplier', '')}}</td>
         <td>{{supplier['supplier'].get('symbol', '')}}</td>
         <td>{{supplier['supplier'].get('barcode', '')}}</td>
-        <td>{{supplier['supplier'].get('url', '')}}</td>
+        <td><a href="{{supplier['supplier'].get('full_url', 'url')}}">{{supplier['supplier'].get('full_url', 'url')}}</a></td>
         <td>---</td>
     <tr>{%end%}
 </table>

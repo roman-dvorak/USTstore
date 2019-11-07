@@ -245,9 +245,11 @@ class api(BaseHandler):
         self.set_header('Content-Type', 'application/json')
 
         if data == 'product':
+
             print(self.request.arguments.get('selected[]', None))
             #ZDE POSILAT JEN ID jako je to nize....
             id = bson.ObjectId(self.get_argument('value', ''))
+            self.component_update_suppliers_url(id) 
             self.component_update_counts(id)
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
@@ -287,6 +289,9 @@ class api(BaseHandler):
                     {'$unwind': '$supplier'},
                 ])
             dout = list(dbcursor)
+
+            for x in dout:
+                print(x)
 
         elif data == 'add_supplier':
             id = self.get_argument('id', None)

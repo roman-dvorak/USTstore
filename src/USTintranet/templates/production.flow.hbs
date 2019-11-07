@@ -232,6 +232,16 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		cell.edit(true);
 	}
 
+	function supplier_url(cell, formatterParams){ //plain text value
+		var value = cell.getValue();
+		console.log("VALUE", value);
+		var row = "";
+		for(x in value){
+			row += "<a href = "+ value[x].full_url +">"+ value[x].supplier + "</a>";
+		}
+    	return row;
+	};
+
 	var table = new Tabulator("#component-table",{
 	    layout:"fitColumns",
 	    columns:[
@@ -256,7 +266,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
-	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
+	        {title:"UST id", field:"stock", editor: ust_id_autocomplete},
 	        //{title:"Cena",
 	        //    columns:[
 		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
@@ -265,6 +275,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		//		]
 		//	},
 	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
+	        {title:"Dodavatele", field:"supplier", editable:false, formatter: supplier_url},
 	    ],
     	addRowPos:"bottom",
 	    cellEdited:function(cell){
@@ -290,14 +301,18 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
               var usttext = undefined;
               var price = null;
+ 			  var supplier = [];
+
 
                 if (val['stock'].length > 0){
+                
+                  console.log("PRED SUPPLIER");
+                  supplier = val['stock'][0].supplier;
+
                   usttext = val['stock'][0]['name'];
                   console.log("StockName", val['stock'][0]['name']);
 
-                  //for(i in val['stock']){
-                  //  var history = val['stock'][i]['history'];
-                    var history = val['stock'][0]['history'];
+				  var history = val['stock'][0]['history'];
 
                     console.log("Historie:", history);
                     for(j in history){
@@ -316,7 +331,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
                     uid = val['_id']['UST_ID']['$oid'];
                 }
 
-
                 return{
                     row: i,
                     Ref: val['Ref'],
@@ -334,6 +348,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
                     Footprint: val['_id']['Footprint'],
                     note: val['_id']['note'],
                     UST_ID: usttext,
+                    supplier: supplier
                 }
             });
 

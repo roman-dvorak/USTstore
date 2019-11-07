@@ -408,7 +408,7 @@ function draw_supplier(){
                 "<span>"+ p.symbol + "</span></div>"+
                 "<div class='btn-group btn-group-justified col-auto'>"+
                 "<a class='btn btn-sm btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
-                "<a class='btn btn-sm btn-outline-primary' href='" + p.url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
+                "<a class='btn btn-sm btn-outline-primary' href='" + p.full_url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
                 "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
                 "</div>";
     var $html = $('<div />',{html:html});

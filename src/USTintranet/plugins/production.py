@@ -171,16 +171,40 @@ class edit(BaseHandler):
             self.write(output)
 
         elif op == 'get_components_grouped':
-        #     dout = list(self.mdb.production.aggregate([
-        #         {'$match': {'_id': bson.ObjectId(name)}},
-        #         {'$sort': {'components.Ref': 1}}
-        #     ]))
-        #     dout = group_data(dout[0].get('components', []), db = self.mdb)
-        #     dout = get_component_stock(dout, db = self.mdb)
-        #     for i,d in enumerate(dout):
-        #         if not d.get('price', False):
-        #             dout[i]['price'] = d.get('price_store', 0)
-        #     out = bson.json_util.dumps(dout)
+
+            ###
+            ###   V teto casti by se mely zaktualizovat skladove zasoby a url adresy dodavatelu pro vsechny polozky
+            ###
+       
+            production = list(self.mdb.production.aggregate([
+                {'$match': {'_id': bson.ObjectId(name)}},
+                {'$unwind': "$components"},
+                {'$group':
+                    {"_id": "$components.UST_ID", "count": { "$sum": 1 }}
+                }
+            ]))
+            for c in production:
+                try:
+                    id = c['_id']
+                    oid = bson.ObjectId(id)
+                    self.component_update_suppliers_url(oid) 
+                    self.component_update_counts(oid)
+                    # count = self.component_get_counts(oid, bson.ObjectId(self.get_cookie('warehouse')))
+                    # print(id, "..", count)
+                    # if len(count['by_warehouse']) > 0:
+                    #     print("Nastavuji", name, id, count['suma'][0]['count'])
+                    #     self.mdb.production.update_many(
+                    #         {'_id': bson.ObjectId(name), 'components.UST_ID': id},
+                    #         {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
+
+                    #         array_filters = [{ "id.UST_ID": id}],
+                    #         upsert = False
+                    #     )
+                    # else:
+                    #     print("POLOZKA NENALEZENA....")
+                except Exception as e:
+                    print("CHYBA ....")
+
 
             dout = list(self.mdb.production.aggregate([
                     {'$match': {'_id': bson.ObjectId(name)}},
@@ -215,9 +239,6 @@ class edit(BaseHandler):
             out = bson.json_util.dumps(dout)
             print("Get component grouped")
             print(json.dumps(out, indent=4, sort_keys=True))
-            #print(".................")
-            #print(out)
-            #print("................")
             self.write(out)
 
         elif op == 'reload_prices':
