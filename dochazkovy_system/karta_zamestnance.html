@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="global.css">
+
+    <title>Karta zaměstnance</title>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Karta zaměstnance: <a href="#">Mgr. Jiří Novák</a></h1>
+
+    <div class="row">
+        <div class="col col-12 col-lg-6">
+            <div id="basic-info">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Základní informace</th>
+                        <th class="text-right">
+                            <button type="button" class="btn btn-light">Změnit</button>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Uživatelské jméno</td>
+                        <td>novak1</td>
+                    </tr>
+                    <tr>
+                        <td>Titul, Jméno Příjmení</td>
+                        <td>Mgr. Jiří Novák</td>
+                    </tr>
+                    <tr>
+                        <td>Datum narození</td>
+                        <td>1. 1. 1990</td>
+                    </tr>
+                    <tr>
+                        <td>Adresa trvalého pobytu</td>
+                        <td>Někde 145, Praha</td>
+                    </tr>
+                    <tr>
+                        <td>Kontaktní adresa</td>
+                        <td>---</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td>novak1@example.com</td>
+                    </tr>
+                    <tr>
+                        <td>Telefon</td>
+                        <td>123 456 789</td>
+                    </tr>
+                    <tr>
+                        <td>Číslo bankovního účtu</td>
+                        <td>48645646844/0123</td>
+                    </tr>
+                    <tr>
+                        <td>Odvádíme daň</td>
+                        <td>Ano</td>
+                    </tr>
+                    <tr>
+                        <td>Pracovní náplň</td>
+                        <td>Pracovat</td>
+                    </tr>
+                    <tr>
+                        <td>Platná smlouva</td>
+                        <td>do 1. 1. 2090</td>
+                    </tr>
+                    <tr>
+                        <td>Platné prohlášení o dani</td>
+                        <td>Ne</td>
+                    </tr>
+                    <tr>
+                        <td>Student</td>
+                        <td>Ne</td>
+                    </tr>
+                    <tr>
+                        <td>Hodinová sazba</td>
+                        <td>100 Kč</td>
+                    </tr>
+                    <tr>
+                        <td>Dovednosti</td>
+                        <td>Čtení, psaní</td>
+                    </tr>
+                    <tr>
+                        <td>Poznámky</td>
+                        <td>Nejsou</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col col-12 col-lg-6">
+            <div id="work-info">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Docházka a ohodnocení</th>
+                        <th class="text-right">
+                            <button type="button" class="btn btn-light">Docházková karta</button>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Odpracované hodiny v tomto měsíci</td>
+                        <td>20</td>
+                    </tr>
+                    <tr>
+                        <td>Aktuální finanční ohodnocení za tento měsíc</td>
+                        <td>2 000 Kč</td>
+                    </tr>
+                    <tr>
+                        <td>Finanční ohodnocení za minulý měsíc</td>
+                        <td>6 200 Kč</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="contracts">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Smlouvy</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th>Dohoda o provedení práce 2018 - 2020</th>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
+                                <tbody>
+                                <tr>
+                                    <td style="border-top: 0px">Druh smlouvy</td>
+                                    <td style="border-top: 0px">Dohoda o provedení práce</td>
+                                </tr>
+                                <tr>
+                                    <td>Datum uzavření smlouvy</td>
+                                    <td>15. 12. 2017</td>
+                                </tr>
+                                <tr>
+                                    <td>Začátek platnosti</td>
+                                    <td>1. 1. 2018</td>
+                                </tr>
+                                <tr>
+                                    <td>Konec platnosti</td>
+                                    <td>31. 12. 2020</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Dohoda o provedení práce 2017 - 2018</th>
+                    </tr>
+                    <tr>
+                        <th>Dohoda o provedení práce 2016 - 2017</th>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="attachments">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Přílohy</th>
+                        <th class="text-right">
+                            <button type="button" class="btn btn-light">Přidat</button>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Potvrzení o studiu</td>
+                        <td><a href="#">zobrazit</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

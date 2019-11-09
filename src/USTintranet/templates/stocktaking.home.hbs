@@ -167,26 +167,28 @@
           },
           success: function( data, textStatus, jQxhr ){
             var first_time = true;
+            console.log(data)
             if(data.item != null){
                 item = data;
                 item['count'] = 0;
                 $("#next_operation").text(data.item.name);
-                console.log(data.item._id);
+                console.log("item", data.item);
                 $("#id_val").val(data.item._id.$oid);
                 $("#all_search").val(data.item.name);
                 $("#val_old").empty();
-                for (row in data.history){
-                    console.log(row);
-                    //$("#val_old").append(" + "+data.history[row].bilance);
-                    item.count += data.history[row].bilance;
+                // for (row in data.history){
+                //     console.log(row);
+                //     //$("#val_old").append(" + "+data.history[row].bilance);
+                //     item.count += data.history[row].bilance;
+                // }
+                for (rec in data.item.history){
+                  if (rec.operation == 'inventory'){
+                    if (rec.inventory_id.$oid == data.inventory._id.$oid){
+                      first_time = false;
+                    } 
+                  }
                 }
-                for (tag in data.item.tags){
-                    console.log(data.item.tags[tag]);
-                    if(data.item.tags[tag].id == "inventura2019"){
-                        first_time = false;
-                        console.log("!!!!!!!!!");
-                    }
-                }
+
                 if (first_time == true){
                   Lobibox.notify('success', {
                       title: 'Načteno úšpěšně',
@@ -202,8 +204,12 @@
                       delay: 3000
                   });
                 }
-                $("#val_old").text(item.count);
-		//$("#new_count").val(item.count);
+
+                try{
+                  $("#val_old").text(data.item.overview.stocks[data.warehouse._id.$oid].count.onstock);
+                }catch(e){
+                  $("#val_old").text(0);
+                }
                 $("#new_count").focus();
 
             }else{
@@ -221,11 +227,16 @@
 
 
     function after_count_edit(){
+        try{
+          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+        }catch(e){
+          var old_val = 0;
+        }
         if ($("#new_count").val() == ""){
-            $("#new_count").val(item.count);
+            $("#new_count").val(old_val);
         }
         //$("#val_percent").text(item.count / $("#new_count").val());
-        $("#val_delta").text($("#new_count").val() - item.count);
+        $("#val_delta").text($("#new_count").val() - old_val);
         $("#btn_send").prop('disabled', false);
         $("#btn_send").focus();
     }
@@ -244,13 +255,19 @@
         $("#btn_send").prop('disabled', true);
         $("#sku_search").focus();
 
+        try{
+          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+        }catch(e){
+          var old_val = 0;
+        }
+
         $.ajax({
           type: "POST",
           url: "/stocktaking/save_item/",
           data: {
             '_id': $('#id_val').val(),
             'description': $('#note').val(),
-            'bilance': $("#new_count").val() - item.count,
+            'bilance': $("#new_count").val() - old_val,
             'absolute': $("#new_count").val()
           },
           success: function( data, textStatus, jQxhr ){

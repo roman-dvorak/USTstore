@@ -151,7 +151,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
 
                   draw_parameters();
                   draw_supplier();
-                  draw_stock(element);
+                  draw_stock(element.count_part);
                   draw_warehouse_positions(element);
                   draw_tags();
                   draw_barcodes(element['barcode']);
@@ -430,7 +430,7 @@ function draw_supplier(){
                 "<span>"+ p.symbol + "</span></div>"+
                 "<div class='btn-group btn-group-justified col-auto'>"+
                 "<a class='btn btn-sm btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
-                "<a class='btn btn-sm btn-outline-primary' href='//" + url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
+                "<a class='btn btn-sm btn-outline-primary' href='" + p.full_url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
                 "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
                 "</div>";
     var $html = $('<div />',{html:html});
@@ -451,26 +451,43 @@ function draw_supplier(){
 
 function draw_stock(count){
   console.log("Count>>", count);
+  //count = count.overview;
   $("#inputSTOCK_list").empty();
-  //$("#inputSTOCK_list").append('celkovy pocet je ' + count.count || 'NDEF'+'<br>');
-  console.log(count.count_part || 0);
-  if( count.count_part.suma[0] != undefined){
-    $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-success"> Celkem <br>' + count.count_part.suma[0].count || -999 + ' u </div>');
-  }
 
-  for (lci in count.count_part.by_warehouse){
-      var lc = count.count_part.by_warehouse[lci];
+// Soucet vsech polozek ve vesch skladech.
+  $('#inputSTOCK_list').append('<div class="card m-0 p-2 mr-2 bg-info"> Celkem <br>' + count.count.onstock + "<small class='text-muted'>(" + count.count.requested +",  "+  count.count.ordered +')</small> </div>');
 
-      console.log("TEST...", lc)
-      var html = "<div class='card m-0 p-2 mr-2'>"+ lc.position.text + "<br>" + lc.count +" units </div>";
-      $("#inputSTOCK_list").append(html);
-  }
+  for (lci in count.stocks){
+        try {
+            var lc = count.stocks[lci];
+            var s = get_stock(lci)
+            if (s.length > 0){
+              s = s[0];
+            }else{
+              s = {"code": lci};
+            }
+            console.log(s);
+            console.log(lc.count);
+            if (s._id.$oid == get_current_stock()){
+              var html = "<div class='card m-0 p-2 mr-2 bg-warning'>"+ s.code + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
+            }else{
+              var html = "<div class='card m-0 p-2 mr-2 bg-light'>"+ s.code + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
+            }
+            $("#inputSTOCK_list").append(html);
+        
+        }catch(err) {
+            var html = "<div class='card m-0 p-2 mr-2'> ERR </div>";
+            $("#inputSTOCK_list").append(html);
+            console.log("Err", err);
+        }
+    }
 }
 
 function draw_warehouse_positions(positions){
+    console.info("[draw_warehouse_positions]");
+
     $("#inputPOSITION_list").empty();
     for (pos in positions.positions_local){
-        //console.log((positions.positions_local[pos]));
         var html = "<div class='card m-0 p-2 mr-2";
         if (positions.positions_local[pos]['primary'] == true){
             html += ' bg-warning';
@@ -479,6 +496,8 @@ function draw_warehouse_positions(positions){
         $("#inputPOSITION_list").append(html);
     }
 }
+  
+
 
 
 function draw_tags(){

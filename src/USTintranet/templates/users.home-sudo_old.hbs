@@ -1,0 +1,215 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Adresář{%end%}
+{% block body %}
+
+{#<style type="text/css">
+	
+	td{
+		padding: 2pt;
+		padding-right: 5pt;
+	}
+	th{
+		padding: 7pt;
+		padding-bottom: 2pt;
+		border-bottom: black solid 2pt;
+		margin-bottom: 7pt;
+		background-color: lightgrey;
+	}
+	table{
+		width: 100%;
+	}
+
+</style>#}
+
+
+
+<div class="container" style="">
+<div class="row">
+	<div class="col-6">
+				<div id="users-table"></div>
+			
+	</div>
+<div class="col-6">
+	<div class="form-hide bg-warning" id="form-none">Není načten žádný uživatel... Uživatelem vyberete kliknutím na příslušný řádek tabulky.</div>
+			<div class="form-hide" id="form-loadig"><div class="loader"></div></div>
+			<div class="form-hide" id="form-form">
+
+			<form>
+			  <div class="form-group row">
+			    <label for="eventFormId" class="col-sm-2 col-form-label">ID</label>
+			    <div class="col-sm-10">
+			      <input type="text" readonly class="form-control" id="userFormId" value="new id">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Uživatelské jméno</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="userFormUser" placeholder="Uživatelské jméno">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Jméno</label>
+			    <div class="col-sm-10">
+			      <input type="text" class="form-control" id="userFormName" placeholder="Celé jméno">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Email</label>
+			    <div class="col-sm-10">
+			      <input type="email" class="form-control" id="userFormEmail" placeholder="Email">
+			    </div>
+			  </div>
+
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label">Role</label>
+			    <div class="col-sm-10">
+			      <input class="form-control" id="userFormRole" placeholder="Role">
+			    </div>
+			  </div>
+
+			  <div class="form-group row">
+			    <label for="eventFormName" class="col-sm-2 col-form-label"></label>
+			    <div class="col-sm-10">
+			      <input type="button" class="form-control" value="Uložit" onclick="userFormSave()">
+			    </div>
+			  </div>
+
+</div>
+
+</div>
+
+
+<script type="text/javascript">
+  var selected_user = {}
+  $(document).ready(function(){
+      console.log("Ready!");
+	$('.form-hide').hide();
+	$('#form-none').show();
+	drawUsers();
+	clearUserForm();
+	$('#placement_role').select2({
+		width: '100%',
+		tags: true,
+		multiple: true,
+	});
+	
+  });
+
+
+  	//
+  	//   Funkce nacte data z webu a zobrazi je jako tabulku
+  	//
+	function drawUsers() {
+		var table = new Tabulator("#users-table", {
+		width: '100%',
+		columns:[
+	        {title:"ID", field:"id", width:100},
+	        {title:"Uživatel", field:"user", sorter:"string"},
+	        {title:"Jméno", field:"name", sorter:"string"},
+	        {title:"Email", field:"email", sorter:"string"},
+	    ],
+	    rowClick:function(e, row){
+	    	var event_id = row._row.cells[0].value;
+	    	drawUser(event_id);
+	    },
+	    ajaxURL:"users/api/get_users", //ajax URL
+	    ajaxConfig:{
+	        method:"POST", //set request type to Position
+	        headers: {
+	            "Content-type": 'application/json; charset=utf-8', //set specific content type
+	        },
+	    }
+	});
+	}
+
+	//
+	//	Vycisteni formulare
+	//
+	function clearUserForm(){
+		$('#userFormId').val(null);
+		$('#userFormUser').val(null);
+		$('#userFormName').val(null);
+		$('#userFormEmail').val(null);
+		$('#userFormRole').val(null);
+
+		$('.form-hide').hide();
+		$('#form-none').show();
+	}
+
+	//
+	//	Nacteni informaci o uzivateli. Nasledne vyplneni jeho tabulky.
+	//
+	function drawUser(id){
+		$('.form-hide').hide();
+		$('#form-loadig').show();
+		$.ajax({
+          type: "POST",
+          url: "/users/api/get_users/"+id+"/",
+          success: function( data, textStatus, jQxhr ){
+            renderUserForm(data);
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+ 	       	Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+ 	       	clearUserForm();
+          }
+      }); 
+	}
+
+	//
+	//	Vyplneni tobulky o uzivateli
+	//
+	function renderUserForm(data){
+		console.log(data);
+		clearUserForm();
+		$('#userFormId').val(data['id']);
+		$('#userFormUser').val(data['user']);
+		$('#userFormName').val(data['name']);
+		$('#userFormEmail').val(data['email']);
+		$('#userFormRole').val(data['role_text']);
+
+		$('.form-hide').hide();
+		$('#form-form').show();
+	}
+
+function userFormSave(){
+	$('.form-hide').hide();
+	$('#form-loadig').show();
+	var uid = $('#userFormId').val();
+	var data = {
+		id: uid,
+		user: $('#userFormUser').val(),
+		name: $('#userFormName').val(),
+		email: $('#userFormEmail').val(),
+		role_text: $('#userFormRole').val(),
+	}
+	$.ajax({
+        url: "/users/api/user/"+uid+"/save",
+        type: "post",
+        data: data,
+        success: function (response) {
+           console.log(response);
+           drawUser(response);
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log(textStatus, errorThrown);
+			$('.form-hide').hide();
+			$('#form-none').show();
+        }
+    });
+
+	$('.form-hide').hide();
+	$('#form-form').show();
+	drawUsers();	
+}
+
+
+
+
+</script>
+
+{% end %}{# block body#}

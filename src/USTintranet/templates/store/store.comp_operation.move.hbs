@@ -1,17 +1,10 @@
-Součastné pozice ve skladech:<br>
-<ul>
-{%for current in current_places %}
-    <li>{{current['info'][0]['name']}} <small>({{current['posid']}})</small>
-{%end%}
-</ul>
+
 
 <div class="container">
 	<div class="form-group row">
 		<label class="col-sm-3 col-form-label">Staré umístění</label>
 		<select class="form-control table_style col-sm-9" id="compo_source">
-            {# {%for current in current_places['by_warehouse'] %} <option value="{{current['warehouse'][0]['_id']}}" count={{current['count']}}>{{current['warehouse'][0]['name']}} <small>({{current['count']}} ks) {{current['warehouse'][0]['_id']}}</option>{%end%} #}
-            {%for current in current_places %} <option value="{{current['posid']}}" >{{current['info'][0]['name']}}, <small>{{current['info'][0]['_id']}}</option>{%end%}
-
+            <option value="{{stock['_id']}}"><b>{{stock['code']}}</b> | {{stock['name']}}</option>
         </select>
 	</div>
 
@@ -23,7 +16,7 @@ Součastné pozice ve skladech:<br>
 	<div class="form-group row">
 		<label class="col-sm-3 col-form-label">Nové umístění</label>
 		<select class="form-control table_style col-sm-9" id="compo_target">
-            {%for place in all_places %} <option value="{{place['_id']}}">{{place['code']}} - {{place['name']}}</option>{%end%}
+            {%for place in all_places %} <option value="{{place['_id']}}">{{place['code']}} | {{place['name']}}</option>{%end%}
 		</select>
 	</div>
 

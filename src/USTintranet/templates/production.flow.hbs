@@ -74,6 +74,7 @@ F{% extends "base.hbs" %}
 
 					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary">Print</a>
 					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()">
+					<input type="number" id="production_multiplication" value="1" class="btn btn-sm btn-primary" onchange="table.setData('./?operation=get_components_grouped', {operation:'get_components_grouped'}, 'POST');">
 				</div>
 			</div>
 		</div>
@@ -232,12 +233,33 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		cell.edit(true);
 	}
 
+	function supplier_url(cell, formatterParams){ //plain text value
+		var value = cell.getValue();
+		console.log("VALUE", value);
+		var row = "";
+		for(x in value){
+			if(x>0){row+=' ';}
+			if(value[x].full_url == undefined){
+				row += "<a>"+ value[x].supplier + "</a>";
+			}else{
+				row += "<a href = '"+ value[x].full_url +"' target='_blank'>"+ value[x].supplier + "</a>";
+			}
+		}
+    	return row;
+	};
+
+
+	function multiplication(cell, formatterParams){
+		var value = cell.getValue();
+    	return value*$("#production_multiplication").val();
+	};
+
 	var table = new Tabulator("#component-table",{
 	    layout:"fitColumns",
 	    columns:[
 	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
 	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-	        {title:"Pro výrobu", field: "count_multiply", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
+	        {title:"Pro výrobu", field: "count_multiply", formatter: multiplication, sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
 	        {title:"Sklad",
 	        	columns:[
 	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
@@ -265,6 +287,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 		//		]
 		//	},
 	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
+	        {title:"Dodavatele", field:"supplier", editable:false, formatter: supplier_url},
 	    ],
     	addRowPos:"bottom",
 	    cellEdited:function(cell){
@@ -290,14 +313,18 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
               var usttext = undefined;
               var price = null;
+ 			  var supplier = [];
+
 
                 if (val['stock'].length > 0){
+                
+                  console.log("PRED SUPPLIER");
+                  supplier = val['stock'][0].supplier;
+
                   usttext = val['stock'][0]['name'];
                   console.log("StockName", val['stock'][0]['name']);
 
-                  //for(i in val['stock']){
-                  //  var history = val['stock'][i]['history'];
-                    var history = val['stock'][0]['history'];
+				  var history = val['stock'][0]['history'];
 
                     console.log("Historie:", history);
                     for(j in history){
@@ -316,7 +343,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
                     uid = val['_id']['UST_ID']['$oid'];
                 }
 
-
                 return{
                     row: i,
                     Ref: val['Ref'],
@@ -334,6 +360,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
                     Footprint: val['_id']['Footprint'],
                     note: val['_id']['note'],
                     UST_ID: usttext,
+                    supplier: supplier
                 }
             });
 

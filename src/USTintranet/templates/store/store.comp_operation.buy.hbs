@@ -1,8 +1,8 @@
-{%if len(places) == 0 %}
+{#{%if len(places) == 0 %}
     <div class="bg-warning p-2 mb-2">
         Chyba: Nejdříve k této položce přiřaďte pozici ve skladu.
     </div>
-{% end %}
+{% end %}#}
 {%if len(article.get('supplier',[])) == 0 %}
     <div class="bg-warning p-2 mb-2">
         Chyba: Nejdříve k této položce přiřaďte dodavatele.
@@ -41,18 +41,15 @@
 	</div>
 
 	<div class="form-group row request-hide">
-		<label class="col-sm-2 col-form-label">Sklad </label>
+		<label class="col-sm-2 col-form-label">Sklad</label>
 		<select class="form-control table_style col-sm-10" id="compo_stock">
-		   <!-- <option value="pha01">Praha (pha01)</option>
-		   <option value="sob01">Soběslav (sob01)</option> -->
-
-           {% for place in places %}
-            <option value="{{place['posid']}}">{{place['info'][0]['name']}} - {{place['info'][0]['text']}} <small>({{place['posid']}})</samll></option>
+           {% for stock in stocks %}
+           	<option value="{{stock['_id']}}"><b>{{stock['code']}}</b> | {{stock['name']}}</option>
            {% end %}
 		</select>
 	</div>
 	<div class="form-group row">
-		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()" {%if len(article.get('supplier',[])) == 0 or len(places) == 0 %}disabled{%end%}>Uložit</button>
+		<button class="form-control table_style btn btn-primary col" onclick="compo_update_push()" {%if len(article.get('supplier',[])) == 0 %}disabled{%end%}>Uložit</button>
 	</div>
 </div>
 <div class="request-show">

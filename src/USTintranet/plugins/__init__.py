@@ -15,6 +15,8 @@ import datetime
 import os
 import bson
 from hashlib import blake2s
+from tornado.options import define, options
+from termcolor import colored
 
 def make_handlers(module, plugin):
         handlers = [
@@ -90,7 +92,8 @@ def perm_validator(method, permissions = [], sudo = True):
 
 
 def database_init():
-    return pymongo.MongoClient('localhost', 27017).USTintranet
+    print(options.as_dict())
+    return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[tornado.options.options.mdb_database]
 
 class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
     def prepare(self):
@@ -213,6 +216,38 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code',1)]))
 
+    def get_current_warehouse_id(self):
+        print(colored("[get_current_warehouse]", "green"))
+        oid = bson.ObjectId(self.get_cookie('warehouse', None))
+        return oid
+
+    '''
+    Ze zadaneho ObjectID pozice to vyhleda sklad
+    '''
+    def get_warehousese_by_position(self, position: bson.ObjectId):
+        print(colored("[get_warehousese_by_position]", "green"))
+
+        warehouse = self.mdb.store_positions.aggregate([
+            {"$match": {'_id': position}}
+        ])
+        warehouse = list(warehouse)
+        if len(warehouse) < 1:
+            return None
+
+        return warehouse[0]['warehouse']
+
+    '''
+    Ze zadaneho ObjectID skladu vrati informace o skladu
+    '''
+    def get_warehouse(self, warehouseid = None):
+        if not warehouseid: warehouseid = self.get_current_warehouse_id()
+        else: warehouseid = bson.ObjectId(warehouseid)
+        print(warehouseid)
+        warehouse = list(self.mdb.warehouse.aggregate([
+            {"$match": {'_id': warehouseid}}
+        ]))[0]
+        return(warehouse)
+
     def warehouse_get_positions(self, warehouse):
         data = self.mdb.store_positions.aggregate([
             {"$match": {'warehouse': warehouse}},
@@ -220,67 +255,90 @@ class BaseHandler(tornado.web.RequestHandler):
         ])
         return (data)
 
+    '''
+    Ze zadaneho ObjectID skladu vrati informace o pozici
+    '''
+    def get_position(self, position: bson.ObjectId):
+        position = self.mdb.store_positions.aggregate([
+            {"$match": {'_id': position}}
+        ])
+        return(list(position)[0])
 
-    def component_get_counts(self, id, warehouse = False):
-        if not warehouse:
-            out = list(self.mdb.stock.aggregate([{
-                "$facet":{
-                    "suma":[
-                        {"$match": {"_id": id}},
-                        {"$unwind": "$history"},
-                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
-                        {"$project": {"count": 1, "_id":0}}
-                    ],
-                     "by_warehouse":[
-                         {"$match": {"_id": id}},
-                         {"$unwind": "$history"},
-                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
-                         {"$sort": {"warehouse": 1}},
-                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
-                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
-                         {"$project": {
-                            "_id":0,
-                            "warehouse":1,
-                            "count": 1,
-                            "position": { "$arrayElemAt": [ "$position", 0 ] },
-                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
-                            }},
-                     ]
+
+    def component_get_counts(self, id, warehouse = None):
+        out = list(self.mdb.stock.aggregate([
+            {"$match":{"_id": id}},
+            {"$project": {"overview":1}}
+        ]))
+
+        #dout = {}
+        #dout['stocks'] = out[0]['overview']
+        #dout['count'] = {
+        #                'onstock': 0,
+        #                'requested': 0,
+        #                'ordered': 0
+        #            }
+
+        #for stock in out[0]['overview']:
+        #    dout['count']['onstock'] += out[0]['overview'][stock]['count']['onstock']
+        #    dout['count']['requested'] += out[0]['overview'][stock]['count']['requested']
+        #    dout['count']['ordered'] += out[0]['overview'][stock]['count']['ordered']
+
+        return out[0]['overview']
+
+    '''
+        Tato funkce vezme historii polozky a z ni to vytvori soucty do jednotlivych skladu a pozic
+    '''
+    def component_update_counts(self, id):
+        print(colored("[component_update_counts]", "green", attrs=["bold"]))
+        out = list(self.mdb.stock.aggregate([
+            {"$match": {"_id": id}},
+            {"$unwind": "$history"},
+
+        ]))
+        out = list(out)
+
+        overview = {
+            'count':{
+                'onstock': 0,
+                'requested': 0,
+                'ordered': 0
+            },
+            'stocks': {}
+        }
+        for operation in out:
+            operation = operation['history']
+            warehouse = str(operation.get('stock', "5c67444e7e875154440cc28f"))
+            print(warehouse)
+
+            if warehouse not in overview['stocks']:
+                overview['stocks'][warehouse] = {
+                    'count':{
+                        'onstock': 0,
+                        'requested': 0,
+                        'ordered': 0
+                    }
                 }
-            }]))
-        else:
-            print(warehouse, type(warehouse))
-            out = list(self.mdb.stock.aggregate([{
-                "$facet":{
-                    "suma":[
-                        {"$match": {"_id": id}},
-                        {"$unwind": "$history"},
-                        {"$group": {"_id": None, "count":{"$sum": "$history.bilance"}}},
-                        {"$project": {"count": 1, "_id":0}}
-                    ],
-                     "by_warehouse":[
-                         {"$match": {"_id": id}},
-                         {"$unwind": "$history"},
-                         {"$group": {"_id": "$history.stock", "count":{"$sum": "$history.bilance"}}},
-                         {"$sort": {"warehouse": 1}},
-                         {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}},
-                         {"$match": {"position.warehouse": warehouse}},
-                         {"$lookup": {"from": "warehouse", "localField": 'position.warehouse', "foreignField" : '_id', "as": "warehouse"}},
-                         {"$project": {
-                            "_id":0,
-                            "warehouse":1,
-                            "count": 1,
-                            "position": { "$arrayElemAt": [ "$position", 0 ] },
-                            "warehouse": { "$arrayElemAt": [ "$warehouse", 0 ] },
-                            }},
-                     ]
-                }
-            }]))
 
-        #print("GET Component COUNTS....")
-        #print(out[0]['by_warehouse'])
+            if "operation" not in operation:
+                overview['stocks'][warehouse]['count']['onstock'] += operation['bilance']
+                overview['count']['onstock'] += operation['bilance']
 
-        return out[0]
+            elif operation['operation'] in ['inventory', 'service', 'sell', 'buy', 'move_in', 'move_out']:
+                overview['stocks'][warehouse]['count']['onstock'] += operation['bilance']
+                overview['count']['onstock'] += operation['bilance']
+
+            elif operation['operation'] in ['buy_request']:
+                overview['stocks'][warehouse]['count']['requested'] += operation['bilance']
+                overview['count']['requested'] += operation['bilance']
+
+            else:
+                print("[NEZNAMA OPERACE]", operation['operation'])
+                print(operation)
+
+        self.mdb.stock.update({"_id": id}, {"$set": {"overview": overview}})
+        print(bson.json_util.dumps(overview, indent=2))
+        print(colored("![component_update_counts]", "yellow", attrs=["bold"]))
 
     def component_get_buyrequests(self, id):
         out = list(self.mdb.stock.aggregate([#{
@@ -399,6 +457,42 @@ class BaseHandler(tornado.web.RequestHandler):
         data = list(self.mdb.stock.aggregate(q))
         print(bson.json_util.dumps(data, indent=4))
         return data
+
+    def component_update_suppliers_url(self, id):
+        '''
+        'id': id polozky, ktera bude vyhledana
+        '''
+        print("Component update component_update_suppliers_url")
+        out = list(self.mdb.stock.find({"_id": id}))[0]
+        
+        try:
+            for i, x in enumerate(out.get('supplier', [])):
+                print("Supplier:")
+                print(x)
+                x['full_url'] = x.get('url', '')
+
+                if x['supplier'].lower() == 'tme':
+                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'mouser':
+                    x['full_url'] = "https://cz.mouser.com/ProductDetail/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'farnell':
+                    x['full_url'] = "https://cz.farnell.com/{}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'ecom':
+                    x['full_url'] = "https://www.ecom.cz/?q={}&sAction=product_list&x=0&y=0".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'digikey':
+                    x['full_url'] = "https://www.digikey.com/products/en?keywords={}".format(x['symbol'])
+
+                elif x['supplier'].lower() == 'killich':
+                    x['full_url'] = "https://eshop.killich.cz/?search=+{}".format(x['symbol'])
+
+                self.mdb.stock.update({"_id": id}, {"$set": {"supplier.{}".format(i): x}})
+        
+        except Exception as e:
+            print(e)
 
     def barcode(self, hex):
         print(int(hex, 16))

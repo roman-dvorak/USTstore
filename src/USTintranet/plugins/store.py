@@ -265,9 +265,12 @@ class api(BaseHandler):
         self.set_header('Content-Type', 'application/json')
 
         if data == 'product':
+
             print(self.request.arguments.get('selected[]', None))
             #ZDE POSILAT JEN ID jako je to nize....
             id = bson.ObjectId(self.get_argument('value', ''))
+            self.component_update_suppliers_url(id) 
+            self.component_update_counts(id)
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
                     {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
@@ -306,6 +309,9 @@ class api(BaseHandler):
                     {'$unwind': '$supplier'},
                 ])
             dout = list(dbcursor)
+
+            for x in dout:
+                print(x)
 
         elif data == 'add_supplier':
             id = self.get_argument('id', None)
@@ -391,6 +397,7 @@ class api(BaseHandler):
 
 
         elif data == 'update_tag':
+            print(">[update_tag]")
             component = self.get_argument('component')
             tag  = self.get_argument('tag')
             state = self.get_argument('state', 'true')  # True nebo False, nastavit nebo odstranit tag
@@ -410,7 +417,11 @@ class api(BaseHandler):
         elif data == 'get_categories':
             dout = list(self.mdb.category.find({}))
 
+        elif data == 'get_warehouses':
+            dout = self.get_warehouseses()
+
         elif data == 'get_history':
+            print("> [get_history]")
             output_type = self.get_argument('output', 'json')
             dbcursor = self.mdb.stock.aggregate([
                     {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
@@ -424,7 +435,7 @@ class api(BaseHandler):
             if output_type == "html_tab":
                 self.set_header('Content-Type', 'text/html; charset=UTF-8')
                 print(dout)
-                self.render('store/store.api.history_tab_view.hbs', dout = dout)
+                self.render('store/store.api.history_tab_view.hbs', dout = dout, parent = self)
                 return None
 
         elif data == 'update_category':
@@ -485,6 +496,7 @@ class api(BaseHandler):
                 }], useCursor=True)
             dout = list(dbcursor)
 
+        print("operace:", data)
         output = bson.json_util.dumps(dout)
         self.write(output)
 
@@ -499,7 +511,8 @@ class hand_bi_home(BaseHandler):
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
         else:
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-
+        print("..................")
+        print(self.get_warehouseses())
 
 class operation(BaseHandler):
     role_module = ['store-sudo', 'store-manager']
@@ -508,24 +521,30 @@ class operation(BaseHandler):
         id_wh = bson.ObjectId(self.get_cookie('warehouse', False))
         id = bson.ObjectId(self.get_argument('component', False))
 
-        # emtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
+        # mtoda service slouží k uprave poctu polozek ve skladu. Je jedno, jsetli to tam je, nebo neni...
         if data == 'service':
             id = bson.ObjectId(self.get_argument('component'))
-            item_places = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
-
             article = list(self.mdb.stock.find_one({'_id': id}))
             counts = self.component_get_counts(id)
-            places = self.get_warehouseses()
+            stock = self.get_warehouse()
             print(counts)
-            self.render("store/store.comp_operation.service.hbs", last = article, counts = counts, all_places=places, item_places = item_places)
+            self.render("store/store.comp_operation.service.hbs", last = article, counts = counts, stock = stock)
 
         elif data == 'service_push': # vlozeni 'service do skladu'
             id = bson.ObjectId(self.get_argument('component'))
-            stock = bson.ObjectId(self.get_argument('stock'))
+            #stock_list = self.get_warehouseses()
+            stock = (self.get_warehouse()['_id'])
             description = self.get_argument('description', '')
             bilance = self.get_argument('offset')
+            bilance = bilance.replace(",", ".").strip()
 
-            print("service_push >>", id, stock, description, bilance)
+
+            if '=' == bilance[0]:
+                counts = self.component_get_counts(id)['stocks'][str(stock)]['count']['onstock']
+                bilance = float(bilance[1:]) - counts
+                description += "oprava z %d na %d ks".format(counts, bilance)
+
+            print("service_push >>", id, stock, description, float(bilance))
             out = self.mdb.stock.update(
                     {'_id': id},
                     {'$push': {'history':
@@ -550,10 +569,10 @@ class operation(BaseHandler):
             #     {"$lookup": {"from": "store_positions", "localField": '_id', "foreignField" : '_id', "as": "position"}}
             # ])
 
-            places = self.component_get_positions(id, stock = id_wh)
+            stocks = self.get_warehouseses()
             request = self.component_get_buyrequests(id)
             print("Pozadavky na nakup", request)
-            self.render("store/store.comp_operation.buy.hbs", article = article, places = places, request = request)
+            self.render("store/store.comp_operation.buy.hbs", article = article, stocks = stocks, request = request)
 
         elif data == 'buy_push': # vlozeni 'service do skladu'
             comp = self.get_argument('component')
@@ -589,12 +608,14 @@ class operation(BaseHandler):
                     }}
                 )
                 self.LogActivity('store', 'Created request')
-
             self.write(out)
 
         ## Move components from place to place...
         elif data == 'move':
             id = bson.ObjectId(self.get_argument('component'))
+            self.component_update_counts(id)
+            stock = self.get_warehouse()
+            print("")
 
             current_places = self.component_get_counts(id)
             print("CURRENT...")
@@ -603,7 +624,7 @@ class operation(BaseHandler):
 
             current_places = self.component_get_positions(id, stock = id_wh)
             print("PLACES...", current_places)
-            self.render('store/store.comp_operation.move.hbs', current_places = current_places, all_places=places)
+            self.render('store/store.comp_operation.move.hbs', stock = stock, all_places=places)
 
         elif data == 'move_push':
             comp = self.get_argument("component")
@@ -619,13 +640,13 @@ class operation(BaseHandler):
             out = self.mdb.stock.update(
                 {'_id': bson.ObjectId(comp)},
                 {'$push': {'history':
-                    {'_id': ida, 'stock': bson.ObjectId(source), 'operation':'move', 'bilance': -float(count), 'price': 0, 'description':description, 'user':self.logged},
+                    {'_id': ida, 'stock': bson.ObjectId(source), 'operation':'move_out', 'bilance': -float(count), 'price': 0, 'description':description, 'user':self.logged},
                 }}
             )
             out = self.mdb.stock.update(
                 {'_id': bson.ObjectId(comp)},
                 {'$push': {'history':
-                    {'_id': idb, 'stock': bson.ObjectId(target), 'operation':'move', 'bilance': float(count), 'price': 0, 'description':description, 'user':self.logged},
+                    {'_id': idb, 'stock': bson.ObjectId(target), 'operation':'move_in', 'bilance': float(count), 'price': 0, 'description':description, 'user':self.logged},
                 }}
             )
 
@@ -635,9 +656,12 @@ class operation(BaseHandler):
         elif data == 'setposition':
             id = bson.ObjectId(self.get_argument('component'))
             current_places = self.component_get_positions(id, stock = bson.ObjectId(self.get_cookie('warehouse', False)))
+            all_places = self.component_get_positions(id, stock = False)
             print(bson.json_util.dumps(current_places))
+            print(bson.json_util.dumps(all_places))
             places = list(self.mdb.store_positions.find({'warehouse': bson.ObjectId(self.get_cookie('warehouse', False))}).sort([('name', 1)]))
-            self.render("store/store.comp_operation.setposition.hbs", current_places = current_places, all_places = places, stock_positions = [])
+            print(bson.json_util.dumps(places))
+            self.render("store/store.comp_operation.setposition.hbs", current_places = current_places, all_places = places, all_positions = all_places, stock_positions = [])
 
         elif data == 'setposition_push':
             id = bson.ObjectId(self.get_argument('component'))
