@@ -5,6 +5,24 @@
 <!--<link rel="stylesheet" href="global.css">-->
 
 <style>
+    input[type=date], input[type=time] {
+        border-style: solid;
+        border-width: thin;
+        border-color: #aaaaaa;
+    }
+
+    .row-delete-btn {
+        padding-bottom: 0;
+        padding-top: 0;
+    }
+
+    #vacations table td:nth-child(3) {
+        text-align: center;
+    }
+
+    #work-spans table td:nth-child(5) {
+        text-align: center;
+    }
 </style>
 
 <div class="container">
@@ -94,7 +112,7 @@
                 </table>
             </div>
 
-            <div class="vacations">
+            <div id="vacations">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -103,16 +121,27 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Od: <input type="date" style="width: 140px"></td>
-                        <td>Do: <input type="date" style="width: 140px"></td>
+                        <th>Od</th>
+                        <th>Do</th>
+                        <th></th>
+                    </tr>
+                    {% for vacation in vacations %}
+                    <tr>
+                        <td>{{vacation["from"]}}</td>
+                        <td>{{vacation["to"]}}</td>
                         <td>
-                            <button class="btn btn-secondary">OK</button>
-                            <button class="btn btn-secondary">Zrušit</button>
+                            <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{vacation['_id']}}"
+                                    onclick="deleteVacation(this)">
+                                &times;
+                            </button>
                         </td>
                     </tr>
+                    {% end %}
                     <tr>
-                        <td colspan="5" class="text-center">
-                            <button class="btn btn-primary">Přidat</button>
+                        <td><input type="date" style="width: 150px" id="vacation-from"></td>
+                        <td><input type="date" style="width: 150px" id="vacation-to"></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="saveVacation()">Přidat</button>
                         </td>
                     </tr>
                     </tbody>
@@ -181,7 +210,7 @@
 
     <div class="row">
         <div class="col">
-            <div id="work-info">
+            <div id="work-spans">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -189,32 +218,49 @@
                     </tr>
                     </thead>
                     <tbody>
+                    <tr>
+                        <th>Od</th>
+                        <th>Do</th>
+                        <th>Počet hodin</th>
+                        <th>Projekt</th>
+                        <th></th>
+                    </tr>
                     {% for workspan in workspans %}
                     <tr>
                         <td>
-                            Od: {{workspan["from"]}}
+                            {{workspan["from"]}}
                         </td>
-                        <td>Do: {{workspan["to"]}}</td>
-                        <td>Počet hodin: {{workspan["hours"]}}</td>
-                        <td>Projekt: {{workspan["assignment"]}}</td>
-                        <td></td>
+                        <td>{{workspan["to"]}}</td>
+                        <td>{{workspan["hours"]}}</td>
+                        <td>{{workspan["assignment"]}}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{workspan['_id']}}"
+                                    onclick="deleteWorkspan(this)">
+                                &times;
+                            </button>
+                        </td>
                     </tr>
                     {% end %}
+                    {% if is_vacation_day %}
                     <tr>
-                        <td>Od: <input class="workspan-from" type="time" step="1800" style="border-width: thin"></td>
-                        <td>Do: <input class="workspan-to" type="time" step="1800" style="border-width: thin"></td>
-                        <td>Počet hodin: <input class="workspan-hours" type="number" style="width: 50px"
-                                                min="0" max="12" step="0.5"></td>
-                        <td>Projekt:
+                        <td colspan="5" style="text-align: center;">Na dovolené se nepracuje.</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td><input class="workspan-from" type="time" step="1800"></td>
+                        <td><input class="workspan-to" type="time" step="1800"></td>
+                        <td><input class="workspan-hours" type="number" style="width: 50px"
+                                   min="0" max="12" step="0.5"></td>
+                        <td>
                             <select class="workspan-assignment" style="border-width: thin; width: 200px">
                                 <option value="hmm">Pracovat</option>
                             </select>
                         </td>
                         <td>
-                            <button class="btn btn-secondary" onclick="saveWorkSpan(this)">OK</button>
-                            <button class="btn btn-secondary">Zrušit</button>
+                            <button class="btn btn-secondary" onclick="saveWorkSpan(this)">Přidat</button>
                         </td>
                     </tr>
+                    {% end %}
                     </tbody>
                 </table>
             </div>
@@ -313,6 +359,63 @@
             url: "/attendance/api/u/{{_id}}/workspans",
             type: "post",
             data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function saveVacation() {
+        let data = {
+            "from": $("#vacation-from").val(),
+            "to": $("#vacation-to").val()
+        };
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/vacations",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function deleteVacation(button) {
+        let vacationId = $(button).data("id");
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/vacations/delete",
+            type: "post",
+            data: vacationId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function deleteWorkspan(button) {
+        let workspanId = $(button).data("id");
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/workspans/delete",
+            type: "post",
+            data: workspanId,
             success: function (response) {
                 alert("Podařilo se!");
                 location.reload();

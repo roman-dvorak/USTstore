@@ -14,7 +14,10 @@ def make_handlers(plugin_name, plugin_namespace):
     return [
         (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
-        (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkSpanHandler),
+        (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
+        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
+        (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
+        (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
     ]
@@ -49,76 +52,104 @@ class UserAttendanceHandler(BaseHandler):
             ws["to"] = str_ops.date_to_time_str(ws["from"] + timedelta(minutes=round(ws["hours"] * 60)))
             ws["from"] = str_ops.date_to_time_str(ws["from"])
 
+        current_and_future_vacations = adb.get_user_vacations(self.mdb.users, user_id, date)
+
+        is_vacation_day = current_and_future_vacations and current_and_future_vacations[0]["from"] <= date
+
+        for vacation in current_and_future_vacations:
+            vacation["from"] = str_ops.date_to_str(vacation["from"])
+            vacation["to"] = str_ops.date_to_str(vacation["to"])
+
         template_params = {
             "_id": user_id,
             "name": str_ops.name_to_str(user_document["name"]),
             "date": str_ops.date_to_iso_str(date),
             "date_pretty": str_ops.date_to_str(date),
             "workspans": day_workspans,
+            "vacations": current_and_future_vacations,
+            "is_vacation_day": is_vacation_day
         }
-        template_params.update(compile_user_month_info(self.mdb.users, user_id, date))
-        # template_params.update(self.compile_month_info(user_id, date))
+        template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
 
         self.render("attendance.home.hbs", **template_params)
 
-    def compile_month_info(self, user_id, date: datetime):
-        result = {}
 
-        start_of_month = date.replace(day=1)
-        end_of_month = start_of_month + relativedelta(months=1)
-        start_of_year = start_of_month.replace(month=1)
-        end_of_year = start_of_year + relativedelta(years=1)
-
-        month_workspans = adb.get_user_workspans(self.mdb.users, user_id, start_of_month, end_of_month)
-        year_workspans = adb.get_user_workspans(self.mdb.users, user_id, start_of_year, end_of_year)
-        active_contract = udb.get_user_active_contract(self.mdb.users, user_id)
-
-        result["month_hours_worked"] = sum([ws["hours"] for ws in month_workspans])
-        result["year_hours_worked"] = sum([ws["hours"] for ws in year_workspans])
-
-        # TODO doplnit DPČ a pracovní smlouvu, tahat z databáze
-        if active_contract and active_contract["type"] == "dpp":
-            result["hour_rate"] = active_contract["hour_rate"]
-            result["year_max_hours"] = 300  # todo na zítra, tohle by mělo být v modulu
-            result["month_max_hours"] = int(2 * 10000 / active_contract["hour_rate"]) / 2
-            result["month_available_hours"] = result["month_max_hours"] - result["month_hours_worked"]
-            result["year_available_hours"] = result["year_max_hours"] - result["year_hours_worked"]
-            result["month_money_made"] = result["hour_rate"] * result["month_hours_worked"]
-
-            result["month_money_made"] = f"{result['month_money_made']:0.2f}"
-            result["hour_rate"] = f"{result['hour_rate']:0.2f}"
-        else:
-            for key in ["hour_rate", "year_max_hours", "month_max_hours", "month_available_hours",
-                        "year_available_hours", "month_money_made"]:
-                result[key] = "-"
-
-        return result
-
-
-class ApiAddWorkSpanHandler(BaseHandler):
+class ApiAddWorkspanHandler(BaseHandler):
 
     def post(self, user_id):
         # TODO upravování poslaných dat (jsonovaného dictu) a ukládaní přímo jich do db je potenciálně problematické
         # lepší by asi bylo postavit nový dict a items které není potřeba upravovat prostě zkopírovat
         # možná trochu porušuje DRY ale je to čitelnější (je jasnější co se ukládá do db)
+
         req = self.request.body.decode("utf-8")
         workspan = bson.json_util.loads(req)
 
         workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(workspan["date"], workspan["from"])
         del workspan["date"]
-
         workspan["hours"] = float(workspan["hours"])
 
+        self.check_vacations_conflicts(user_id, workspan)
+        self.check_workspans_conflicts(user_id, workspan)
+
+        adb.add_user_workspan(self.mdb.users, user_id, workspan)
+
+    def check_vacations_conflicts(self, user_id, workspan):
+        # z databáze dostaneme dovolené končící dnes nebo později seřazené podle data konce.
+        # první dovolená je nejblíž, stačí tedy zkontrolovat, jestli začíná dnes nebo dříve.
+        today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
+        vacations = adb.get_user_vacations(self.mdb.users, user_id, today)
+        if vacations and vacations[0]["from"] <= workspan["from"]:
+            raise ValueError("Na dovolené se nepracuje.")
+
+    def check_workspans_conflicts(self, user_id, workspan):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
         tomorow = today + relativedelta(days=1)
-        todays_workspans = adb.get_user_workspans(self.mdb.users, user_id, today, tomorow)
 
+        todays_workspans = adb.get_user_workspans(self.mdb.users, user_id, today, tomorow)
         workspan_end = workspan["from"] + relativedelta(minutes=int(workspan["hours"] * 60))
+
         for other_ws in todays_workspans:
             latest_start = max(workspan["from"], other_ws["from"])
             earliest_end = min(workspan_end, other_ws["from"] + relativedelta(minutes=int(other_ws["hours"]) * 60))
 
             if latest_start < earliest_end:
-                raise ValueError()  # TODO mělo by se ohlásit ve frontendu
+                raise ValueError("Časový konflikt s jinou prací")  # TODO mělo by se ohlásit ve frontendu
 
-        adb.add_user_workspan(self.mdb.users, user_id, workspan)
+
+class ApiAddVacationHandler(BaseHandler):
+
+    def post(self, user_id):
+        req = self.request.body.decode("utf-8")
+        data = bson.json_util.loads(req)
+
+        vacation = {
+            "from": str_ops.date_from_iso_str(data["from"]),
+            "to": str_ops.date_from_iso_str(data["to"])
+        }
+
+        if vacation["from"] > vacation["to"]:
+            raise ValueError("Dovolená skončila dříve než začala.")  # TODO mělo by se ohlásit ve frontendu
+
+        other_vacations = adb.get_user_vacations(self.mdb.users, user_id, vacation["from"])
+        for other_vac in other_vacations:
+            latest_start = max(vacation["from"], other_vac["from"])
+            earliest_end = min(vacation["to"], other_vac["to"])
+
+            if latest_start <= earliest_end:
+                raise ValueError("Časový konflikt s jinou dovolenou")  # TODO mělo by se ohlásit ve frontendu
+
+        adb.add_user_vacation(self.mdb.users, user_id, vacation)
+
+
+class ApiDeleteVacationHandler(BaseHandler):
+
+    def post(self, user_id):
+        vacation_id = self.request.body.decode("utf-8")
+        adb.delete_user_vacation(self.mdb.users, user_id, vacation_id)
+
+
+class ApiDeleteWorkspanHandler(BaseHandler):
+
+    def post(self, user_id):
+        workspan_id = self.request.body.decode("utf-8")
+        adb.delete_user_workspan(self.mdb.users, user_id, workspan_id)
