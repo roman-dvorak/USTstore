@@ -27,8 +27,8 @@ def compile_user_month_info(coll: pymongo.collection.Collection, user_id: str, d
     year_workspans = adb.get_user_workspans(coll, user_id, start_of_year, end_of_year)
     active_contract = udb.get_user_active_contract(coll, user_id)
 
-    result["month_hours_worked"] = sum([ws["hours"] for ws in month_workspans])
-    result["year_hours_worked"] = sum([ws["hours"] for ws in year_workspans])
+    result["month_hours_worked"] = sum(ws["hours"] for ws in month_workspans)
+    result["year_hours_worked"] = sum(ws["hours"] for ws in year_workspans)
 
     # TODO doplnit DPČ a pracovní smlouvu, tahat z databáze
     if active_contract and active_contract["type"] == "dpp":
@@ -47,3 +47,18 @@ def compile_user_month_info(coll: pymongo.collection.Collection, user_id: str, d
             result[key] = None
 
     return result
+
+
+def get_user_year_days_of_vacation(coll: pymongo.collection.Collection, user_id: str, date: datetime):
+    start_of_year = date.replace(day=1, month=1)
+    end_of_year = start_of_year + relativedelta(years=1) - relativedelta(days=1)
+    vacations = adb.get_user_vacations(coll, user_id, start_of_year)
+
+    days = 0
+    for vacation in vacations:
+        vac_from = max(vacation["from"], start_of_year)
+        vac_to = min(vacation["to"], end_of_year) + relativedelta(days=1)  # protože se počítá i poslední den
+
+        days += (vac_to - vac_from).days
+
+    return days

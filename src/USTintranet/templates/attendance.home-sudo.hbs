@@ -1,0 +1,151 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Docházka a výplaty {%end%}
+{% block body %}
+
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+
+<link href="https://unpkg.com/tabulator-tables@4.0.5/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script>
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
+
+<style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #body {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+</style>
+
+<div class="container">
+    <div class="row">
+        <h1>Docházka a výplaty</h1>
+    </div>
+
+    <div class="row">
+        <h2>Měsíční přehled - <span id="month-table-month-span"></span> <span id="month-table-year-span"></span></h2>
+        <div id="month-table"></div>
+    </div>
+    <div class="row">
+        <h2>Roční přehled - <span id="year-table-year-span"></span></h2>
+        <div id="year-table"></div>
+    </div>
+</div>
+
+
+<script>
+    let global_date = moment();
+
+    updateDateSpans();
+
+    let month_table = new Tabulator("#month-table", {
+        ajaxURL: `/attendance/api/month_table/${global_date.format("YYYY-MM-DD")}`,
+        columns: [
+            {
+                title: "Příjmení",
+                field: "name.surname",
+                frozen: true,
+                width: 150
+            },
+            {
+                title: "Jméno",
+                field: "name.first_name"
+            },
+            {
+                title: "Odpracované hodiny",
+                field: "hours_worked",
+            },
+            {
+                title: "Hodinová mzda",
+                field: "hour_rate",
+            },
+            {
+                title: "Měsíc uzavřen",
+                field: "month_closed",
+                // formatter: "tickCross",
+                align:"center"
+            },
+            {
+                title: "Hroubá mzda",
+                field: "gross_wage",
+            },
+            {
+                title: "Daň",
+                field: "tax_amount",
+            },
+            {
+                title: "Čistá mzda",
+                field: "net_wage",
+            },
+            {
+                title: "Zaplatit",
+                formatter: function (cell, formatterParams, onRendered) {
+                    return "<span class='material-icons' style='padding: 0; margin: 0'>payment</span>"
+                },
+                align:"center",
+                cellClick: function (e, cell) {
+                    alert(`click on ${cell.getRow().getIndex()}`)
+                }
+            }
+        ]
+    });
+
+    let year_table = new Tabulator("#year-table", {
+        layout: "fitDataFill",
+        ajaxURL: `/attendance/api/month_table/${global_date.format("YYYY-MM-DD")}`,
+        columns: [
+            {
+                title: "Příjmení",
+                field: "name.surname",
+                frozen: true,
+                width: 150
+            },
+            {
+                title: "Jméno",
+                field: "name.first_name"
+            },
+            {
+                title: "Odpracované hodiny",
+                field: "hours_worked",
+            },
+            {
+                title: "Hodinová mzda",
+                field: "hour_rate",
+            },
+            {
+                title: "Hroubá mzda",
+                field: "gross_wage",
+            },
+            {
+                title: "Daň",
+                field: "tax_amount",
+            },
+            {
+                title: "Čistá mzda",
+                field: "net_wage",
+            }
+        ]
+    });
+
+    function updateDateSpans() {
+        let month_table_month_span = document.getElementById("month-table-month-span");
+        let month_table_year_span = document.getElementById("month-table-year-span");
+        let year_table_year_span = document.getElementById("year-table-year-span");
+
+        let month = global_date.format("MMMM");
+        let year = global_date.format("YYYY");
+
+        month_table_month_span.innerHTML = month;
+        month_table_year_span.innerHTML = year;
+        year_table_year_span.innerHTML = year;
+    }
+</script>
+
+{% end %}{# block body#}

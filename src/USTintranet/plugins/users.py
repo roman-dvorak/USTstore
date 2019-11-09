@@ -292,9 +292,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             if contract.get("is_signed", False):
                 udb.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
         else:
-            contract["signing_date"] = str_ops.date_from_iso_str(contract["signing_date"])
-            contract["valid_from"] = str_ops.date_from_iso_str(contract["valid_from"])
-            contract["valid_until"] = str_ops.date_from_iso_str(contract["valid_until"])
+            contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
+            contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
+            contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
             contract["hour_rate"] = int(contract["hour_rate"])
 
             local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
@@ -330,8 +330,8 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             document.pop("valid_from", None)
             document.pop("valid_until", None)
 
-        document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
-        document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
+        document["valid_from"] = str_ops.datetime_from_iso_str(document.get("valid_from", None))
+        document["valid_until"] = str_ops.datetime_from_iso_str(document.get("valid_until", None))
 
         if document.get("_id", None):
             udb.update_user_document(self.mdb.users, _id, document.pop("_id"), document)

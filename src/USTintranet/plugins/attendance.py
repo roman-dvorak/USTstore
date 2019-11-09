@@ -7,7 +7,7 @@ from plugins import BaseHandler
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.mdoc_ops import compile_user_month_info
+from plugins.helpers.mdoc_ops import compile_user_month_info, get_user_year_days_of_vacation
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -18,6 +18,8 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
+        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiMonthTableHandler),
+        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiYearTableHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
     ]
@@ -35,13 +37,80 @@ def plug_info():
 class HomeHandler(BaseHandler):
 
     def get(self):
-        self.write("attendance home")
+        template_params = {}
+        self.render("attendance.home-sudo.hbs", **template_params)
+
+
+class ApiMonthTableHandler(BaseHandler):
+
+    def get(self, date):
+        month = str_ops.datetime_from_iso_str(date).replace(day=1)
+        next_month = month + relativedelta(months=1)
+
+        rows = []
+
+        users = udb.get_users(self.mdb.users)
+        for user in users:
+            active_contract = udb.get_user_active_contract(self.mdb.users, user["_id"])
+            hour_rate = active_contract["hour_rate"] if active_contract else 0
+            month_workspans = adb.get_user_workspans(self.mdb.users, user["_id"], month, next_month)
+            hours_worked = sum(ws["hours"] for ws in month_workspans)
+            gross_wage = hours_worked * hour_rate
+            tax_amount = 0
+            net_wage = gross_wage - tax_amount
+
+            row = {
+                "name": user["name"],
+                "hours_worked": hours_worked,
+                "hour_rate": hour_rate,
+                "month_closed": user.get("month_closed", False),  # TODO tak jak nyní month_closed funguje nedává smysl,
+                # v db je reprezentován bool hodnotou, ale to znamená že ta bude skákat každý měsíc. Větší smysl dává
+                # mít pole months_closed or closed_months a do něj přidávat uzavřené měsíce (třeba data prvních dnů
+                # v měsíci v iso tvaru.
+                "gross_wage": gross_wage,
+                "tax_amount": tax_amount,
+                "net_wage": net_wage,
+            }
+            rows.append(row)
+
+        self.write(bson.json_util.dumps(rows))
+
+
+class ApiYearTableHandler(BaseHandler):
+
+    def get(self, date):
+        year = str_ops.datetime_from_iso_str(date).replace(day=1, month=1)
+        next_year = year + relativedelta(years=1)
+
+        rows = []
+
+        users = udb.get_users(self.mdb.users)
+        for user in users:
+            active_contract = udb.get_user_active_contract(self.mdb.users, user["_id"])
+            hour_rate = active_contract["hour_rate"] if active_contract else 0
+            year_workspans = adb.get_user_workspans(self.mdb.users, user["_id"], year, next_year)
+            hours_worked = sum(ws["hours"] for ws in year_workspans)
+            gross_wage = hours_worked * hour_rate
+            tax_amount = 0
+            net_wage = gross_wage - tax_amount
+
+            row = {
+                "name": user["name"],
+                "hours_worked": hours_worked,
+                "hour_rate": hour_rate,
+                "gross_wage": gross_wage,
+                "tax_amount": tax_amount,
+                "net_wage": net_wage,
+            }
+            rows.append(row)
+
+        self.write(bson.json_util.dumps(rows))
 
 
 class UserAttendanceHandler(BaseHandler):
 
     def get(self, user_id, date_str=None):
-        date = str_ops.date_from_iso_str(date_str)
+        date = str_ops.datetime_from_iso_str(date_str)
         if not date:
             date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -53,7 +122,6 @@ class UserAttendanceHandler(BaseHandler):
             ws["from"] = str_ops.date_to_time_str(ws["from"])
 
         current_and_future_vacations = adb.get_user_vacations(self.mdb.users, user_id, date)
-
         is_vacation_day = current_and_future_vacations and current_and_future_vacations[0]["from"] <= date
 
         for vacation in current_and_future_vacations:
@@ -67,7 +135,8 @@ class UserAttendanceHandler(BaseHandler):
             "date_pretty": str_ops.date_to_str(date),
             "workspans": day_workspans,
             "vacations": current_and_future_vacations,
-            "is_vacation_day": is_vacation_day
+            "is_vacation_day": is_vacation_day,
+            "year_days_of_vacation": get_user_year_days_of_vacation(self.mdb.users, user_id, date)
         }
         template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
 
@@ -123,8 +192,8 @@ class ApiAddVacationHandler(BaseHandler):
         data = bson.json_util.loads(req)
 
         vacation = {
-            "from": str_ops.date_from_iso_str(data["from"]),
-            "to": str_ops.date_from_iso_str(data["to"])
+            "from": str_ops.datetime_from_iso_str(data["from"]),
+            "to": str_ops.datetime_from_iso_str(data["to"])
         }
 
         if vacation["from"] > vacation["to"]:

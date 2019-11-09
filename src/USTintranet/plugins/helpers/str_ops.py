@@ -41,7 +41,7 @@ def date_to_iso_str(date: datetime):
     return date.strftime("%Y-%m-%d")
 
 
-def date_from_iso_str(date: str):
+def datetime_from_iso_str(date: str):
     """
     Převede řetězec data v iso formátu (YYYY-MM-DD) na datetime objekt.
     Je-li date prázdný řetězec, vrací None.
@@ -85,7 +85,7 @@ def datetime_from_iso_string_and_time_string(date: str, time: str):
     hours, minutes = time.split(":")
     delta = timedelta(hours=int(hours), minutes=int(minutes))
 
-    return date_from_iso_str(date) + delta
+    return datetime_from_iso_str(date) + delta
 
 
 def date_to_time_str(date: datetime):
