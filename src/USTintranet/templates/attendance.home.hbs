@@ -103,8 +103,8 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Od: <input type="text" style="width: 140px"></td>
-                        <td>Do: <input type="text" style="width: 140px"></td>
+                        <td>Od: <input type="date" style="width: 140px"></td>
+                        <td>Do: <input type="date" style="width: 140px"></td>
                         <td>
                             <button class="btn btn-secondary">OK</button>
                             <button class="btn btn-secondary">Zrušit</button>
@@ -137,15 +137,15 @@
                     </tr>
                     <tr>
                         <td>Maximální počet hodin v měsíci</td>
-                        <td>{{month_max_hours}}</td>
+                        <td>{{month_max_hours or '-'}}</td>
                     </tr>
                     <tr>
                         <td>Chybí vyčerpat</td>
-                        <td>{{month_available_hours}}</td>
+                        <td>{{month_available_hours or '-'}}</td>
                     </tr>
                     <tr>
                         <td>Za měsíc hrubého</td>
-                        <td>{{month_money_made}} Kč</td>
+                        <td>{{month_money_made or '-'}} Kč</td>
                     </tr>
                     <tr>
                         <td>Za měsíc vyplacená částka</td>
@@ -153,7 +153,7 @@
                     </tr>
                     <tr>
                         <td>Hodinová mzda</td>
-                        <td>{{hour_rate}} Kč</td>
+                        <td>{{hour_rate or '-'}} Kč</td>
                     </tr>
                     <tr>
                         <td>Platba daně</td>
@@ -165,7 +165,7 @@
                     </tr>
                     <tr>
                         <td>Volné hodiny do konce roku</td>
-                        <td>{{year_available_hours}}</td>
+                        <td>{{year_available_hours or '-'}}</td>
                     </tr>
                     <tr>
                         <td colspan="2" class="text-center">

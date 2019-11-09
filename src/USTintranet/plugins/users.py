@@ -7,7 +7,7 @@ import tornado
 import tornado.options
 import os
 
-from plugins.helpers.mdoc_ops import find_type_in_addresses
+from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
 from plugins.helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from plugins import BaseHandler, save_file, upload_file
@@ -198,6 +198,7 @@ class UserPageHandler(BaseHandler):
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
         }
+        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now()))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)

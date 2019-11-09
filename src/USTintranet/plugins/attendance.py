@@ -7,6 +7,7 @@ from plugins import BaseHandler
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
+from plugins.helpers.mdoc_ops import compile_user_month_info
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -55,7 +56,8 @@ class UserAttendanceHandler(BaseHandler):
             "date_pretty": str_ops.date_to_str(date),
             "workspans": day_workspans,
         }
-        template_params.update(self.compile_month_info(user_id, date))
+        template_params.update(compile_user_month_info(self.mdb.users, user_id, date))
+        # template_params.update(self.compile_month_info(user_id, date))
 
         self.render("attendance.home.hbs", **template_params)
 
@@ -73,10 +75,10 @@ class UserAttendanceHandler(BaseHandler):
 
         result["month_hours_worked"] = sum([ws["hours"] for ws in month_workspans])
         result["year_hours_worked"] = sum([ws["hours"] for ws in year_workspans])
-        result["hour_rate"] = active_contract["hour_rate"]
 
         # TODO doplnit DPČ a pracovní smlouvu, tahat z databáze
-        if active_contract["type"] == "dpp":
+        if active_contract and active_contract["type"] == "dpp":
+            result["hour_rate"] = active_contract["hour_rate"]
             result["year_max_hours"] = 300  # todo na zítra, tohle by mělo být v modulu
             result["month_max_hours"] = int(2 * 10000 / active_contract["hour_rate"]) / 2
             result["month_available_hours"] = result["month_max_hours"] - result["month_hours_worked"]
@@ -84,8 +86,11 @@ class UserAttendanceHandler(BaseHandler):
             result["month_money_made"] = result["hour_rate"] * result["month_hours_worked"]
 
             result["month_money_made"] = f"{result['month_money_made']:0.2f}"
-
-        result["hour_rate"] = f"{result['hour_rate']:0.2f}"
+            result["hour_rate"] = f"{result['hour_rate']:0.2f}"
+        else:
+            for key in ["hour_rate", "year_max_hours", "month_max_hours", "month_available_hours",
+                        "year_available_hours", "month_money_made"]:
+                result[key] = "-"
 
         return result
 
