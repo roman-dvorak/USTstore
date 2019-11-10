@@ -28,6 +28,49 @@
     .calendar-month-title {
         text-transform: capitalize;
     }
+
+    .table td.calendar-cell {
+        padding: 0;
+        height: 49px;
+    }
+
+    .calendar-cell-container {
+        display: table;
+        height: 100%;
+        width: 100%;
+        position: relative;
+        vertical-align: middle;
+    }
+
+    .calendar-other-month {
+        opacity: 40%;
+    }
+
+    .calendar-day-span {
+        font-size: 12px;
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding-right: 3px;
+        font-weight: bold;
+    }
+
+    .calendar-hours-span {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .calendar-circle {
+        border-radius: 16px;
+        width: 32px;
+        height: 32px;
+        display: inline-block;
+        color: white;
+        background: rgb(33, 37, 41);
+        padding-top: 3px;
+    }
 </style>
 
 <div class="container">
@@ -311,7 +354,26 @@
             });
         }
 
-        populateCalendar() {
+        _ajaxMonthData() {
+            $.ajax({
+            url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
+            type: "post",
+            // data: JSON.stringify(data),
+            success: function (response) {
+                // alert("Podařilo se!");
+                console.log(response);
+                // location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+        }
+
+        populateCalendar(ajaxData) {
+            if (typeof ajaxData === "undefined") this._ajaxMonthData();
+
             let firstDay = this.monthShown.day();
             let daysInMonth = this.monthShown.daysInMonth();
             let daysInLastMonth = this.monthShown.subtract(1, "months").daysInMonth();
@@ -325,16 +387,28 @@
                     let cellClass = this._getCellClass(row, col);
                     let cell = this.table.getElementsByClassName(cellClass)[0];
 
+                    let content = "";
+                    let otherMonth = true;
                     if (lastMonthDaysCounter <= daysInLastMonth) {
-                        cell.innerHTML = lastMonthDaysCounter;
+                        content = lastMonthDaysCounter;
                         lastMonthDaysCounter++;
                     } else if (thisMonthDaysCounter <= daysInMonth) {
-                        cell.innerHTML = thisMonthDaysCounter;
+                        content = thisMonthDaysCounter;
                         thisMonthDaysCounter++;
+                        otherMonth = false;
                     } else {
-                        cell.innerHTML = nextMonthDaysCounter;
+                        content = nextMonthDaysCounter;
                         nextMonthDaysCounter++;
                     }
+
+                    cell.innerHTML = `
+                        <div class="calendar-cell-container ${otherMonth ? 'calendar-other-month' : ''}">
+                            <span class="calendar-day-span">${content}</span>
+                            <span class="calendar-hours-span">
+                                <span class="calendar-circle">${content}</span>
+                            </span>
+                        </div>
+                    `
                 }
             }
         }

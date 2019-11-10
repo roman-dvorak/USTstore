@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta
 
 import bson.json_util
@@ -15,6 +16,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
+        (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
@@ -143,6 +145,28 @@ class UserAttendanceHandler(BaseHandler):
         template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
 
         self.render("attendance.home.hbs", **template_params)
+
+
+class ApiCalendarHandler(BaseHandler):
+
+    def post(self, user_id, date):
+        month = str_ops.datetime_from_iso_str(date).replace(day=1)
+        num_days_in_month = calendar.monthrange(month.year, month.month)[1]
+
+        vacations = adb.get_user_vacations(self.mdb.users, user_id, month, month + relativedelta(months=2))
+        vacation_days = []
+        for vacation in vacations:
+            start = max(vacation["from"], month)
+            end = min(vacation["to"], month + relativedelta(months=1, days=-1))
+            if start <= end:
+                vacation_days += [str_ops.date_to_iso_str(month.replace(day=day))
+                                  for day in range(start.day, end.day + 1)]
+
+        data = {
+            "vacation": vacation_days
+        }
+
+        self.write(bson.json_util.dumps(data))
 
 
 class ApiAddWorkspanHandler(BaseHandler):
