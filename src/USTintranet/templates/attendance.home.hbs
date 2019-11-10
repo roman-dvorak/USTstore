@@ -219,10 +219,6 @@
             this._buildCalendar();
             this._connectButtonsEvents();
 
-            this.table.addEventListener("dateSelectedChange", () => {
-                console.log("event dateSelectedChange");
-                this.populateCalendar();
-            });
             this.table.addEventListener("monthShownChange", () => {
                 console.log("event monthShownChange");
                 this._updateMonthTitle();
@@ -316,15 +312,29 @@
         }
 
         populateCalendar() {
-            let first_day = this.monthShown.day();
-            console.log(first_day);
+            let firstDay = this.monthShown.day();
+            let daysInMonth = this.monthShown.daysInMonth();
+            let daysInLastMonth = this.monthShown.subtract(1, "months").daysInMonth();
+
+            let lastMonthDaysCounter = daysInLastMonth - (firstDay - 1) + 1;
+            let thisMonthDaysCounter = 1;
+            let nextMonthDaysCounter = 1;
 
             for (let row = 0; row < this.CALENDAR_ROWS; row++) {
                 for (let col = 0; col < this.CALENDAR_COLS; col++) {
                     let cellClass = this._getCellClass(row, col);
                     let cell = this.table.getElementsByClassName(cellClass)[0];
 
-                    cell.innerHTML = cellClass;
+                    if (lastMonthDaysCounter <= daysInLastMonth) {
+                        cell.innerHTML = lastMonthDaysCounter;
+                        lastMonthDaysCounter++;
+                    } else if (thisMonthDaysCounter <= daysInMonth) {
+                        cell.innerHTML = thisMonthDaysCounter;
+                        thisMonthDaysCounter++;
+                    } else {
+                        cell.innerHTML = nextMonthDaysCounter;
+                        nextMonthDaysCounter++;
+                    }
                 }
             }
         }
