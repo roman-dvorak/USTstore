@@ -60,6 +60,7 @@ class ApiMonthTableHandler(BaseHandler):
             net_wage = gross_wage - tax_amount
 
             row = {
+                "id": user["_id"],
                 "name": user["name"],
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
@@ -95,6 +96,7 @@ class ApiYearTableHandler(BaseHandler):
             net_wage = gross_wage - tax_amount
 
             row = {
+                "id": user["_id"],
                 "name": user["name"],
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
