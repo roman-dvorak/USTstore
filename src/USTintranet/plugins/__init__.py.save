@@ -589,11 +589,8 @@ class loginHandler(BaseHandler):
         user = self.get_argument('user')
         passw= self.get_argument('pass')
 
-        #username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
-        username = self.mdb.users.find_one({"user": user})
-        print(username)
-
-        print("USERNAME:", username, user)
+        username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
+        print("USERNAME:", username)
         if username:
             username = username.get('user', None)
             hash = hashlib.sha384((passw+username).encode('utf-8')).hexdigest()
