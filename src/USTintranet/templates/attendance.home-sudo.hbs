@@ -1,0 +1,239 @@
+{% extends "base.hbs" %}
+{% block title %} UST intranet | Docházka a výplaty {%end%}
+{% block body %}
+
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+
+<link href="https://unpkg.com/tabulator-tables@4.0.5/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.0.5/dist/js/tabulator.min.js"></script>
+
+<!--<link href="https://fonts.googleapis.com/icon?family=Material+Icons"-->
+<!--      rel="stylesheet">-->
+
+<style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #body {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+
+    .title-bar {
+        width: 100%;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .right-buttons {
+        float: right;
+    }
+
+    .table-icon {
+        line-height: 0;
+    }
+</style>
+
+<div class="container">
+    <div class="row">
+        <h1>Docházka a výplaty</h1>
+    </div>
+
+    <div class="row">
+        <div class="title-bar">
+            <div class="btn-group right-buttons" role="group">
+                <button type="button" class="btn btn-light" onclick="previousMonth()">Předchozí měsíc</button>
+                <button type="button" class="btn btn-light" onclick="nextMonth()">Následující měsíc</button>
+            </div>
+            <h2>
+                Měsíční přehled -
+                <span id="month-table-month-span"></span>
+                <span id="month-table-year-span"></span>
+            </h2>
+        </div>
+        <div id="month-table"></div>
+    </div>
+    <div class="row">
+        <div class="title-bar">
+            <div class="btn-group right-buttons" role="group">
+                <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
+                <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
+            </div>
+            <h2>
+                Roční přehled -
+                <span id="year-table-year-span"></span>
+            </h2>
+        </div>
+        <div id="year-table"></div>
+    </div>
+</div>
+
+
+<script>
+    let month_date = moment().startOf("month");
+    let year_date = moment().startOf("year");
+
+    $(document).ready(() => {
+        updateMonthDateSpans();
+        updateYearDateSpan();
+        updateMonthTable();
+        updateYearTable();
+
+        console.log(month_date.format());
+        console.log(year_date.format());
+    });
+
+
+    let month_table = new Tabulator("#month-table", {
+        height: 600,
+        columns: [
+            {
+                title: "Příjmení",
+                field: "name.surname",
+                frozen: true,
+                width: 150
+            },
+            {
+                field: "id",
+                visible: false
+            },
+            {
+                title: "Jméno",
+                field: "name.first_name"
+            },
+            {
+                title: "Odpracované hodiny",
+                field: "hours_worked",
+            },
+            {
+                title: "Hodinová mzda",
+                field: "hour_rate",
+            },
+            {
+                title: "Měsíc uzavřen",
+                field: "month_closed",
+                formatter: "tickCross",
+                align: "center"
+            },
+            {
+                title: "Hroubá mzda",
+                field: "gross_wage",
+            },
+            {
+                title: "Daň",
+                field: "tax_amount",
+            },
+            {
+                title: "Čistá mzda",
+                field: "net_wage",
+            },
+            {
+                title: "Zaplatit",
+                formatter: function (cell, formatterParams, onRendered) {
+                    return "<span class='material-icons table-icon'>payment</span>"
+                },
+                align: "center",
+                cellClick: function (e, cell) {
+                    alert(`click on ${cell.getRow().getIndex()}`)
+                }
+            }
+        ]
+    });
+
+    let year_table = new Tabulator("#year-table", {
+        layout: "fitDataFill",
+        height: 600,
+        columns: [
+            {
+                title: "Příjmení",
+                field: "name.surname",
+                frozen: true,
+                width: 150
+            },
+            {
+                field: "id",
+                visible: false,
+            },
+            {
+                title: "Jméno",
+                field: "name.first_name"
+            },
+            {
+                title: "Odpracované hodiny",
+                field: "hours_worked",
+            },
+            {
+                title: "Hodinová mzda",
+                field: "hour_rate",
+            },
+            {
+                title: "Hroubá mzda",
+                field: "gross_wage",
+            },
+            {
+                title: "Daň",
+                field: "tax_amount",
+            },
+            {
+                title: "Čistá mzda",
+                field: "net_wage",
+            }
+        ]
+    });
+
+    function updateMonthDateSpans() {
+        let month_table_month_span = document.getElementById("month-table-month-span");
+        let month_table_year_span = document.getElementById("month-table-year-span");
+
+        month_table_month_span.innerHTML = month_date.format("MMMM");
+        month_table_year_span.innerHTML = month_date.format("YYYY");
+    }
+
+    function updateYearDateSpan() {
+        let year_table_year_span = document.getElementById("year-table-year-span");
+
+        year_table_year_span.innerHTML = year_date.format("YYYY");
+    }
+
+    function nextMonth() {
+        month_date.add(1, "months");
+        updateMonthDateSpans();
+        console.log(month_date.format());
+        updateMonthTable();
+    }
+
+    function previousMonth() {
+        month_date.subtract(1, "months");
+        updateMonthDateSpans();
+        console.log(month_date.format());
+        updateMonthTable();
+    }
+
+    function nextYear() {
+        year_date.add(1, "years");
+        updateYearDateSpan();
+        console.log(year_date.format());
+        updateYearTable();
+    }
+
+    function previousYear() {
+        year_date.subtract(1, "years");
+        updateYearDateSpan();
+        console.log(year_date.format());
+        updateYearTable();
+    }
+
+    function updateMonthTable() {
+        month_table.setData(`/attendance/api/month_table/${month_date.format("YYYY-MM-DD")}`)
+    }
+
+    function updateYearTable() {
+        year_table.setData(`/attendance/api/year_table/${year_date.format("YYYY-MM-DD")}`)
+    }
+</script>
+
+{% end %}{# block body#}

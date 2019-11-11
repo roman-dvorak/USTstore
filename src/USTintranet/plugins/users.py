@@ -7,7 +7,7 @@ import tornado
 import tornado.options
 import os
 
-from plugins.helpers.mdoc_ops import find_type_in_addresses
+from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
 from plugins.helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
 from plugins import BaseHandler, save_file, upload_file
@@ -198,6 +198,7 @@ class UserPageHandler(BaseHandler):
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
         }
+        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now()))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
@@ -291,9 +292,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             if contract.get("is_signed", False):
                 udb.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
         else:
-            contract["signing_date"] = str_ops.date_from_iso_str(contract["signing_date"])
-            contract["valid_from"] = str_ops.date_from_iso_str(contract["valid_from"])
-            contract["valid_until"] = str_ops.date_from_iso_str(contract["valid_until"])
+            contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
+            contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
+            contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
             contract["hour_rate"] = int(contract["hour_rate"])
 
             local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
@@ -329,8 +330,8 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             document.pop("valid_from", None)
             document.pop("valid_until", None)
 
-        document["valid_from"] = str_ops.date_from_iso_str(document.get("valid_from", None))
-        document["valid_until"] = str_ops.date_from_iso_str(document.get("valid_until", None))
+        document["valid_from"] = str_ops.datetime_from_iso_str(document.get("valid_from", None))
+        document["valid_until"] = str_ops.datetime_from_iso_str(document.get("valid_until", None))
 
         if document.get("_id", None):
             udb.update_user_document(self.mdb.users, _id, document.pop("_id"), document)

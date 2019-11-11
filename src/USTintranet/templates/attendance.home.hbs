@@ -2,9 +2,84 @@
 {% block title %} UST intranet | Docházková karta {%end%}
 {% block body %}
 
-<!--<link rel="stylesheet" href="global.css">-->
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
 
 <style>
+    input[type=date], input[type=time] {
+        border-style: solid;
+        border-width: thin;
+        border-color: #aaaaaa;
+    }
+
+    .row-delete-btn {
+        padding-bottom: 0;
+        padding-top: 0;
+    }
+
+    #vacations table td:nth-child(3) {
+        text-align: center;
+    }
+
+    #work-spans table td:nth-child(5) {
+        text-align: center;
+    }
+
+    .calendar-month-title {
+        text-transform: capitalize;
+    }
+
+    .table td.calendar-cell {
+        padding: 0;
+        height: 49px;
+    }
+
+    .calendar-cell-container {
+        display: table;
+        height: 100%;
+        width: 100%;
+        position: relative;
+        vertical-align: middle;
+        cursor: pointer;
+    }
+
+    .calendar-other-month {
+        opacity: 40%;
+    }
+
+    .calendar-day-span {
+        font-size: 12px;
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding-right: 3px;
+        font-weight: bold;
+    }
+
+    .calendar-content-span {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .calendar-circle {
+        border-radius: 16px;
+        width: 32px;
+        height: 32px;
+        display: inline-block;
+        color: white;
+        padding-top: 3px;
+    }
+
+    .calendar-circle.calendar-hours {
+        background: rgb(33, 37, 41);
+    }
+
+    .calendar-circle.calendar-vacation {
+        background: green;
+    }
+
 </style>
 
 <div class="container">
@@ -13,88 +88,11 @@
     <div class="row">
         <div class="col col-12 col-lg-6">
             <div id="calendar">
-                <table class="table text-center table-bordered" style="table-layout: fixed">
-                    <thead class="thead-dark">
-                    <tr>
-                        <th colspan="7" class="text-left">
-                            <h4 style="display: inline; float: left;">Květen 2019</h4>
-                            <span style="float: right">
-                            <button type="button" class="btn btn-light">Předchozí měsíc</button>
-                            <button type="button" class="btn btn-light">Následující měsíc</button>
-                            </span>
-
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <th>Po</th>
-                        <th>Út</th>
-                        <th>St</th>
-                        <th>Čt</th>
-                        <th>Pá</th>
-                        <th>So</th>
-                        <th>Ne</th>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary">29</td>
-                        <td class="text-secondary">30</td>
-                        <td>1</td>
-                        <td>2</td>
-                        <td>3</td>
-                        <td>4</td>
-                        <td>5</td>
-                    </tr>
-                    <tr>
-                        <td>6</td>
-                        <td>7</td>
-                        <td>8</td>
-                        <td>9</td>
-                        <td>10</td>
-                        <td>11</td>
-                        <td>12</td>
-                    </tr>
-                    <tr>
-                        <td>13</td>
-                        <td>14</td>
-                        <td>15</td>
-                        <td>16</td>
-                        <td>17</td>
-                        <td>18</td>
-                        <td>19</td>
-                    </tr>
-                    <tr>
-                        <td>20</td>
-                        <td>21</td>
-                        <td>22</td>
-                        <td>23</td>
-                        <td>24</td>
-                        <td>25</td>
-                        <td>26</td>
-                    </tr>
-                    <tr>
-                        <td>27</td>
-                        <td>28</td>
-                        <td>29</td>
-                        <td>30</td>
-                        <td>31</td>
-                        <td class="text-secondary">1</td>
-                        <td class="text-secondary">2</td>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary">3</td>
-                        <td class="text-secondary">4</td>
-                        <td class="text-secondary">5</td>
-                        <td class="text-secondary">6</td>
-                        <td class="text-secondary">7</td>
-                        <td class="text-secondary">8</td>
-                        <td class="text-secondary">9</td>
-                    </tr>
-                    </tbody>
+                <table class="table text-center table-bordered" style="table-layout: fixed" id="calendar-table">
                 </table>
             </div>
 
-            <div class="vacations">
+            <div id="vacations">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -103,16 +101,27 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Od: <input type="text" style="width: 140px"></td>
-                        <td>Do: <input type="text" style="width: 140px"></td>
+                        <th>Od</th>
+                        <th>Do</th>
+                        <th></th>
+                    </tr>
+                    {% for vacation in vacations %}
+                    <tr>
+                        <td>{{vacation["from"]}}</td>
+                        <td>{{vacation["to"]}}</td>
                         <td>
-                            <button class="btn btn-secondary">OK</button>
-                            <button class="btn btn-secondary">Zrušit</button>
+                            <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{vacation['_id']}}"
+                                    onclick="deleteVacation(this)">
+                                &times;
+                            </button>
                         </td>
                     </tr>
+                    {% end %}
                     <tr>
-                        <td colspan="5" class="text-center">
-                            <button class="btn btn-primary">Přidat</button>
+                        <td><input type="date" style="width: 150px" id="vacation-from"></td>
+                        <td><input type="date" style="width: 150px" id="vacation-to"></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="saveVacation()">Přidat</button>
                         </td>
                     </tr>
                     </tbody>
@@ -137,15 +146,15 @@
                     </tr>
                     <tr>
                         <td>Maximální počet hodin v měsíci</td>
-                        <td>{{month_max_hours}}</td>
+                        <td>{{month_max_hours or '-'}}</td>
                     </tr>
                     <tr>
                         <td>Chybí vyčerpat</td>
-                        <td>{{month_available_hours}}</td>
+                        <td>{{month_available_hours or '-'}}</td>
                     </tr>
                     <tr>
                         <td>Za měsíc hrubého</td>
-                        <td>{{month_money_made}} Kč</td>
+                        <td>{{month_money_made or '-'}} Kč</td>
                     </tr>
                     <tr>
                         <td>Za měsíc vyplacená částka</td>
@@ -153,7 +162,7 @@
                     </tr>
                     <tr>
                         <td>Hodinová mzda</td>
-                        <td>{{hour_rate}} Kč</td>
+                        <td>{{hour_rate or '-'}} Kč</td>
                     </tr>
                     <tr>
                         <td>Platba daně</td>
@@ -165,7 +174,11 @@
                     </tr>
                     <tr>
                         <td>Volné hodiny do konce roku</td>
-                        <td>{{year_available_hours}}</td>
+                        <td>{{year_available_hours or '-'}}</td>
+                    </tr>
+                    <tr>
+                        <td>Dny dovolené v tomto roce</td>
+                        <td>{{year_days_of_vacation}}</td>
                     </tr>
                     <tr>
                         <td colspan="2" class="text-center">
@@ -181,7 +194,7 @@
 
     <div class="row">
         <div class="col">
-            <div id="work-info">
+            <div id="work-spans">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -189,32 +202,49 @@
                     </tr>
                     </thead>
                     <tbody>
+                    <tr>
+                        <th>Od</th>
+                        <th>Do</th>
+                        <th>Počet hodin</th>
+                        <th>Projekt</th>
+                        <th></th>
+                    </tr>
                     {% for workspan in workspans %}
                     <tr>
                         <td>
-                            Od: {{workspan["from"]}}
+                            {{workspan["from"]}}
                         </td>
-                        <td>Do: {{workspan["to"]}}</td>
-                        <td>Počet hodin: {{workspan["hours"]}}</td>
-                        <td>Projekt: {{workspan["assignment"]}}</td>
-                        <td></td>
+                        <td>{{workspan["to"]}}</td>
+                        <td>{{workspan["hours"]}}</td>
+                        <td>{{workspan["assignment"]}}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{workspan['_id']}}"
+                                    onclick="deleteWorkspan(this)">
+                                &times;
+                            </button>
+                        </td>
                     </tr>
                     {% end %}
+                    {% if is_vacation_day %}
                     <tr>
-                        <td>Od: <input class="workspan-from" type="time" step="1800" style="border-width: thin"></td>
-                        <td>Do: <input class="workspan-to" type="time" step="1800" style="border-width: thin"></td>
-                        <td>Počet hodin: <input class="workspan-hours" type="number" style="width: 50px"
-                                                min="0" max="12" step="0.5"></td>
-                        <td>Projekt:
+                        <td colspan="5" style="text-align: center;">Na dovolené se nepracuje.</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td><input class="workspan-from" type="time" step="1800"></td>
+                        <td><input class="workspan-to" type="time" step="1800"></td>
+                        <td><input class="workspan-hours" type="number" style="width: 50px"
+                                   min="0" max="12" step="0.5"></td>
+                        <td>
                             <select class="workspan-assignment" style="border-width: thin; width: 200px">
                                 <option value="hmm">Pracovat</option>
                             </select>
                         </td>
                         <td>
-                            <button class="btn btn-secondary" onclick="saveWorkSpan(this)">OK</button>
-                            <button class="btn btn-secondary">Zrušit</button>
+                            <button class="btn btn-secondary" onclick="saveWorkSpan(this)">Přidat</button>
                         </td>
                     </tr>
+                    {% end %}
                     </tbody>
                 </table>
             </div>
@@ -224,7 +254,239 @@
 
 
 <script>
-    const DATE = "{{date}}";
+
+    class Calendar {
+
+        constructor(tableElement, dateSelected, monthShown) {
+            this.dateSelectedChangeEvent = new CustomEvent("dateSelectedChange");
+            this.monthShownChangeEvent = new CustomEvent("monthShownChange");
+
+            this.CALENDAR_ROWS = 6;
+            this.CALENDAR_COLS = 7;
+
+            this._dateSelected = dateSelected;
+            this._monthShown = monthShown;
+            this.table = tableElement;
+
+            this._buildCalendar();
+            this._connectButtonsEvents();
+
+            this.table.addEventListener("monthShownChange", () => {
+                console.log("event monthShownChange");
+                this._updateMonthTitle();
+                this.populateCalendar();
+            });
+
+            this.table.dispatchEvent(this.dateSelectedChangeEvent);
+            this.table.dispatchEvent(this.monthShownChangeEvent);
+        }
+
+        get dateSelected() {
+            return moment(this._dateSelected);
+        }
+
+        set dateSelected(value) {
+            this._dateSelected = moment(value);
+            this.table.dispatchEvent(this.dateSelectedChangeEvent);
+        }
+
+        get monthShown() {
+            return moment(this._monthShown);
+        }
+
+        set monthShown(value) {
+            this._monthShown = moment(value);
+            this.table.dispatchEvent(this.monthShownChangeEvent);
+        }
+
+        _updateMonthTitle() {
+            let monthTitleElem = this.table.getElementsByClassName("calendar-month-title")[0];
+            monthTitleElem.innerHTML = this.monthShown.format("MMMM YYYY");
+        }
+
+        _buildCalendar() {
+            this.table.innerHTML = `
+                <thead class="thead-dark">
+                    <tr>
+                        <th colspan="7" class="text-left">
+                            <h4 style="display: inline; float: left;" class="calendar-month-title"></h4>
+                            <span style="float: right">
+                                <button type="button" class="btn btn-light calendar-previous-month-btn">
+                                    Předchozí měsíc
+                                </button>
+                                <button type="button" class="btn btn-light calendar-next-month-btn">
+                                    Následující měsíc
+                                </button>
+                            </span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Po</th>
+                        <th>Út</th>
+                        <th>St</th>
+                        <th>Čt</th>
+                        <th>Pá</th>
+                        <th>So</th>
+                        <th>Ne</th>
+                    </tr>
+                </tbody>`
+
+            let tableBody = this.table.getElementsByTagName("tbody")[0];
+
+            for (let row = 0; row < this.CALENDAR_ROWS; row++) {
+                let tr = document.createElement("tr");
+
+                for (let col = 0; col < this.CALENDAR_COLS; col++) {
+                    let td = document.createElement("td");
+
+                    let cellClass = this._getCellClass(row, col);
+                    td.classList.add(cellClass);
+                    td.classList.add("calendar-cell");
+                    td.dataset.date = "";
+                    td.addEventListener("click", () => {
+                        this._cellClickHandler(td);
+                    });
+
+                    tr.appendChild(td);
+                }
+                tableBody.appendChild(tr);
+            }
+        }
+
+        _connectButtonsEvents() {
+            let previousButton = this.table.getElementsByClassName("calendar-previous-month-btn")[0];
+            let nextButton = this.table.getElementsByClassName("calendar-next-month-btn")[0];
+
+            previousButton.addEventListener("click", () => {
+                this.previousMonth()
+            });
+            nextButton.addEventListener("click", () => {
+                this.nextMonth()
+            });
+        }
+
+        _ajaxMonthData() {
+            $.ajax({
+                context: this,
+                url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
+                type: "post",
+                success: function (response, this_ = this) {
+                    this.populateCalendar(JSON.parse(response));
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(textStatus, errorThrown);
+                    alert("Serveru se něco nelíbí.")
+                }
+            });
+        }
+
+        populateCalendar(ajaxData) {
+            console.log(ajaxData);
+            if (typeof ajaxData === "undefined") this._ajaxMonthData();
+
+            let lastMonth = this.monthShown.subtract(1, "months");
+            let nextMonth = this.monthShown.add(1, "months");
+
+            let firstDay = this.monthShown.day();
+            let daysInMonth = this.monthShown.daysInMonth();
+            let daysInLastMonth = lastMonth.daysInMonth();
+
+            let lastMonthDaysCounter = daysInLastMonth - (firstDay - 1) + 1;
+            let thisMonthDaysCounter = 1;
+            let nextMonthDaysCounter = 1;
+
+            for (let row = 0; row < this.CALENDAR_ROWS; row++) {
+                for (let col = 0; col < this.CALENDAR_COLS; col++) {
+                    let cellClass = this._getCellClass(row, col);
+                    let cell = this.table.getElementsByClassName(cellClass)[0];
+
+                    let day = "";
+                    let date = "";
+                    let otherMonth = true;
+                    if (lastMonthDaysCounter <= daysInLastMonth) {
+                        day = lastMonthDaysCounter;
+                        date = moment(lastMonth).set("date", day);
+                        lastMonthDaysCounter++;
+                    } else if (thisMonthDaysCounter <= daysInMonth) {
+                        day = thisMonthDaysCounter;
+                        date = this.monthShown.set("date", day);
+                        thisMonthDaysCounter++;
+                        otherMonth = false;
+                    } else {
+                        day = nextMonthDaysCounter;
+                        date = moment(nextMonth).set("date", day);
+                        nextMonthDaysCounter++;
+                    }
+
+                    let hours = this._getHoursWorked(date, ajaxData);
+                    let content = "";
+                    if (hours) {
+                        content = `<span class="calendar-circle calendar-hours">${hours}</span>`
+                    } else if (this._isVacation(date, ajaxData)) {
+                        content = `<span class="calendar-circle calendar-vacation">&nbsp;</span>`
+                    }
+
+                    cell.innerHTML = `
+                        <div class="calendar-cell-container ${otherMonth ? 'calendar-other-month' : ''}">
+                            <span class="calendar-day-span">${day}</span>
+                            <span class="calendar-content-span">${content}</span>
+                        </div>
+                    `;
+                    cell.dataset.date = date.format("YYYY-MM-DD");
+
+                }
+            }
+        }
+
+        _getCellClass(row, col) {
+            return `cc${row}${col}`;
+        }
+
+        printConstants() {
+            console.log(`monthShown = ${this.monthShown}, dateSelected = ${this.dateSelected}`);
+        }
+
+        previousMonth() {
+            this.monthShown = this.monthShown.subtract(1, "months");
+            this.printConstants();
+        }
+
+        nextMonth() {
+            this.monthShown = this.monthShown.add(1, "months");
+            this.printConstants();
+        }
+
+        _getHoursWorked(date, ajaxData) {
+            if (typeof ajaxData === "undefined") return 0;
+
+            let workdays = ajaxData["workdays"];
+            let isodate = date.format("YYYY-MM-DD");
+            if (workdays.hasOwnProperty(isodate)) {
+                return workdays[isodate];
+            } else {
+                return 0;
+            }
+        }
+
+        _isVacation(date, ajaxData) {
+            if (typeof ajaxData === "undefined") return false;
+
+            let vacations = ajaxData["vacations"];
+            return vacations.includes(date.format("YYYY-MM-DD"));
+        }
+
+        _cellClickHandler(cell) {
+            let isodate = cell.dataset.date;
+            console.log(isodate);
+            window.location.href = `/attendance/u/{{_id}}/date/${isodate}`;
+        }
+    }
+
+    let date = moment("{{date}}", "YYYY-MM-DD");
+    let calendarTable = document.getElementById("calendar-table");
+    let calendar = new Calendar(calendarTable, date, moment(date).startOf("month"));
 
     $(document).ready(() => {
         initWorkSpans();
@@ -306,7 +568,7 @@
             "from": row.find(".workspan-from").val(),
             "hours": row.find(".workspan-hours").val(),
             "assignment": row.find(".workspan-assignment").val(),
-            "date": DATE,
+            "date": calendar.dateSelected.format("YYYY-MM-DD"),
         };
 
         $.ajax({
@@ -323,6 +585,64 @@
             }
         });
     }
+
+    function saveVacation() {
+        let data = {
+            "from": $("#vacation-from").val(),
+            "to": $("#vacation-to").val()
+        };
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/vacations",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function deleteVacation(button) {
+        let vacationId = $(button).data("id");
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/vacations/delete",
+            type: "post",
+            data: vacationId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
+    function deleteWorkspan(button) {
+        let workspanId = $(button).data("id");
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/workspans/delete",
+            type: "post",
+            data: workspanId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+                alert("Serveru se něco nelíbí.")
+            }
+        });
+    }
+
 </script>
 
 {% end %}{# block body#}
