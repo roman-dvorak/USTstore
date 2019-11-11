@@ -153,17 +153,33 @@ class ApiCalendarHandler(BaseHandler):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
         num_days_in_month = calendar.monthrange(month.year, month.month)[1]
 
-        vacations = adb.get_user_vacations(self.mdb.users, user_id, month, month + relativedelta(months=2))
+        vacations = adb.get_user_vacations(self.mdb.users,
+                                           user_id,
+                                           month - relativedelta(months=1),
+                                           month + relativedelta(months=2))
+        print(vacations)
         vacation_days = []
         for vacation in vacations:
-            start = max(vacation["from"], month)
-            end = min(vacation["to"], month + relativedelta(months=1, days=-1))
-            if start <= end:
-                vacation_days += [str_ops.date_to_iso_str(month.replace(day=day))
-                                  for day in range(start.day, end.day + 1)]
+            vacation_length = (vacation["to"] - vacation["from"]).days + 1
+            vacation_days += [str_ops.date_to_iso_str(vacation["from"] + timedelta(days=i))
+                              for i in range(vacation_length)]
+
+        workspans = adb.get_user_workspans(self.mdb.users,
+                                           user_id,
+                                           month - relativedelta(months=1),
+                                           month + relativedelta(months=2))
+        workspan_days_hours = {}
+        for workspan in workspans:
+            iso_date = str_ops.date_to_iso_str(workspan["from"])
+
+            if iso_date in workspan_days_hours:
+                workspan_days_hours[iso_date] += workspan["hours"]
+            else:
+                workspan_days_hours[iso_date] = workspan["hours"]
 
         data = {
-            "vacation": vacation_days
+            "vacations": vacation_days,
+            "workdays": workspan_days_hours,
         }
 
         self.write(bson.json_util.dumps(data))
@@ -214,6 +230,7 @@ class ApiAddWorkspanHandler(BaseHandler):
 class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
+        # TODO hlídat aby nové dovolené byly v budoucnosti, nelze přidat dovolenou zpětně
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
 

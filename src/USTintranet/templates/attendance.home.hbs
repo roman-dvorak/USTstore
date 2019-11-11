@@ -40,6 +40,7 @@
         width: 100%;
         position: relative;
         vertical-align: middle;
+        cursor: pointer;
     }
 
     .calendar-other-month {
@@ -55,7 +56,7 @@
         font-weight: bold;
     }
 
-    .calendar-hours-span {
+    .calendar-content-span {
         display: table-cell;
         vertical-align: middle;
         text-align: center;
@@ -68,9 +69,17 @@
         height: 32px;
         display: inline-block;
         color: white;
-        background: rgb(33, 37, 41);
         padding-top: 3px;
     }
+
+    .calendar-circle.calendar-hours {
+        background: rgb(33, 37, 41);
+    }
+
+    .calendar-circle.calendar-vacation {
+        background: green;
+    }
+
 </style>
 
 <div class="container">
@@ -335,6 +344,10 @@
                     let cellClass = this._getCellClass(row, col);
                     td.classList.add(cellClass);
                     td.classList.add("calendar-cell");
+                    td.dataset.date = "";
+                    td.addEventListener("click", () => {
+                        this._cellClickHandler(td);
+                    });
 
                     tr.appendChild(td);
                 }
@@ -356,27 +369,29 @@
 
         _ajaxMonthData() {
             $.ajax({
-            url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
-            type: "post",
-            // data: JSON.stringify(data),
-            success: function (response) {
-                // alert("Podařilo se!");
-                console.log(response);
-                // location.reload();
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
-        });
+                context: this,
+                url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
+                type: "post",
+                success: function (response, this_ = this) {
+                    this.populateCalendar(JSON.parse(response));
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(textStatus, errorThrown);
+                    alert("Serveru se něco nelíbí.")
+                }
+            });
         }
 
         populateCalendar(ajaxData) {
+            console.log(ajaxData);
             if (typeof ajaxData === "undefined") this._ajaxMonthData();
+
+            let lastMonth = this.monthShown.subtract(1, "months");
+            let nextMonth = this.monthShown.add(1, "months");
 
             let firstDay = this.monthShown.day();
             let daysInMonth = this.monthShown.daysInMonth();
-            let daysInLastMonth = this.monthShown.subtract(1, "months").daysInMonth();
+            let daysInLastMonth = lastMonth.daysInMonth();
 
             let lastMonthDaysCounter = daysInLastMonth - (firstDay - 1) + 1;
             let thisMonthDaysCounter = 1;
@@ -387,28 +402,40 @@
                     let cellClass = this._getCellClass(row, col);
                     let cell = this.table.getElementsByClassName(cellClass)[0];
 
-                    let content = "";
+                    let day = "";
+                    let date = "";
                     let otherMonth = true;
                     if (lastMonthDaysCounter <= daysInLastMonth) {
-                        content = lastMonthDaysCounter;
+                        day = lastMonthDaysCounter;
+                        date = moment(lastMonth).set("date", day);
                         lastMonthDaysCounter++;
                     } else if (thisMonthDaysCounter <= daysInMonth) {
-                        content = thisMonthDaysCounter;
+                        day = thisMonthDaysCounter;
+                        date = this.monthShown.set("date", day);
                         thisMonthDaysCounter++;
                         otherMonth = false;
                     } else {
-                        content = nextMonthDaysCounter;
+                        day = nextMonthDaysCounter;
+                        date = moment(nextMonth).set("date", day);
                         nextMonthDaysCounter++;
+                    }
+
+                    let hours = this._getHoursWorked(date, ajaxData);
+                    let content = "";
+                    if (hours) {
+                        content = `<span class="calendar-circle calendar-hours">${hours}</span>`
+                    } else if (this._isVacation(date, ajaxData)) {
+                        content = `<span class="calendar-circle calendar-vacation">&nbsp;</span>`
                     }
 
                     cell.innerHTML = `
                         <div class="calendar-cell-container ${otherMonth ? 'calendar-other-month' : ''}">
-                            <span class="calendar-day-span">${content}</span>
-                            <span class="calendar-hours-span">
-                                <span class="calendar-circle">${content}</span>
-                            </span>
+                            <span class="calendar-day-span">${day}</span>
+                            <span class="calendar-content-span">${content}</span>
                         </div>
-                    `
+                    `;
+                    cell.dataset.date = date.format("YYYY-MM-DD");
+
                 }
             }
         }
@@ -429,6 +456,31 @@
         nextMonth() {
             this.monthShown = this.monthShown.add(1, "months");
             this.printConstants();
+        }
+
+        _getHoursWorked(date, ajaxData) {
+            if (typeof ajaxData === "undefined") return 0;
+
+            let workdays = ajaxData["workdays"];
+            let isodate = date.format("YYYY-MM-DD");
+            if (workdays.hasOwnProperty(isodate)) {
+                return workdays[isodate];
+            } else {
+                return 0;
+            }
+        }
+
+        _isVacation(date, ajaxData) {
+            if (typeof ajaxData === "undefined") return false;
+
+            let vacations = ajaxData["vacations"];
+            return vacations.includes(date.format("YYYY-MM-DD"));
+        }
+
+        _cellClickHandler(cell) {
+            let isodate = cell.dataset.date;
+            console.log(isodate);
+            window.location.href = `/attendance/u/{{_id}}/date/${isodate}`;
         }
     }
 
@@ -516,7 +568,7 @@
             "from": row.find(".workspan-from").val(),
             "hours": row.find(".workspan-hours").val(),
             "assignment": row.find(".workspan-assignment").val(),
-            "date": DATE,
+            "date": calendar.dateSelected.format("YYYY-MM-DD"),
         };
 
         $.ajax({
