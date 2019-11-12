@@ -404,45 +404,15 @@ function draw_supplier(){
 
     var url = p.url;
 
-    if (url.length > 0){
-        switch (p.supplier) {
-            case "Mouser":
-            case "mouser":
-                url = "https://cz.mouser.com/ProductDetail/"+p.symbol
-                break;
-        }
-    }
-    else{
-        switch (p.supplier) {
-            case "tme":
-            case "TME":
-                url = "https://www.tme.eu/cz/details/"+url;
-                break;
-        }
 
-
-
-    }
-
-    var html = "<div class='card p-2 m-0 mt-1 row' >"+
-                "<div class='col-auto mr-auto'><span>"+ "#"+(Number(param)+1).toString()+ "  "+
-                p.supplier + "</span> - "+
-                "<span>"+ p.symbol + "</span></div>"+
-                "<div class='btn-group btn-group-justified col-auto'>"+
-                "<a class='btn btn-sm btn-outline-success' onclick='ed_supplier("+param+")'><i class='material-icons'>edit</i></a>"+
-                "<a class='btn btn-sm btn-outline-primary' href='" + p.full_url + "' target='_blank' ><i class='material-icons'>link</i></a>"+
-                "<a class='btn btn-sm btn-outline-danger' onclick='rm_supplier("+param+")'><i class='material-icons isrm'></i></a></div>"+
-                "</div>";
+    var html = "<div class='card m-0 mt-1 p-2 pt-1 row' >"+
+                "<div class='col-auto mr-auto small p-0'><span>"+ "#<b>"+(Number(param)+1).toString()+ "  "+
+                p.supplier + "</b></span> - "+
+                "<span><a href='"+p.full_url+"' target='_blank'>"+ p.symbol + "</a></span>"+
+                "<a href='"+p.full_url+"' target='_blank'>"+ " Link " + "</a></div>";
     var $html = $('<div />',{html:html});
 
-    if((p.disabled || 0) == 1){
-        $html.find('.card').addClass('text-muted');
-        $html.find('.card').addClass('bg-light');
-        $html.find('.isrm').html('check_circle_outline');
-    }else{
-        $html.find('.card').addClass('bg-light');
-        $html.find('.isrm').html('highlight_off');
-    }
+
 
     $("#inputSUPPLIER_list").append($html.html());
 

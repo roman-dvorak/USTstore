@@ -1,14 +1,15 @@
 
 <div class="container">
 <table  class="table table-hover">
-<tr><th>#</th> <th>Supplier</th> <th>Symbol</th> <th>Barcode</th> <th>URL</th><th>Edit</th></tr>
+<tr><th>#</th> <th>Supplier</th> <th>Symbol</th> <th>Barcode</th><th>URL</th><th>Link</th><th>Edit</th></tr>
 {% for i, supplier in enumerate(suppliers)%}<tr>
         <td>{{i}}</td>
         <td>{{supplier['supplier'].get('supplier', '')}}</td>
         <td>{{supplier['supplier'].get('symbol', '')}}</td>
         <td>{{supplier['supplier'].get('barcode', '')}}</td>
-        <td><a href="{{supplier['supplier'].get('full_url', 'url')}}">{{supplier['supplier'].get('full_url', 'url')}}</a></td>
-        <td>---</td>
+        <td>{{supplier['supplier'].get('url', '')}}</td>
+        <td><a href="{{supplier['supplier'].get('full_url', '')}}" target="_blank">Link</a></td>
+        <td onclick="edit_supplier_row(this)">E</td>
     <tr>{%end%}
 </table>
 <hr>
@@ -41,6 +42,24 @@
 <small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
+
+	function edit_supplier_row(element){
+		var cells = element.parentElement.cells
+		console.log(cells);
+
+		$('#compo_id').val(cells[0].innerText);
+		//$('#compo_supplier').val(cells[1].innerText);
+		$('#compo_symbol').val(cells[2].innerText);
+		$('#compo_code').val(cells[3].innerText);
+		$('#compo_url').val(cells[4].innerText);
+
+		$('#compo_supplier').val(null).trigger('change');
+		var newOption = new Option(cells[1].innerText, cells[1].innerText, true, true);
+		$('#compo_supplier').append(newOption).trigger('change');
+		//$('#compo_supplier').val(cells[1].innerText);
+		//$('#compo_supplier').trigger('change');
+
+	}
 
     function compo_update() {
         $('#compo_supplier').select2({
