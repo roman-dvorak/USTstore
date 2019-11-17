@@ -281,7 +281,7 @@ class UserPageHandler(BaseHandler):
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
+    def post(self, _id):  # TODO rozmyslet si api
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 

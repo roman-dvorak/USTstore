@@ -972,10 +972,7 @@
                 setMessage("Změny uloženy");
                 resetTable();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                setMessage("Nepodařilo se uložit změny");
-            }
+            error: ajaxError,
         });
     }
 
@@ -1037,6 +1034,12 @@
         let id = row.getIndex();
         let url = `users/u/${id}`;
         window.open(url, "_blank");
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
     }
 </script>
 

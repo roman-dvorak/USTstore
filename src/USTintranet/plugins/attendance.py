@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 
 import bson.json_util
 from dateutil.relativedelta import relativedelta
+from tornado.web import HTTPError
 
 from plugins import BaseHandler
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
+from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import compile_user_month_info, get_user_year_days_of_vacation
 
 
@@ -223,7 +225,7 @@ class ApiAddWorkspanHandler(BaseHandler):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
         vacations = adb.get_user_vacations(self.mdb.users, user_id, today)
         if vacations and vacations[0]["from"] <= workspan["from"]:
-            raise ValueError("Na dovolené se nepracuje.")
+            raise BadInputError("Na dovolené se nepracuje.")
 
     def check_workspans_conflicts(self, user_id, workspan):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
@@ -237,7 +239,7 @@ class ApiAddWorkspanHandler(BaseHandler):
             earliest_end = min(workspan_end, other_ws["from"] + relativedelta(minutes=int(other_ws["hours"]) * 60))
 
             if latest_start < earliest_end:
-                raise ValueError("Časový konflikt s jinou prací")  # TODO mělo by se ohlásit ve frontendu
+                raise BadInputError("Časový konflikt s jinou prací.")
 
 
 class ApiAddVacationHandler(BaseHandler):
@@ -254,7 +256,7 @@ class ApiAddVacationHandler(BaseHandler):
         }
 
         if vacation["from"] > vacation["to"]:
-            raise ValueError("Dovolená skončila dříve než začala.")  # TODO mělo by se ohlásit ve frontendu
+            raise BadInputError("Dovolená skončila dříve než začala.")
 
         other_vacations = adb.get_user_vacations(self.mdb.users, user_id, vacation["from"])
         for other_vac in other_vacations:
@@ -262,7 +264,7 @@ class ApiAddVacationHandler(BaseHandler):
             earliest_end = min(vacation["to"], other_vac["to"])
 
             if latest_start <= earliest_end:
-                raise ValueError("Časový konflikt s jinou dovolenou")  # TODO mělo by se ohlásit ve frontendu
+                raise BadInputError("Časový konflikt s jinou dovolenou.")
 
         adb.add_user_vacation(self.mdb.users, user_id, vacation)
 

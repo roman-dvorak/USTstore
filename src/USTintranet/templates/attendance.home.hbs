@@ -63,6 +63,10 @@
         font-weight: bold;
     }
 
+    .calendar-selected-day {
+        background: #ddd;
+    }
+
     .calendar-circle {
         border-radius: 16px;
         width: 32px;
@@ -375,10 +379,7 @@
                 success: function (response) {
                     this.populateCalendar(JSON.parse(response));
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.log(textStatus, errorThrown);
-                    alert("Serveru se něco nelíbí.")
-                }
+                error: ajaxError
             });
         }
 
@@ -402,21 +403,21 @@
                     let cellClass = this._getCellClass(row, col);
                     let cell = this.table.getElementsByClassName(cellClass)[0];
 
-                    let day = "";
+                    let dayNum = "";
                     let date = "";
                     let otherMonth = true;
                     if (lastMonthDaysCounter <= daysInLastMonth) {
-                        day = lastMonthDaysCounter;
-                        date = moment(lastMonth).set("date", day);
+                        dayNum = lastMonthDaysCounter;
+                        date = moment(lastMonth).set("date", dayNum);
                         lastMonthDaysCounter++;
                     } else if (thisMonthDaysCounter <= daysInMonth) {
-                        day = thisMonthDaysCounter;
-                        date = this.monthShown.set("date", day);
+                        dayNum = thisMonthDaysCounter;
+                        date = this.monthShown.set("date", dayNum);
                         thisMonthDaysCounter++;
                         otherMonth = false;
                     } else {
-                        day = nextMonthDaysCounter;
-                        date = moment(nextMonth).set("date", day);
+                        dayNum = nextMonthDaysCounter;
+                        date = moment(nextMonth).set("date", dayNum);
                         nextMonthDaysCounter++;
                     }
 
@@ -427,10 +428,14 @@
                     } else if (this._isVacation(date, ajaxData)) {
                         content = `<span class="calendar-circle calendar-vacation">&nbsp;</span>`
                     }
+                    let isSelected = false;
+                    if (this.dateSelected.isSame(date, "day")) {
+                        isSelected = true;
+                    }
 
                     cell.innerHTML = `
-                        <div class="calendar-cell-container ${otherMonth ? 'calendar-other-month' : ''}">
-                            <span class="calendar-day-span">${day}</span>
+                        <div class="calendar-cell-container ${otherMonth ? 'calendar-other-month' : ''} ${isSelected ? 'calendar-selected-day' : ''}">
+                            <span class="calendar-day-span">${dayNum}</span>
                             <span class="calendar-content-span">${content}</span>
                         </div>
                     `;
@@ -552,10 +557,7 @@
                 success: function (response) {
                     updateMonthInfoTable(JSON.parse(response));
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.log(textStatus, errorThrown);
-                    alert("Serveru se něco nelíbí.")
-                }
+                error: ajaxError,
             });
         } else {
             console.log("updating month table");
@@ -617,10 +619,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
@@ -638,10 +637,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
@@ -656,10 +652,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
@@ -674,13 +667,15 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
+    }
 </script>
 
 {% end %}{# block body#}

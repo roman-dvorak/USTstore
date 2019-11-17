@@ -759,10 +759,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
@@ -798,10 +795,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
     }
 
@@ -859,10 +853,7 @@
                 alert("Podařilo se!");
                 location.reload();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                alert("Serveru se něco nelíbí.")
-            }
+            error: ajaxError,
         });
 
     }
@@ -971,6 +962,12 @@
         data["is_signed"] = true;
 
         sendContractDataAjax(data);
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
     }
 </script>
 
