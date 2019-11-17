@@ -17,11 +17,12 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
         (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
+        (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
-        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiMonthTableHandler),
-        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiYearTableHandler),
+        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
+        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
     ]
@@ -43,7 +44,7 @@ class HomeHandler(BaseHandler):
         self.render("attendance.home-sudo.hbs", **template_params)
 
 
-class ApiMonthTableHandler(BaseHandler):
+class ApiAdminMonthTableHandler(BaseHandler):
 
     def get(self, date):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
@@ -79,7 +80,7 @@ class ApiMonthTableHandler(BaseHandler):
         self.write(bson.json_util.dumps(rows))
 
 
-class ApiYearTableHandler(BaseHandler):
+class ApiAdminYearTableHandler(BaseHandler):
 
     def get(self, date):
         year = str_ops.datetime_from_iso_str(date).replace(day=1, month=1)
@@ -140,9 +141,9 @@ class UserAttendanceHandler(BaseHandler):
             "workspans": day_workspans,
             "vacations": current_and_future_vacations,
             "is_vacation_day": is_vacation_day,
-            "year_days_of_vacation": get_user_year_days_of_vacation(self.mdb.users, user_id, date)
+            # "year_days_of_vacation": get_user_year_days_of_vacation(self.mdb.users, user_id, date)
         }
-        template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
+        # template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
 
         self.render("attendance.home.hbs", **template_params)
 
@@ -183,6 +184,18 @@ class ApiCalendarHandler(BaseHandler):
         }
 
         self.write(bson.json_util.dumps(data))
+
+
+class ApiMonthInfoHandler(BaseHandler):
+
+    def post(self, user_id, date):
+        month = str_ops.datetime_from_iso_str(date).replace(day=1)
+
+        data = compile_user_month_info(self.mdb.users, user_id, month)
+        data["year_days_of_vacation"] = get_user_year_days_of_vacation(self.mdb.users, user_id, month)
+
+        self.write(bson.json_util.dumps(data))
+
 
 
 class ApiAddWorkspanHandler(BaseHandler):
@@ -231,6 +244,7 @@ class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
         # TODO hlídat aby nové dovolené byly v budoucnosti, nelze přidat dovolenou zpětně
+        # TODO dovolené by měly jít v půlce přerušit aniž by musely být smazané
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
 

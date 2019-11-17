@@ -142,43 +142,43 @@
                     <tbody>
                     <tr>
                         <td>Počet odpracovaných hodin</td>
-                        <td>{{month_hours_worked}}</td>
+                        <td id="month-info-hours-worked-td"></td>
                     </tr>
                     <tr>
                         <td>Maximální počet hodin v měsíci</td>
-                        <td>{{month_max_hours or '-'}}</td>
+                        <td id="month-info-max-hours-td"></td>
                     </tr>
                     <tr>
                         <td>Chybí vyčerpat</td>
-                        <td>{{month_available_hours or '-'}}</td>
+                        <td id="month-info-available-hours-td"></td>
                     </tr>
                     <tr>
                         <td>Za měsíc hrubého</td>
-                        <td>{{month_money_made or '-'}} Kč</td>
+                        <td id="month-info-money-made-td"></td>
                     </tr>
                     <tr>
                         <td>Za měsíc vyplacená částka</td>
-                        <td>-</td>
+                        <td id="month-info-last-month-wage-td">-</td>
                     </tr>
                     <tr>
                         <td>Hodinová mzda</td>
-                        <td>{{hour_rate or '-'}} Kč</td>
+                        <td id="month-info-hour-rate-td"></td>
                     </tr>
                     <tr>
                         <td>Platba daně</td>
-                        <td>-</td>
+                        <td id="month-info-tax-paid-td">-</td>
                     </tr>
                     <tr>
                         <td>Vyčerpáno hodin v roce</td>
-                        <td>{{year_hours_worked}}</td>
+                        <td id="month-info-year-hours-worked-td"></td>
                     </tr>
                     <tr>
                         <td>Volné hodiny do konce roku</td>
-                        <td>{{year_available_hours or '-'}}</td>
+                        <td id="month-info-year-available-hours-td"></td>
                     </tr>
                     <tr>
                         <td>Dny dovolené v tomto roce</td>
-                        <td>{{year_days_of_vacation}}</td>
+                        <td id="month-info-year-days-of-vacation-td"></td>
                     </tr>
                     <tr>
                         <td colspan="2" class="text-center">
@@ -372,7 +372,7 @@
                 context: this,
                 url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
                 type: "post",
-                success: function (response, this_ = this) {
+                success: function (response) {
                     this.populateCalendar(JSON.parse(response));
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
@@ -490,6 +490,10 @@
 
     $(document).ready(() => {
         initWorkSpans();
+        updateMonthInfoTable();
+        calendarTable.addEventListener("monthShownChange", () => {
+            updateMonthInfoTable();
+        });
     });
 
     function initWorkSpans() {
@@ -537,6 +541,40 @@
             }
             from_input.change();
         })
+    }
+
+    function updateMonthInfoTable(data) {
+        if (typeof data == "undefined") {
+            console.log("ajaxing month table");
+            $.ajax({
+                url: "/attendance/api/u/{{_id}}/monthinfo/date/" + calendar.monthShown.format("YYYY-MM-DD"),
+                type: "post",
+                success: function (response) {
+                    updateMonthInfoTable(JSON.parse(response));
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log(textStatus, errorThrown);
+                    alert("Serveru se něco nelíbí.")
+                }
+            });
+        } else {
+            console.log("updating month table");
+            console.log(data);
+
+            document.getElementById("month-info-hours-worked-td").innerText = data["month_hours_worked"];
+            document.getElementById("month-info-max-hours-td").innerText =
+                    data["month_max_hours"] ? data["month_max_hours"] : "-";
+            document.getElementById("month-info-available-hours-td").innerText =
+                    data["month_available_hours"] ? data["month_available_hours"] : "-";
+            document.getElementById("month-info-money-made-td").innerText =
+                    data["month_money_made"] ? data["month_money_made"] : "-";
+            document.getElementById("month-info-hour-rate-td").innerText =
+                    data["hour_rate"] ? data["hour_rate"] : "-";
+            document.getElementById("month-info-year-hours-worked-td").innerText = data["year_hours_worked"];
+            document.getElementById("month-info-year-available-hours-td").innerText =
+                    data["year_available_hours"] ? data["year_available_hours"] : "-";
+            document.getElementById("month-info-year-days-of-vacation-td").innerText = data["year_days_of_vacation"];
+        }
     }
 
     function strTimeDifference(start, end) {
