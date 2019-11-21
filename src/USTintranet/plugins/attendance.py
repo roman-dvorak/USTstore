@@ -35,15 +35,19 @@ def plug_info():
         "module": "attendance",
         "name": "Docházka",
         "icon": 'icon_users.svg',
-        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
+        # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
 
 
 class HomeHandler(BaseHandler):
 
     def get(self):
-        template_params = {}
-        self.render("attendance.home-sudo.hbs", **template_params)
+        me = self.actual_user
+
+        if self.is_authorized(['users-editor', 'sudo-users']):
+            self.render('attendance.home-sudo.hbs')
+        else:
+            self.redirect(f"/attendance/u/{me['_id']}")
 
 
 class ApiAdminMonthTableHandler(BaseHandler):
@@ -66,7 +70,7 @@ class ApiAdminMonthTableHandler(BaseHandler):
 
             row = {
                 "id": user["_id"],
-                "name": user["name"],
+                "name": user.get("name", {}),
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
                 "month_closed": user.get("month_closed", False),  # TODO tak jak nyní month_closed funguje nedává smysl,
@@ -102,7 +106,7 @@ class ApiAdminYearTableHandler(BaseHandler):
 
             row = {
                 "id": user["_id"],
-                "name": user["name"],
+                "name": user.get("name", {}),
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
                 "gross_wage": gross_wage,
@@ -137,7 +141,7 @@ class UserAttendanceHandler(BaseHandler):
 
         template_params = {
             "_id": user_id,
-            "name": str_ops.name_to_str(user_document["name"]),
+            "name": str_ops.name_to_str(user_document.get("name", {})),
             "date": str_ops.date_to_iso_str(date),
             "date_pretty": str_ops.date_to_str(date),
             "workspans": day_workspans,

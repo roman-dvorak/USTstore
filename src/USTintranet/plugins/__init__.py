@@ -17,16 +17,19 @@ import bson
 from hashlib import blake2s
 from tornado.options import define, options
 from termcolor import colored
+from tornado.web import HTTPError
+
 
 def make_handlers(module, plugin):
-        handlers = [
-            (r'/login', plugin.loginHandler),
-            (r'/logout', plugin.logoutHandler),
-            (r'/registration', plugin.regHandler),
-            (r'/api/backup', plugin.doBackup),
-            (r'/system', plugin.system_handler),
-            (r'/system/', plugin.system_handler)]
-        return handlers
+    handlers = [
+        (r'/login', plugin.LoginHandler),
+        (r'/logout', plugin.LogoutHandler),
+        (r'/registration', plugin.RegistrationHandler),
+        (r'/api/backup', plugin.doBackup),
+        (r'/system', plugin.system_handler),
+        (r'/system/', plugin.system_handler)]
+    return handlers
+
 
 def plug_info():
     return {
@@ -34,12 +37,16 @@ def plug_info():
         "name": "system"
     }
 
+
 def parametrized(dec):
     def layer(*args, **kwargs):
         def repl(f):
             return dec(f, *args, **kwargs)
+
         return repl
+
     return layer
+
 
 '''
 @parametrized
@@ -51,30 +58,32 @@ def perm_validator(fn, permissions = [], sudo=True):
     return fn
 '''
 
+
 def save_file(db, original_filename):
     path = os.path.dirname(original_filename)
     file = os.path.basename(original_filename)
 
     record = db.owncloud.find_one({'original_filename': file, 'path': path})
     if record:
-        db.owncloud.update({'_id': record['_id']},{
-                '$inc': {'revision': 1},
-                '$set': {'update': datetime.datetime.now()}
-            })
-        return os.path.join(path, str(record['_id'])+"_"+file)
+        db.owncloud.update({'_id': record['_id']}, {
+            '$inc': {'revision': 1},
+            '$set': {'update': datetime.datetime.now()}
+        })
+        return os.path.join(path, str(record['_id']) + "_" + file)
     else:
         out = db.owncloud.insert({
-                'path': path,
-                'original_filename': file,
-                'revision': 1,
-                'author': 'autor',
-                'type': 'file',
-                'update': datetime.datetime.now()
-            })
+            'path': path,
+            'original_filename': file,
+            'revision': 1,
+            'author': 'autor',
+            'type': 'file',
+            'update': datetime.datetime.now()
+        })
         print("....", out)
-        return os.path.join(path, str(out)+"_"+file)
+        return os.path.join(path, str(out) + "_" + file)
 
-def upload_file(oc, local, remote, earse = True):
+
+def upload_file(oc, local, remote, earse=True):
     oc.put_file(remote, local)
     os.remove(local)
     file = oc.share_file_with_link(remote)
@@ -82,7 +91,7 @@ def upload_file(oc, local, remote, earse = True):
 
 
 @parametrized
-def perm_validator(method, permissions = [], sudo = True):
+def perm_validator(method, permissions=[], sudo=True):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         print(kwargs)
@@ -93,20 +102,23 @@ def perm_validator(method, permissions = [], sudo = True):
 
 def database_init():
     print(options.as_dict())
-    return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[tornado.options.options.mdb_database]
+    return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[
+        tornado.options.options.mdb_database]
 
-class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
+
+class Intranet(
+    tornado.web.RequestHandler):  # tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
     def prepare(self):
         self.xsrf_token
         try:
             self.access
-            print( "autorizovany uzivatel", self.access)
+            print("autorizovany uzivatel", self.access)
             if not 'sudo' in self.access:
                 self.access.append('sudo')
                 pass
         except AttributeError:
             self.access = ['sudo']
-            print( "Prava nejsou nastavena", self.access)
+            print("Prava nejsou nastavena", self.access)
 
         login = self.get_secure_cookie("user")
         token = self.get_secure_cookie("token")
@@ -118,8 +130,8 @@ class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pr
             self.mdb = database_init()
             self.getCategories()
             print(self.mdb)
-            #user_db =  self.mdb.users.find({'login': login})
-            user_db =  self.mdb.users.find({"user": str("roman-dvorak")})[0]
+            # user_db =  self.mdb.users.find({'login': login})
+            user_db = self.mdb.users.find({"user": str("roman-dvorak")})[0]
             print("ACCESS", type(user_db), user_db, str(login))
             print(user_db['user'])
             self.actual_user = user_db
@@ -127,45 +139,44 @@ class Intranet(tornado.web.RequestHandler):       #tento handler pouzivat jen pr
 
             if not 'remote_token' in self.actual_user:
                 rt = haslib.md5(str(uuid.uuid4())).hexdigest()
-                #self.mdb.users.update({ "_id": self.actual_user["_id"] }, { "set": { "remote_token": rt } })
-                #self.actual_user['remote_token'] = rt
-                print (rt)
+                # self.mdb.users.update({ "_id": self.actual_user["_id"] }, { "set": { "remote_token": rt } })
+                # self.actual_user['remote_token'] = rt
+                print(rt)
 
-            print( "prava uzivatele \t", self.role)
-            print( "potrebna prava  \t", self.access)
-            print( "spolecne klice  \t", set(self.access) & set(self.role))
+            print("prava uzivatele \t", self.role)
+            print("potrebna prava  \t", self.access)
+            print("spolecne klice  \t", set(self.access) & set(self.role))
             print(type(login), type(user_db['user']))
             print(login, user_db['user'])
-            print( "Uzivatel je prihlasen", login)
-            if bool(set(self.access) & set(self.role)) and str(user_db['user'])==str(login):
-                print( "a ma dostatecna opravneni")
+            print("Uzivatel je prihlasen", login)
+            if bool(set(self.access) & set(self.role)) and str(user_db['user']) == str(login):
+                print("a ma dostatecna opravneni")
                 return None
-            print(bool(set(self.access) & set(self.role)), str(user_db['user'])==str(login))
-            print( "Nema dostatecna opravneni")
+            print(bool(set(self.access) & set(self.role)), str(user_db['user']) == str(login))
+            print("Nema dostatecna opravneni")
             self.redirect("/eshop")
             return None
         else:
-            print( "uzivatel neni korektne prihlasen")
+            print("uzivatel neni korektne prihlasen")
             self.redirect("/login")
             return None
 
     def getCategories(self):
-        print ("###########################")
+        print("###########################")
         cats = self.mdb.categories.find({})
         counts = {}
-        #for p in cat_list:
+        # for p in cat_list:
         for cat in cats:
             print(cat)
-            p = cat['path']+cat['_id']
+            p = cat['path'] + cat['_id']
             print(p)
             parts = p.split('/')
             branch = counts
             for part in parts[1:-1]:
-               branch = branch.setdefault(part+cat['_id'], {})
-            #branch[parts[-1]] = 1 + branch.get(parts[-1], 0)
+                branch = branch.setdefault(part + cat['_id'], {})
+            # branch[parts[-1]] = 1 + branch.get(parts[-1], 0)
             branch[parts[-1]] = cat['name']
         return counts
-
 
     def get_current_user(self):
         login = self.get_secure_cookie("login")
@@ -194,7 +205,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 raise tornado.web.HTTPError(401)
 
             cart = self.get_cookie('cart', None)
-            #print("Nakupni kosik", bson.ObjectId(cart))
+            # print("Nakupni kosik", bson.ObjectId(cart))
             if cart:
                 self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
             else:
@@ -203,7 +214,7 @@ class BaseHandler(tornado.web.RequestHandler):
             self.logged = login
             return None
         else:
-            print ("uzivatel neni korektne prihlasen")
+            print("uzivatel neni korektne prihlasen")
             self.logged = False
             return None
 
@@ -212,9 +223,8 @@ class BaseHandler(tornado.web.RequestHandler):
             b = len(symbols)
         return ((num == 0) and symbols[0]) or (self.base(num // b, symbols, b).lstrip(symbols[0]) + symbols[num % b])
 
-
     def get_warehouseses(self):
-        return list(self.mdb.warehouse.find().sort([('code',1)]))
+        return list(self.mdb.warehouse.find().sort([('code', 1)]))
 
     def get_current_warehouse_id(self):
         print(colored("[get_current_warehouse]", "green"))
@@ -224,6 +234,7 @@ class BaseHandler(tornado.web.RequestHandler):
     '''
     Ze zadaneho ObjectID pozice to vyhleda sklad
     '''
+
     def get_warehousese_by_position(self, position: bson.ObjectId):
         print(colored("[get_warehousese_by_position]", "green"))
 
@@ -239,47 +250,50 @@ class BaseHandler(tornado.web.RequestHandler):
     '''
     Ze zadaneho ObjectID skladu vrati informace o skladu
     '''
-    def get_warehouse(self, warehouseid = None):
-        if not warehouseid: warehouseid = self.get_current_warehouse_id()
-        else: warehouseid = bson.ObjectId(warehouseid)
+
+    def get_warehouse(self, warehouseid=None):
+        if not warehouseid:
+            warehouseid = self.get_current_warehouse_id()
+        else:
+            warehouseid = bson.ObjectId(warehouseid)
         print(warehouseid)
         warehouse = list(self.mdb.warehouse.aggregate([
             {"$match": {'_id': warehouseid}}
         ]))[0]
-        return(warehouse)
+        return (warehouse)
 
     def warehouse_get_positions(self, warehouse):
         data = self.mdb.store_positions.aggregate([
             {"$match": {'warehouse': warehouse}},
-            #{"$project": {''}}
+            # {"$project": {''}}
         ])
         return (data)
 
     '''
     Ze zadaneho ObjectID skladu vrati informace o pozici
     '''
+
     def get_position(self, position: bson.ObjectId):
         position = self.mdb.store_positions.aggregate([
             {"$match": {'_id': position}}
         ])
-        return(list(position)[0])
+        return (list(position)[0])
 
-
-    def component_get_counts(self, id, warehouse = None):
+    def component_get_counts(self, id, warehouse=None):
         out = list(self.mdb.stock.aggregate([
-            {"$match":{"_id": id}},
-            {"$project": {"overview":1}}
+            {"$match": {"_id": id}},
+            {"$project": {"overview": 1}}
         ]))
 
-        #dout = {}
-        #dout['stocks'] = out[0]['overview']
-        #dout['count'] = {
+        # dout = {}
+        # dout['stocks'] = out[0]['overview']
+        # dout['count'] = {
         #                'onstock': 0,
         #                'requested': 0,
         #                'ordered': 0
         #            }
 
-        #for stock in out[0]['overview']:
+        # for stock in out[0]['overview']:
         #    dout['count']['onstock'] += out[0]['overview'][stock]['count']['onstock']
         #    dout['count']['requested'] += out[0]['overview'][stock]['count']['requested']
         #    dout['count']['ordered'] += out[0]['overview'][stock]['count']['ordered']
@@ -289,6 +303,7 @@ class BaseHandler(tornado.web.RequestHandler):
     '''
         Tato funkce vezme historii polozky a z ni to vytvori soucty do jednotlivych skladu a pozic
     '''
+
     def component_update_counts(self, id):
         print(colored("[component_update_counts]", "green", attrs=["bold"]))
         out = list(self.mdb.stock.aggregate([
@@ -299,7 +314,7 @@ class BaseHandler(tornado.web.RequestHandler):
         out = list(out)
 
         overview = {
-            'count':{
+            'count': {
                 'onstock': 0,
                 'requested': 0,
                 'ordered': 0
@@ -313,7 +328,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
             if warehouse not in overview['stocks']:
                 overview['stocks'][warehouse] = {
-                    'count':{
+                    'count': {
                         'onstock': 0,
                         'requested': 0,
                         'ordered': 0
@@ -341,27 +356,27 @@ class BaseHandler(tornado.web.RequestHandler):
         print(colored("![component_update_counts]", "yellow", attrs=["bold"]))
 
     def component_get_buyrequests(self, id):
-        out = list(self.mdb.stock.aggregate([#{
-            #"$facet":{
+        out = list(self.mdb.stock.aggregate([  # {
+            # "$facet":{
             #    "list":[
-                    {"$match": {"_id": id}},
-                    {"$unwind": "$history"},
-                    {"$match": {"history.operation": 'buy_request'}},
-                    {"$replaceRoot": {'newRoot': '$history'}},
+            {"$match": {"_id": id}},
+            {"$unwind": "$history"},
+            {"$match": {"history.operation": 'buy_request'}},
+            {"$replaceRoot": {'newRoot': '$history'}},
             #    ],
-            #}
+            # }
         ]))
         return out
 
     def component_get_suppliers(self, id):
         out = self.mdb.stock.aggregate([
-                {"$match": {"_id": id}},
-                {"$unwind": '$supplier'},
-                {"$project": {'supplier':1, '_id':0}}
-            ])
+            {"$match": {"_id": id}},
+            {"$unwind": '$supplier'},
+            {"$project": {'supplier': 1, '_id': 0}}
+        ])
         return list(out)
 
-    def component_set_position(self, id, position, primary = False):
+    def component_set_position(self, id, position, primary=False):
         '''
         id: Id polozky, ktera se vyhledavam
         position: Pozice, ktera se nastavuje pro polozkou
@@ -378,9 +393,10 @@ class BaseHandler(tornado.web.RequestHandler):
         current_positions = list(self.mdb.stock.aggregate([
             {"$match": {'_id': id}},
             {"$unwind": "$position"},
-            {"$lookup": {"from": 'store_positions', 'localField': 'position.posid', 'foreignField': '_id', 'as': 'pos'}},
-            {"$match": {'pos.warehouse':  warehouseid['warehouse']}},
-            {'$project': {'pos':1, 'position': 1, 'name':1}}
+            {"$lookup": {"from": 'store_positions', 'localField': 'position.posid', 'foreignField': '_id',
+                         'as': 'pos'}},
+            {"$match": {'pos.warehouse': warehouseid['warehouse']}},
+            {'$project': {'pos': 1, 'position': 1, 'name': 1}}
         ]))
 
         primary = None
@@ -432,22 +448,23 @@ class BaseHandler(tornado.web.RequestHandler):
     def component_remove_position(self, id, stock):
         self.mdb.stock.update(
             {'_id': bson.ObjectId(id)},
-            {"$pull": {"position":{"posid": bson.ObjectId(stock)}}}
+            {"$pull": {"position": {"posid": bson.ObjectId(stock)}}}
         )
 
-    def component_get_positions(self, id, stock = None, primary = False):
-        #stock = None
+    def component_get_positions(self, id, stock=None, primary=False):
+        # stock = None
         '''
         'id': id polozky, ktera bude vyhledana
         'stock': id skladu, ve kterem se bude vyhledavat. Pokud je False, vyhledava se vsude
         'primary': Vyhledavaji se pouze primarni pozice
         '''
-        q =[{"$match": {"_id": id}},
-            {"$unwind": "$position"},
-            {"$lookup": {"from": "store_positions", "localField": 'position.posid', "foreignField" : '_id', "as": "position.info"}},
-            {"$project" : {"pos":1, "position":1}},
-            {"$replaceRoot": {"newRoot": "$position"}
-        }]
+        q = [{"$match": {"_id": id}},
+             {"$unwind": "$position"},
+             {"$lookup": {"from": "store_positions", "localField": 'position.posid', "foreignField": '_id',
+                          "as": "position.info"}},
+             {"$project": {"pos": 1, "position": 1}},
+             {"$replaceRoot": {"newRoot": "$position"}
+              }]
         if stock:
             print("VYBRANY STOCK...")
             print(stock, type(stock))
@@ -464,7 +481,7 @@ class BaseHandler(tornado.web.RequestHandler):
         '''
         print("Component update component_update_suppliers_url")
         out = list(self.mdb.stock.find({"_id": id}))[0]
-        
+
         try:
             for i, x in enumerate(out.get('supplier', [])):
                 print("Supplier:")
@@ -490,7 +507,7 @@ class BaseHandler(tornado.web.RequestHandler):
                     x['full_url'] = "https://eshop.killich.cz/?search=+{}".format(x['symbol'])
 
                 self.mdb.stock.update({"_id": id}, {"$set": {"supplier.{}".format(i): x}})
-        
+
         except Exception as e:
             print(e)
 
@@ -521,14 +538,14 @@ class BaseHandler(tornado.web.RequestHandler):
         user_db['param']['warehouse_info'] = self.mdb.warehouse.find_one({'_id': bson.ObjectId(wh)})
         return user_db
 
-    def authorized(self, required = [], sudo = True):
+    def authorized(self, required=[], sudo=True):
         print("Authorized.....", required)
         if self.get_current_user():
             if sudo:
                 required = required + ['sudo']
             req = set(required)
-            intersection = list(self.role&req)
-            if  bool(intersection):
+            intersection = list(self.role & req)
+            if bool(intersection):
                 print("DOstatecna prava")
                 return intersection
             else:
@@ -539,14 +556,14 @@ class BaseHandler(tornado.web.RequestHandler):
             print("REDIRECT na LOGIN")
             self.redirect('/login')
 
-    def is_authorized(self, required = [], sudo = True):
+    def is_authorized(self, required=[], sudo=True):
         print("AUTHORIZATION.....")
         if self.get_current_user():
             if sudo:
                 required = required + ['sudo']
             req = set(required)
-            intersection = list(self.role&req)
-            if  bool(intersection):
+            intersection = list(self.role & req)
+            if bool(intersection):
                 return intersection
             else:
                 return False
@@ -556,7 +573,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def getComponentById(self, id):
         return (self.mdb.stock.find_one({'_id': id}))
 
-    def LogActivity(self, module = None, operation = None, data = {}, user = None):
+    def LogActivity(self, module=None, operation=None, data={}, user=None):
         if not user: user = self.logged
         if not module: module = self.__class__.__name__
         print("Activity logger:")
@@ -564,6 +581,7 @@ class BaseHandler(tornado.web.RequestHandler):
         print(">> operation: {}".format(operation))
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
+
 
 #
 #    def update_component(self, component):
@@ -581,32 +599,38 @@ class BaseHandlerOwnCloud(BaseHandler):
         self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
         super(BaseHandlerOwnCloud, self).prepare()
 
-class loginHandler(BaseHandler):
+
+def password_hash(user_name, password):
+    return hashlib.sha384((password + user_name).encode('utf-8')).hexdigest()
+
+
+class LoginHandler(BaseHandler):
     def get(self):
         self.render('_login.hbs', msg='')
 
     def post(self):
-        user = self.get_argument('user')
-        passw= self.get_argument('pass')
+        email = self.get_argument('email').lower()
+        password = self.get_argument('password')
 
-        #username = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}]})
-        username = self.mdb.users.find_one({"user": user})
-        print(username)
+        user_mdoc = self.mdb.users.find_one({"type": "user", "email": email})
 
-        print("USERNAME:", username, user)
-        if username:
-            username = username.get('user', None)
-            hash = hashlib.sha384((passw+username).encode('utf-8')).hexdigest()
-            print("login", username, hash)
-            userdb = self.mdb.users.find_one({"$or": [{"user": user},{'email': user}], 'pass': hash})
-            if userdb:
-                self.set_secure_cookie('user', userdb['user'])
-                self.redirect('/')
-                self.finish()
+        if not user_mdoc:
+            self.render("_login.hbs", msg="No such user")
+            return
 
-        self.redirect('/login?msg=badlogin')
+        user_name = user_mdoc["user"]
+        real_password_hash = user_mdoc["pass"]
+        this_password_hash = password_hash(user_name, password)
 
-class logoutHandler(BaseHandler):
+        if real_password_hash == this_password_hash:
+            self.set_secure_cookie('user', user_name)
+            self.redirect('/')
+            return
+
+        self.render("_login.hbs", msg="Wrong password")
+
+
+class LogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie('user')
         self.redirect('/')
@@ -614,60 +638,62 @@ class logoutHandler(BaseHandler):
     def post(self):
         self.clear_cookie('user')
 
-class regHandler(BaseHandler):
+
+class RegistrationHandler(BaseHandler):
     def get(self):
-        self.render('_registration.hbs', msg = None)
+        self.render('_registration.hbs', msg=None)
 
     def post(self):
-        user = self.get_argument('user')
         email = self.get_argument('email')
-        psw = self.get_argument('pass')
-        pswc = self.get_argument('pass_check')
+        password = self.get_argument('password')
+        password_check = self.get_argument('password_check')
         agree = self.get_argument('agree')
 
         if agree != 'agree':
-            self.render('_registration.hbs', msg = 'Musíte souhlasit s ...')
+            self.render('_registration.hbs', msg='Musíte souhlasit s ...')
+            return
 
-        if psw != pswc:
-            self.render('_registration.hbs', msg = 'Hesla se neshodují')
-        hash = hashlib.sha384((psw+user).encode('utf-8')).hexdigest()
+        if password != password_check:
+            self.render('_registration.hbs', msg='Hesla se neshodují')
+            return
 
-        data = list(self.mdb.users.find({'$or': [{'user':user}, {'email':email}] }))
-        print(data)
-        print(len(data))
+        user_name = email
+        matching_users_in_db = list(self.mdb.users.find({'$or': [{'user': user_name}, {'email': email}]}))
+        if matching_users_in_db:
+            self.render('_registration.hbs',
+                        msg='Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
+            return
 
-        if len(data) == 0:
-            self.mdb.users.insert({
-                    'user': user,
-                    'pass': hash,
-                    'name': user,
-                    'email': email,
-                    'email_validate': False,
-                    'created': datetime.datetime.now(),
-                    'type': 'user',
-                    'role': [],
-                })
-        else:
-            self.render('_registration.hbs', msg = 'Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
+        new_password_hash = password_hash(user_name, password)
 
-        print(user, email, psw, pswc, agree)
+        self.mdb.users.insert({
+            'user': user_name,
+            'pass': new_password_hash,
+            'email': email,
+            'email_validate': False,
+            'created': datetime.datetime.now(),
+            'type': 'user',
+            'role': [],
+        })
+
+        print("Registrován email", email)
         self.redirect('/')
+
 
 class doBackup(BaseHandlerOwnCloud):
     def get(self):
-        remote =  os.path.join(tornado.options.options.owncloud_root, 'backup', '2018', 'mdb')
+        remote = os.path.join(tornado.options.options.owncloud_root, 'backup', '2018', 'mdb')
         remote = os.path.join(tornado.options.options.owncloud_root, 'accounting')
         import subprocess
         subprocess.run(["mongodump", "--out=static/tmp/mdb/"])
         self.oc.put_directory(remote, 'static/tmp/mdb')
-        #os.remove('static/tmp/mdb')
+        # os.remove('static/tmp/mdb')
         self.write("OK")
-
 
 
 class system_handler(BaseHandler):
     def get(self):
-        self.render('system.homepage.hbs', warehouses = self.get_warehouseses())
+        self.render('system.homepage.hbs', warehouses=self.get_warehouseses())
 
     def post(self):
         operation = self.get_argument('operation')
