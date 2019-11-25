@@ -4,6 +4,7 @@ USER_DOC_KEYS = [
     "email",
     # "email_validate",  # <- deprecated key
     "email_validated",  # values "no", "pending", "yes"
+    "email_validation_token",
     "role",
     "created",
     "type",

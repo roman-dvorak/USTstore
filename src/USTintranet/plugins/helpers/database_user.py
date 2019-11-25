@@ -237,3 +237,36 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str):
     contracts = next(cursor, {}).get("contracts", {})
 
     return next(iter(contracts), None)
+
+
+def update_email_is_validated_status(coll: pymongo.collection.Collection,
+                                     user_id: str,
+                                     yes=False,
+                                     no=False,
+                                     token=""):
+    if token:
+        res = coll.update_one({"_id": ObjectId(user_id)},
+                        {"$set": {
+                            "email_validated": "pending",
+                            "email_validation_token": token,
+                        }})
+    elif yes:
+        coll.update_one({"_id": ObjectId(user_id)},
+                        {
+                            "$set": {
+                                "email_validated": "yes",
+                            },
+                            "$unset": {
+                                "email_validation_token": "",
+                            },
+                        })
+    elif no:
+        coll.update_one({"_id": ObjectId(user_id)},
+                        {
+                            "$set": {
+                                "email_validated": "no",
+                            },
+                            "$unset": {
+                                "email_validation_token": "",
+                            },
+                        })

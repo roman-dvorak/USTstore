@@ -11,14 +11,52 @@ def send_email(message, options):
     s.send_message(message)
 
 
-def generate_validation_message(address, token, options):
-    msg = MIMEMultipart()
+def generate_validation_message(address, user_id, token, options):
+    link = f"{options['intranet_url']}/users/api/u/{user_id}/validateemail/{token}"
+
+    msg = MIMEMultipart("alternative")
 
     msg["From"] = options["email_address"]
     msg["To"] = address
     msg["Subject"] = "Ověřovací email"
 
-    msg.attach(MIMEText(f"Test email, token: {token}", "plain"))
+    plain_text = MIMEText(
+        "Dobrý den,\n"
+        "pro ověření vašeho emailu v systému "
+        + options['intranet_name'] +
+        " prosím navštivte následující odkaz:\n"
+        + link +
+        "\n"
+        "S přáním hezkého dne\n"
+        + options['intranet_name'] +
+        "\n",
+        "plain"
+    )
+
+    html_text = MIMEText(
+        f"""
+        <html>
+            <body>
+                <p>
+                    <b>Dobrý den,</b><br>
+                    pro ověření vašeho emailu v systému {options['intranet_name']} prosím klikněte 
+                    na následující odkaz:
+                </p>
+                <p>
+                    <a href="{link}">{link}</a>
+                </p>
+                <p>
+                    S přáním hezkého dne<br>
+                    {options['intranet_name']}
+                </p>
+            </body>
+        </html>
+        """,
+        "html"
+    )
+
+    msg.attach(plain_text)
+    msg.attach(html_text)
 
     return msg
 

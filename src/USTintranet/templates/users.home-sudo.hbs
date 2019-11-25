@@ -210,6 +210,22 @@
         $("#messages-span").text("");
     }
 
+    function sendValidationEmail(user_id) {
+        setMessage("Posílám email");
+
+        $.ajax({
+            url: `/users/api/u/${user_id}/validateemail`,
+            type: "post",
+            data: "",
+            success: function (response) {
+                console.log(response);
+                setMessage("Email poslán");
+                resetTable();
+            },
+            error: ajaxError,
+        });
+    }
+
     /**
      * Připraví tabulátor a callbacky.
      * Očekávané chování: některé sloupce jsou editovatelné na double click. Je-li nová hodnota jiná
@@ -645,7 +661,7 @@
         };
 
         /**
-         * Callback tabulátoru. Je-li hodnota buňky jiná než "no", nedělá nic, pro hodnotu "no"
+         * Callback tabulátoru. Je-li hodnota buňky "yes", nedělá nic, pro hodnotu "no" and "pending"
          * se zeptá na zamýšlenou akci a buď řekne serveru ať pošle ověřovací email nebo nastaví
          * email_validated na "yes" sama.
          */
@@ -653,8 +669,8 @@
             let value = cell.getValue();
             let user_id = cell.getRow().getIndex();
 
-            if (value === "yes" || value === "pending") setMessage("Není dostupná žádná akce");
-            else if (value === "no") {
+            if (value === "yes") setMessage("Není dostupná žádná akce");
+            else if (value === "no" || value === "pending") {
                 if ($.isEmptyObject(editedData) && newData.size === 0 && deletedData.size === 0) {
                     Lobibox.alert('info', {
                         msg: 'Zvolte akci:',
@@ -677,20 +693,7 @@
                         },
                         callback: function (lobibox, type) {
                             if (type === "send_email") {
-                                setMessage("Posílám email");
-
-                                $.ajax({
-                                    url: `/users/api/u/${user_id}/validateemail`,
-                                    type: "post",
-                                    data: "",
-                                    success: function (response) {
-                                        console.log(response);
-                                        setMessage("Email poslán");
-                                        resetTable();
-                                    },
-                                    error: ajaxError,
-                                });
-
+                                sendValidationEmail(user_id);
                             } else if (type === "set_validated") {
                                 setMessage("Ukládám");
 
@@ -703,7 +706,7 @@
                             }
                         }
                     });
-                }
+                } else setMessage("Nejprve prosím uložte nebo zahoďte změny")
             } else setMessage(`email_validated obsahuje neočekávanou hodnotu ${value}`)
         };
 

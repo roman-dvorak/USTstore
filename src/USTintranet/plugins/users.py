@@ -7,6 +7,9 @@ import tornado
 import tornado.options
 import os
 
+from tornado.web import HTTPError
+
+from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
 from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
 from plugins.helpers.contract_generation import generate_contract
@@ -395,6 +398,25 @@ class ApiUserValidateEmail(BaseHandler):
     def get(self, user_id, token):
         print(f"validate_email, user_id = {user_id}, token = {token}")
 
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if not user_mdoc["email_validated"] == "pending":
+            self.render("users.email_validation.hbs", success=False)
+
+        token_in_db = user_mdoc["email_validation_token"]
+        if token == token_in_db:
+            self.render("users.email_validation.hbs", success=True)
+            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+        else:
+            self.render("users.email_validation.hbs", success=False)
+
     def post(self, user_id):
         print(f"validate_email pro {user_id}")
 
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        token = generate_validation_token()
+        message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)
+        send_email(message, tornado.options.options)
+
+        udb.update_email_is_validated_status(self.mdb.users, user_id, token=token)
