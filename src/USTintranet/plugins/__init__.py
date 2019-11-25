@@ -670,7 +670,7 @@ class RegistrationHandler(BaseHandler):
             'user': user_name,
             'pass': new_password_hash,
             'email': email,
-            'email_validate': False,
+            'email_validated': "no",
             'created': datetime.datetime.now(),
             'type': 'user',
             'role': [],
