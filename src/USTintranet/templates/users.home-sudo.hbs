@@ -62,6 +62,10 @@
     .tabulator-row .edited-cell {
         background-color: rgba(0, 0, 0, 0.05)
     }
+
+    .table-icon {
+        line-height: 0;
+    }
 </style>
 
 <div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog">
@@ -625,6 +629,84 @@
             return `${street} ${city}, ${state}, ${zip}`;
         };
 
+        /**
+         * Formatter validace emailu. Zobrazuje material ikony pro "no", "pending" a "yes" hodnoty email_validated
+         */
+        let emailValidatedFormatter = function (cell, formatterParams, onRendered) {
+            let value = cell.getValue();
+
+            let icon = "";
+            if (value === "no") icon = "close";
+            else if (value === "pending") icon = "hourglass_empty";
+            else if (value === "yes") icon = "check";
+            else console.log("email_validated obsahuje neočekávanou hodnotu", value);
+
+            return `<span class='material-icons table-icon'>${icon}</span>`
+        };
+
+        /**
+         * Callback tabulátoru. Je-li hodnota buňky jiná než "no", nedělá nic, pro hodnotu "no"
+         * se zeptá na zamýšlenou akci a buď řekne serveru ať pošle ověřovací email nebo nastaví
+         * email_validated na "yes" sama.
+         */
+        let dblClickEmailValidated = function (e, cell) {
+            let value = cell.getValue();
+            let user_id = cell.getRow().getIndex();
+
+            if (value === "yes" || value === "pending") setMessage("Není dostupná žádná akce");
+            else if (value === "no") {
+                if ($.isEmptyObject(editedData) && newData.size === 0 && deletedData.size === 0) {
+                    Lobibox.alert('info', {
+                        msg: 'Zvolte akci:',
+                        buttons: {
+                            send_email: {
+                                class: "btn",
+                                text: "Poslat ověřovací email",
+                                closeOnClick: true,
+                            },
+                            set_validated: {
+                                class: "btn",
+                                text: "Nastavit jako ověřený",
+                                closeOnClick: true,
+                            },
+                            close: {
+                                class: "btn",
+                                text: "Zrušit",
+                                closeOnClick: true,
+                            }
+                        },
+                        callback: function (lobibox, type) {
+                            if (type === "send_email") {
+                                setMessage("Posílám email");
+
+                                $.ajax({
+                                    url: `/users/api/u/${user_id}/validateemail`,
+                                    type: "post",
+                                    data: "",
+                                    success: function (response) {
+                                        console.log(response);
+                                        setMessage("Email poslán");
+                                        resetTable();
+                                    },
+                                    error: ajaxError,
+                                });
+
+                            } else if (type === "set_validated") {
+                                setMessage("Ukládám");
+
+                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
+                                editedData[user_id]["email_validated"] = "yes";
+
+                                saveUsersEdits();
+                            } else if (type === "close") {
+                                clearMessage();
+                            }
+                        }
+                    });
+                }
+            } else setMessage(`email_validated obsahuje neočekávanou hodnotu ${value}`)
+        };
+
         $("#address-save-btn").on("click", saveAddressEditor);
         $("#role-save-btn").on("click", saveRoleEditor);
 
@@ -689,9 +771,9 @@
                 {
                     title: "Ověření emailu",
                     field: "email_validated",
-                    formatter: "tickCross",
+                    formatter: emailValidatedFormatter,
                     align: "center",
-                    cellDblClick: uneditableMsg,
+                    cellDblClick: dblClickEmailValidated,
                 },
                 {
                     title: "Telefon",

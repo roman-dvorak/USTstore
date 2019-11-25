@@ -23,6 +23,8 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
+        (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -386,3 +388,13 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
     def post(self, _id):
         document_id = self.request.body.decode("utf-8")
         udb.delete_user_document(self.mdb.users, _id, document_id)
+
+
+class ApiUserValidateEmail(BaseHandler):
+
+    def get(self, user_id, token):
+        print(f"validate_email, user_id = {user_id}, token = {token}")
+
+    def post(self, user_id):
+        print(f"validate_email pro {user_id}")
+
