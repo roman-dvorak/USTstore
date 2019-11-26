@@ -2,6 +2,7 @@ import fpdf
 import os
 
 import plugins.helpers.str_ops as str_ops
+from plugins.helpers.exceptions import MissingInfoError
 from plugins.helpers.mdoc_ops import find_type_in_addresses
 from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
@@ -15,22 +16,36 @@ FONT_DIR = os.path.join("static", "dejavu")
 
 
 def generate_contract(user, contract, company_name, company_address, company_id):
-    name_doc = user["name"]
+    name_doc = user.get("name", None)
+    if not name_doc:
+        raise MissingInfoError("Uživatel nemá vyplněné jméno.")
+
     full_name = " ".join([name_doc[key] for key in NAME_DOC_KEYS if name_doc.get(key, None)])
-    birthdate = str_ops.date_to_str(user["birthdate"])
+    if not full_name:
+        raise MissingInfoError("Uživatel nemá vyplněné jméno.")
 
-    address = str_ops.address_to_str(find_type_in_addresses(user["addresses"], "residence"))
+    birthdate = str_ops.date_to_str(user.get("birthdate", None))
+    if not birthdate:
+        raise MissingInfoError("Uživatel nemá vyplněné datum narození.")
 
-    assignment = user["assignment"]
+    address = str_ops.address_to_str(find_type_in_addresses(user.get("addresses", []), "residence"))
+    if not address:
+        raise MissingInfoError("Uživatel nemá vyplněnou adresu trvalého bydliště.")
+
+    assignment = user("assignment", None)
+    if not assignment:
+        raise MissingInfoError("Uživatel nemá vyplněnou pracovní náplň.")
+
+    account_number = user.get("account_number", None)
 
     valid_from = str_ops.date_to_str(contract["valid_from"])
     valid_until = str_ops.date_to_str(contract["valid_until"])
-
     hour_rate = contract["hour_rate"]
-    account_number = user["account_number"]
     signing_date = contract["signing_date"]
+    if not all((valid_from, valid_until, hour_rate, signing_date)):
+        raise MissingInfoError("Problém se smlouvou.")
 
-    output_path = f"static/contracts/" \
+    output_path = f"static/tmp/" \
                   f"{user['_id']}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
 
     pdf = fpdf.FPDF("P", "mm", "A4")

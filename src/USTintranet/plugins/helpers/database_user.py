@@ -11,11 +11,13 @@ from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_
 coll = pymongo.MongoClient().USTintranet.users
 
 
-def get_users(coll: pymongo.collection.Collection):
+def get_users(coll: pymongo.collection.Collection, **by):
     """
     Vrátí list uživatelů z databáze. Každý uživatel má field "_id" s textovou verzí ObjectID jeho mdokumentu.
     """
-    users = list(coll.find({'type': 'user'}))
+    by_copy = dict(by)
+    by_copy["type"] = "user"
+    users = list(coll.find(by_copy))
     for user in users:
         user["_id"] = str(user["_id"])
     return users
@@ -63,7 +65,7 @@ def update_user(coll: pymongo.collection.Collection, _id: str, data: dict, embed
     updated = coll.find_one_and_update({"_id": ObjectId(_id)}, operation_dict, return_document=ReturnDocument.AFTER)
 
     for key in embedded_1to1_docs:
-        if not updated[key]:
+        if key in updated and not updated[key]:
             coll.update_one({"_id": ObjectId(_id)}, {"$unset": {"name": ""}})
 
 
@@ -235,3 +237,36 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str):
     contracts = next(cursor, {}).get("contracts", {})
 
     return next(iter(contracts), None)
+
+
+def update_email_is_validated_status(coll: pymongo.collection.Collection,
+                                     user_id: str,
+                                     yes=False,
+                                     no=False,
+                                     token=""):
+    if token:
+        res = coll.update_one({"_id": ObjectId(user_id)},
+                        {"$set": {
+                            "email_validated": "pending",
+                            "email_validation_token": token,
+                        }})
+    elif yes:
+        coll.update_one({"_id": ObjectId(user_id)},
+                        {
+                            "$set": {
+                                "email_validated": "yes",
+                            },
+                            "$unset": {
+                                "email_validation_token": "",
+                            },
+                        })
+    elif no:
+        coll.update_one({"_id": ObjectId(user_id)},
+                        {
+                            "$set": {
+                                "email_validated": "no",
+                            },
+                            "$unset": {
+                                "email_validation_token": "",
+                            },
+                        })

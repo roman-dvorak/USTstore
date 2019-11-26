@@ -105,7 +105,7 @@
   <a href="/"><img src="https://www.ust.cz/include/Logo_UST.png" alt="Logo" style="height:4em;"></a>
 
   <span>
-      {%if current_user %}<span class="current_cart"></span> <i class="material-icons">account_circle</i>{{current_user['user']}} <a href="/logout">Odhlásit</a><br> Sklad: {% if current_user['param']['warehouse_info']%} {{current_user['param']['warehouse_info']['name']}} {%else%} Nic {%end%}{%else%} <a href="/login">přihlásit se</a>{%end%}
+      {%if current_user %}<span class="current_cart"></span> <i class="material-icons">account_circle</i>{{current_user['email']}} <a href="/logout">Odhlásit</a><br> Sklad: {% if current_user['param']['warehouse_info']%} {{current_user['param']['warehouse_info']['name']}} {%else%} Nic {%end%}{%else%} <a href="/login">přihlásit se</a>{%end%}
       <i class="material-icons barcode-icon">remove</i>
   </span>
 

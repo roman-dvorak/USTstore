@@ -7,6 +7,10 @@ import tornado
 import tornado.options
 import os
 
+from tornado.web import HTTPError
+
+from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
+from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
 from plugins.helpers.contract_generation import generate_contract
 from plugins import BaseHandlerOwnCloud
@@ -22,6 +26,8 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
+        (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -33,12 +39,12 @@ def plug_info():
         "module": "users",
         "name": "Uživatelé",
         "icon": 'icon_users.svg',
-        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
+        # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
 
 
 class HomeHandler(BaseHandler):
-    role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
+    # role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
     def get(self, data=None):
         me = self.actual_user
@@ -48,7 +54,7 @@ class HomeHandler(BaseHandler):
             users = self.mdb.users.find()
             self.render('users.home-sudo.hbs', title="TITLE", parent=self, users=users, me=me, my_activity=my_activity)
         else:
-            self.render('users.home.hbs', title="Nastavení účtu", parent=self, users=me, me=me, my_activity=my_activity)
+            self.redirect(f"/users/u/{me['_id']}")
 
 
 class ApiAdminTableHandler(BaseHandler):
@@ -96,6 +102,9 @@ class ApiAdminTableHandler(BaseHandler):
         new_ids = data["new"]
         deleted_ids = data["deleted"]
 
+        for fields in edited_data.values():
+            self.validate_fields(fields)
+
         for _id in deleted_ids:
             udb.delete_user(self.mdb.users, _id)
 
@@ -126,6 +135,12 @@ class ApiAdminTableHandler(BaseHandler):
         if contact_address:
             contact_address["type"] = "contact"
             udb.update_user_address(self.mdb.users, _id, contact_address)
+
+    def validate_fields(self, fields):
+        if "email" in fields:
+            matching_users_in_db = udb.get_users(self.mdb.users, email=fields["email"])
+            if matching_users_in_db:
+                raise BadInputError("Uživatel s touto emailovou adresou již existuje.")
 
 
 class ApiEditUserHandler(BaseHandler):
@@ -281,7 +296,7 @@ class UserPageHandler(BaseHandler):
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
+    def post(self, _id):  # TODO rozmyslet si api
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
@@ -298,9 +313,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             contract["hour_rate"] = int(contract["hour_rate"])
 
             local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
-                                          "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
-                                          "U Jatek 19, 392 01 Soběslav",
-                                          "28155319")
+                                           "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
+                                           "U Jatek 19, 392 01 Soběslav",
+                                           "28155319")
 
             owncloud_path = os.path.join(tornado.options.options.owncloud_root,
                                          "contracts",
@@ -377,3 +392,31 @@ class ApiUserDeleteDocumentHandler(BaseHandler):
         document_id = self.request.body.decode("utf-8")
         udb.delete_user_document(self.mdb.users, _id, document_id)
 
+
+class ApiUserValidateEmail(BaseHandler):
+
+    def get(self, user_id, token):
+        print(f"validate_email, user_id = {user_id}, token = {token}")
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if not user_mdoc["email_validated"] == "pending":
+            self.render("users.email_validation.hbs", success=False)
+
+        token_in_db = user_mdoc["email_validation_token"]
+        if token == token_in_db:
+            self.render("users.email_validation.hbs", success=True)
+            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+        else:
+            self.render("users.email_validation.hbs", success=False)
+
+    def post(self, user_id):
+        print(f"validate_email pro {user_id}")
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        token = generate_validation_token()
+        message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)
+        send_email(message, tornado.options.options)
+
+        udb.update_email_is_validated_status(self.mdb.users, user_id, token=token)

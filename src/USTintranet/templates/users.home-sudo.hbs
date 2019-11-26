@@ -62,6 +62,10 @@
     .tabulator-row .edited-cell {
         background-color: rgba(0, 0, 0, 0.05)
     }
+
+    .table-icon {
+        line-height: 0;
+    }
 </style>
 
 <div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog">
@@ -204,6 +208,22 @@
      */
     function clearMessage() {
         $("#messages-span").text("");
+    }
+
+    function sendValidationEmail(user_id) {
+        setMessage("Posílám email");
+
+        $.ajax({
+            url: `/users/api/u/${user_id}/validateemail`,
+            type: "post",
+            data: "",
+            success: function (response) {
+                console.log(response);
+                setMessage("Email poslán");
+                resetTable();
+            },
+            error: ajaxError,
+        });
     }
 
     /**
@@ -625,6 +645,71 @@
             return `${street} ${city}, ${state}, ${zip}`;
         };
 
+        /**
+         * Formatter validace emailu. Zobrazuje material ikony pro "no", "pending" a "yes" hodnoty email_validated
+         */
+        let emailValidatedFormatter = function (cell, formatterParams, onRendered) {
+            let value = cell.getValue();
+
+            let icon = "";
+            if (value === "no") icon = "close";
+            else if (value === "pending") icon = "hourglass_empty";
+            else if (value === "yes") icon = "check";
+            else console.log("email_validated obsahuje neočekávanou hodnotu", value);
+
+            return `<span class='material-icons table-icon'>${icon}</span>`
+        };
+
+        /**
+         * Callback tabulátoru. Je-li hodnota buňky "yes", nedělá nic, pro hodnotu "no" and "pending"
+         * se zeptá na zamýšlenou akci a buď řekne serveru ať pošle ověřovací email nebo nastaví
+         * email_validated na "yes" sama.
+         */
+        let dblClickEmailValidated = function (e, cell) {
+            let value = cell.getValue();
+            let user_id = cell.getRow().getIndex();
+
+            if (value === "yes") setMessage("Není dostupná žádná akce");
+            else if (value === "no" || value === "pending") {
+                if ($.isEmptyObject(editedData) && newData.size === 0 && deletedData.size === 0) {
+                    Lobibox.alert('info', {
+                        msg: 'Zvolte akci:',
+                        buttons: {
+                            send_email: {
+                                class: "btn",
+                                text: "Poslat ověřovací email",
+                                closeOnClick: true,
+                            },
+                            set_validated: {
+                                class: "btn",
+                                text: "Nastavit jako ověřený",
+                                closeOnClick: true,
+                            },
+                            close: {
+                                class: "btn",
+                                text: "Zrušit",
+                                closeOnClick: true,
+                            }
+                        },
+                        callback: function (lobibox, type) {
+                            if (type === "send_email") {
+                                sendValidationEmail(user_id);
+                            } else if (type === "set_validated") {
+                                setMessage("Ukládám");
+
+                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
+                                editedData[user_id]["email_validated"] = "yes";
+
+                                saveUsersEdits();
+                            } else if (type === "close") {
+                                clearMessage();
+                            }
+                        }
+                    });
+                } else setMessage("Nejprve prosím uložte nebo zahoďte změny")
+            } else setMessage(`email_validated obsahuje neočekávanou hodnotu ${value}`)
+        };
+
         $("#address-save-btn").on("click", saveAddressEditor);
         $("#role-save-btn").on("click", saveRoleEditor);
 
@@ -687,11 +772,11 @@
                     validator: ["required", `regex:${regexEmail}`],
                 },
                 {
-                    title: "Email ověřen",
-                    field: "email_validate",
-                    formatter: "tickCross",
+                    title: "Ověření emailu",
+                    field: "email_validated",
+                    formatter: emailValidatedFormatter,
                     align: "center",
-                    cellDblClick: uneditableMsg,
+                    cellDblClick: dblClickEmailValidated,
                 },
                 {
                     title: "Telefon",
@@ -707,7 +792,7 @@
                     editor: dateEditor,
                     editable: false,
                     formatter: dateFormatter,
-                    cellDblClick: dblClickStartEdit, // TODO naimplementovat editor data
+                    cellDblClick: dblClickStartEdit,
                 },
                 {
                     title: "Bydliště",
@@ -785,7 +870,7 @@
                     field: "role",
                     sorter: "string",
                     editable: false,
-                    cellDblClick: showRoleEditor, // TODO vymyslet editor rolí
+                    cellDblClick: showRoleEditor,
                 },
                 {
                     title: "Pracovní náplň",
@@ -972,10 +1057,7 @@
                 setMessage("Změny uloženy");
                 resetTable();
             },
-            error: function (jqXHR, textStatus, errorThrown) {
-                console.log(textStatus, errorThrown);
-                setMessage("Nepodařilo se uložit změny");
-            }
+            error: ajaxError,
         });
     }
 
@@ -1037,6 +1119,12 @@
         let id = row.getIndex();
         let url = `users/u/${id}`;
         window.open(url, "_blank");
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
     }
 </script>
 

@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 
 import bson.json_util
 from dateutil.relativedelta import relativedelta
+from tornado.web import HTTPError
 
 from plugins import BaseHandler
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
+from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import compile_user_month_info, get_user_year_days_of_vacation
 
 
@@ -17,11 +19,12 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
         (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
+        (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
-        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiMonthTableHandler),
-        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiYearTableHandler),
+        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
+        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
     ]
@@ -32,18 +35,22 @@ def plug_info():
         "module": "attendance",
         "name": "Docházka",
         "icon": 'icon_users.svg',
-        "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
+        # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
 
 
 class HomeHandler(BaseHandler):
 
     def get(self):
-        template_params = {}
-        self.render("attendance.home-sudo.hbs", **template_params)
+        me = self.actual_user
+
+        if self.is_authorized(['users-editor', 'sudo-users']):
+            self.render('attendance.home-sudo.hbs')
+        else:
+            self.redirect(f"/attendance/u/{me['_id']}")
 
 
-class ApiMonthTableHandler(BaseHandler):
+class ApiAdminMonthTableHandler(BaseHandler):
 
     def get(self, date):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
@@ -63,7 +70,7 @@ class ApiMonthTableHandler(BaseHandler):
 
             row = {
                 "id": user["_id"],
-                "name": user["name"],
+                "name": user.get("name", {}),
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
                 "month_closed": user.get("month_closed", False),  # TODO tak jak nyní month_closed funguje nedává smysl,
@@ -79,7 +86,7 @@ class ApiMonthTableHandler(BaseHandler):
         self.write(bson.json_util.dumps(rows))
 
 
-class ApiYearTableHandler(BaseHandler):
+class ApiAdminYearTableHandler(BaseHandler):
 
     def get(self, date):
         year = str_ops.datetime_from_iso_str(date).replace(day=1, month=1)
@@ -99,7 +106,7 @@ class ApiYearTableHandler(BaseHandler):
 
             row = {
                 "id": user["_id"],
-                "name": user["name"],
+                "name": user.get("name", {}),
                 "hours_worked": hours_worked,
                 "hour_rate": hour_rate,
                 "gross_wage": gross_wage,
@@ -134,15 +141,15 @@ class UserAttendanceHandler(BaseHandler):
 
         template_params = {
             "_id": user_id,
-            "name": str_ops.name_to_str(user_document["name"]),
+            "name": str_ops.name_to_str(user_document.get("name", {})),
             "date": str_ops.date_to_iso_str(date),
             "date_pretty": str_ops.date_to_str(date),
             "workspans": day_workspans,
             "vacations": current_and_future_vacations,
             "is_vacation_day": is_vacation_day,
-            "year_days_of_vacation": get_user_year_days_of_vacation(self.mdb.users, user_id, date)
+            # "year_days_of_vacation": get_user_year_days_of_vacation(self.mdb.users, user_id, date)
         }
-        template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
+        # template_params.update(compile_user_month_info(self.mdb.users, user_id, datetime.now()))
 
         self.render("attendance.home.hbs", **template_params)
 
@@ -185,6 +192,18 @@ class ApiCalendarHandler(BaseHandler):
         self.write(bson.json_util.dumps(data))
 
 
+class ApiMonthInfoHandler(BaseHandler):
+
+    def post(self, user_id, date):
+        month = str_ops.datetime_from_iso_str(date).replace(day=1)
+
+        data = compile_user_month_info(self.mdb.users, user_id, month)
+        data["year_days_of_vacation"] = get_user_year_days_of_vacation(self.mdb.users, user_id, month)
+
+        self.write(bson.json_util.dumps(data))
+
+
+
 class ApiAddWorkspanHandler(BaseHandler):
 
     def post(self, user_id):
@@ -210,7 +229,7 @@ class ApiAddWorkspanHandler(BaseHandler):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
         vacations = adb.get_user_vacations(self.mdb.users, user_id, today)
         if vacations and vacations[0]["from"] <= workspan["from"]:
-            raise ValueError("Na dovolené se nepracuje.")
+            raise BadInputError("Na dovolené se nepracuje.")
 
     def check_workspans_conflicts(self, user_id, workspan):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
@@ -224,13 +243,14 @@ class ApiAddWorkspanHandler(BaseHandler):
             earliest_end = min(workspan_end, other_ws["from"] + relativedelta(minutes=int(other_ws["hours"]) * 60))
 
             if latest_start < earliest_end:
-                raise ValueError("Časový konflikt s jinou prací")  # TODO mělo by se ohlásit ve frontendu
+                raise BadInputError("Časový konflikt s jinou prací.")
 
 
 class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
         # TODO hlídat aby nové dovolené byly v budoucnosti, nelze přidat dovolenou zpětně
+        # TODO dovolené by měly jít v půlce přerušit aniž by musely být smazané
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
 
@@ -240,7 +260,7 @@ class ApiAddVacationHandler(BaseHandler):
         }
 
         if vacation["from"] > vacation["to"]:
-            raise ValueError("Dovolená skončila dříve než začala.")  # TODO mělo by se ohlásit ve frontendu
+            raise BadInputError("Dovolená skončila dříve než začala.")
 
         other_vacations = adb.get_user_vacations(self.mdb.users, user_id, vacation["from"])
         for other_vac in other_vacations:
@@ -248,7 +268,7 @@ class ApiAddVacationHandler(BaseHandler):
             earliest_end = min(vacation["to"], other_vac["to"])
 
             if latest_start <= earliest_end:
-                raise ValueError("Časový konflikt s jinou dovolenou")  # TODO mělo by se ohlásit ve frontendu
+                raise BadInputError("Časový konflikt s jinou dovolenou.")
 
         adb.add_user_vacation(self.mdb.users, user_id, vacation)
 

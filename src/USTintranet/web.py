@@ -1,26 +1,17 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+# #!/usr/bin/python
+# # -*- coding: utf-8 -*-
+import glob
+import os
+from os.path import basename
+
 import tornado
-#from tornado import web
-from tornado import ioloop
-from tornado import auth
-from tornado import escape
+from git import Repo
 from tornado import httpserver
+from tornado import ioloop
 from tornado import options
 from tornado import web
-#import functools
-import json
-import time
-import datetime
-import calendar
-import os
-import glob
-from os.path import dirname, basename
-import git
-from git import Repo, Actor
 
-#from handlers import admin, auth
-from handlers import BaseHandler
+from plugins import BaseHandler
 
 tornado.options.define("port", default=10020, help="port", type=int)
 tornado.options.define("config", default="/data/ust/intranet.conf", help="Intranet config file")
@@ -41,27 +32,37 @@ tornado.options.define("mdb_pass", default=None, help="MongoDB passworld")
 tornado.options.define("intranet_name", default="OpenIntranet", help="Intranet name")
 tornado.options.define("intranet_url", default="www.OpenIntranet.eu", help="Intranet name")
 
+tornado.options.define("email_address", default="")
+tornado.options.define("email_password", default="")
+tornado.options.define("email_smtp_host", default="")
+tornado.options.define("email_smtp_port", default=25)
+
 
 class home(BaseHandler):
     def get(self, arg=None):
         print("GET home")
         err = []
-        self.render("intranet.home.hbs", title=tornado.options.options.intranet_name, default=None, required = True, parent=self, err = err, Repo = Repo)
+        self.render("intranet.home.hbs", title=tornado.options.options.intranet_name, default=None, required=True,
+                    parent=self, err=err, Repo=Repo)
 
     def post(self, arg=None):
         self.write("ACK")
 
+
 class user(BaseHandler):
-    def get(self, user = None):
+    def get(self, user=None):
         self.write("AAA")
+
 
 class login(BaseHandler):
     def get(self):
         pass
 
+
 class registration(BaseHandler):
     def get(self):
         pass
+
 
 class WebApp(tornado.web.Application):
     def __init__(self, config={}):
@@ -89,7 +90,7 @@ class WebApp(tornado.web.Application):
                 print("Exception in plugin %s: %s" % (mod_name, e))
 
         handlers += [
-            #staticke soubory je vhodne nahradit pristupem primo z proxy serveru. (pak to tolik nevytezuje tornado)
+            # staticke soubory je vhodne nahradit pristupem primo z proxy serveru. (pak to tolik nevytezuje tornado)
             (r'/favicon.ico', tornado.web.StaticFileHandler, {'path': "/static/"}),
             (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static/'}),
             (r'/user', user),
@@ -101,21 +102,21 @@ class WebApp(tornado.web.Application):
             (r'/(.*)', home)
         ]
 
-        print ("plugins:")
+        print("plugins:")
         for plugin in plugins:
             print("", plugin)
-        print ("handlers:")
+        print("handlers:")
         for handler in handlers:
             pass
-            #print("", server_url+handler[0], handler[1])
-            #print(server_url+handler[0])
+            # print("", server_url+handler[0], handler[1])
+            # print(server_url+handler[0])
 
         settings = dict(
-            plugins = plugins,
+            plugins=plugins,
             cookie_secret="oeuhchcokicheokcihocoi",
-            template_path= "templates/",
-            static_path= "static/",
-            plugin_path= "plugins/",
+            template_path="templates/",
+            static_path="static/",
+            plugin_path="plugins/",
             xsrf_cookies=False,
             name=name,
             server_url=server_url,
@@ -126,15 +127,19 @@ class WebApp(tornado.web.Application):
             debug=tornado.options.options.debug,
             autoreload=True
         )
-        #tornado.locale.load_translations("locale/")
+        # tornado.locale.load_translations("locale/")
         print("Done")
         tornado.web.Application.__init__(self, handlers, **settings)
+
 
 def main():
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     tornado.options.parse_command_line()
-    print("Vyuzivam konfig: ", tornado.options.options.config)
-    tornado.options.parse_config_file(tornado.options.options.config)
+    try:
+        print("Vyuzivam konfig: ", tornado.options.options.config)
+        tornado.options.parse_config_file(tornado.options.options.config)
+    except Exception as e:
+        print("Konfiguraci nelze načíst:", e)
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(WebApp())
     http_server.listen(tornado.options.options.port)
