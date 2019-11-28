@@ -379,15 +379,52 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	var manufacturing_table = new Tabulator("#manufacturing-table",{
 	    layout:"fitColumns",
 	    columns:[
-    			{formatter:"rownum", align:"center", width:40},
-	        {title:"SN", field:'sn', width:120},
-	        {title:"Stav", field:"state", editor:"input"},
-	        //{title:"Stav ukazatel", field:"name", width:150, editor:"input"},
-	        {title:"Vytvořeno", field:"created_date", formatter:"datetime"},
-	        {title:"Dokončeno", field:"name", editor:"input"},
-	        {title:"Vyrobil", field:"author", editor:"input"},
-	        {title:"Testoval", field:"name", editor:"input"},
-	        {title:"Popis", field:"description", editor:"input"},
+    		{
+    			formatter:"rownum",
+    			align:"center",
+    			width:40
+    		},{
+	        	title:"SN",
+	        	field:'sn',
+	        	width:120
+	        },{
+	        	title:"Stav",
+	        	field:"state",
+	        	editor:"select",
+	        	editorParams:{
+	        				0:"0 - Plánováno",
+	        				1:"1 - Před výrobou, Rezervováno",
+	        				2:"2 - Výroba",
+	        				3:"3 - Vyrobeno",
+	        				4:"4 - Před testováním",
+	        				5:"5 - Testování",
+	        				6:"6 - Test OK",
+	        				7:"7 - Test FAIL",
+	        				8:"8 - Oprava",
+	        				9:"9 - Zrušeno",
+	        				10:"10- Dokončeno",
+	        			}
+	       	},{
+	       		title:"Vytvořeno",
+	       		field:"created_date",
+	       		formatter:"datetime"
+	       	},{
+	       		title:"Dokončeno",
+	       		field:"name",
+	       		editor:"input"
+	       	},{
+	       		title:"Vyrobil",
+	       		field:"author",
+	       		editor:"input"
+	       	},{
+	       		title:"Testoval",
+	       		field:"name",
+	       		editor:"input"
+	       	},{
+	       		title:"Popis",
+	       		field:"description",
+	       		editor:"input"
+	       	},
 
 	    ],
     	addRowPos:"top",
