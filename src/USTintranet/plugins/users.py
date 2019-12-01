@@ -402,11 +402,12 @@ class ApiUserValidateEmail(BaseHandler):
 
         if not user_mdoc["email_validated"] == "pending":
             self.render("users.email_validation.hbs", success=False)
+            return
 
         token_in_db = user_mdoc["email_validation_token"]
         if token == token_in_db:
-            self.render("users.email_validation.hbs", success=True)
             udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+            self.render("users.email_validation.hbs", success=True)
         else:
             self.render("users.email_validation.hbs", success=False)
 

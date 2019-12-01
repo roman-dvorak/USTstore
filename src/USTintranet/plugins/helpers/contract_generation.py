@@ -32,7 +32,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     if not address:
         raise MissingInfoError("Uživatel nemá vyplněnou adresu trvalého bydliště.")
 
-    assignment = user("assignment", None)
+    assignment = user.get("assignment", None)
     if not assignment:
         raise MissingInfoError("Uživatel nemá vyplněnou pracovní náplň.")
 
