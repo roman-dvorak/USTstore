@@ -611,6 +611,7 @@ class LoginHandler(BaseHandler):
     def post(self):
         email = self.get_argument('email').lower()
         password = self.get_argument('password')
+        print("Prihlasovani", email)
 
         user_mdoc = self.mdb.users.find_one({"type": "user", "email": email})
 

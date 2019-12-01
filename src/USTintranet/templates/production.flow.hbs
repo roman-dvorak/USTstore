@@ -81,7 +81,6 @@ F{% extends "base.hbs" %}
 
 		<div class="col-12">
 			<div class="card">
-				<div class="alert alert-danger alert-dismissible fade show">Zde je potřeba ověřit správnost sčítání skladových zásob (jestli se do toho nezapočítáva inventura a tak... (toto číslo nesouvisí s dalšími počty jinde)</div>
 				<div class="card-header"><h3>Části</h3></div>
 				<div><div id="component-table" class="table-sm table-striped"></div></div>
 				<input type="button" class="component-table-add-row btn btn-primary" value="Add row">
@@ -96,8 +95,12 @@ F{% extends "base.hbs" %}
 		<div class="col-12">
 			<div class="card">
 				<div class="card-header">
-					<h3>Placement</h3>
+					<h3>Výroba</h3>
 				</div>
+				<div>
+					<button style="btn btn-sm" onclick="new_manufacturing_row()">+</button>
+				</div>
+				<div><div id="manufacturing-table" class="table-sm table-striped"></div></div>
 				<div class="card-body" >
 
 
@@ -317,7 +320,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
 
                 if (val['stock'].length > 0){
-                
+
                   console.log("PRED SUPPLIER");
                   supplier = val['stock'][0].supplier;
 
@@ -369,11 +372,80 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	});
 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
 
-	//var ajaxConfig = {
-	//    type:"POST", //set request type to Position
-	//    //contentType: 'application/json; charset=utf-8', //set specific content type
-	//};
-	//table.setData(".", {operation:"get_components_grouped"}, ajaxConfig);
+
+// Konec tabulky pro seznam polozek
+
+// Tabulka pro seznam vyrobenych soucastek
+	var manufacturing_table = new Tabulator("#manufacturing-table",{
+	    layout:"fitColumns",
+	    columns:[
+    		{
+    			formatter:"rownum",
+    			align:"center",
+    			width:40
+    		},{
+	        	title:"SN",
+	        	field:'sn',
+	        	width:120
+	        },{
+	        	title:"Stav",
+	        	field:"state",
+	        	editor:"select",
+	        	editorParams:{
+	        				0:"0 - Plánováno",
+	        				1:"1 - Před výrobou, Rezervováno",
+	        				2:"2 - Výroba",
+	        				3:"3 - Vyrobeno",
+	        				4:"4 - Před testováním",
+	        				5:"5 - Testování",
+	        				6:"6 - Test OK",
+	        				7:"7 - Test FAIL",
+	        				8:"8 - Oprava",
+	        				9:"9 - Zrušeno",
+	        				10:"10- Dokončeno",
+	        			}
+	       	},{
+	       		title:"Vytvořeno",
+	       		field:"created_date",
+	       		formatter:"datetime"
+	       	},{
+	       		title:"Dokončeno",
+	       		field:"name",
+	       		editor:"input"
+	       	},{
+	       		title:"Vyrobil",
+	       		field:"author",
+	       		editor:"input"
+	       	},{
+	       		title:"Testoval",
+	       		field:"name",
+	       		editor:"input"
+	       	},{
+	       		title:"Popis",
+	       		field:"description",
+	       		editor:"input"
+	       	},
+
+	    ],
+    	addRowPos:"top",
+	    cellEdited:function(cell){
+
+    	}
+	});
+	manufacturing_table.setData('./?operation=get_manufacture_overview', {operation:"get_manufacture_overview"}, 'POST');
+
+// Tato funkce vytvori novou polozku v seznamu vyrobenych/vyrabenych polozek
+function new_manufacturing_row(){
+	console.log("Vytvoreni noveho radku");
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("POST", "./?operation=add_manufacture_row", false);
+	// xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xhttp.send();
+	manufacturing_table.setData('./?operation=get_manufacture_overview', {operation:"get_manufacture_overview"}, 'POST');
+}
+
+
+
 
 function edit_component(id){
 	console.log("CLICK");

@@ -175,7 +175,7 @@ class edit(BaseHandler):
             ###
             ###   V teto casti by se mely zaktualizovat skladove zasoby a url adresy dodavatelu pro vsechny polozky
             ###
-       
+
             production = list(self.mdb.production.aggregate([
                 {'$match': {'_id': bson.ObjectId(name)}},
                 {'$unwind': "$components"},
@@ -187,7 +187,7 @@ class edit(BaseHandler):
                 try:
                     id = c['_id']
                     oid = bson.ObjectId(id)
-                    self.component_update_suppliers_url(oid) 
+                    self.component_update_suppliers_url(oid)
                     self.component_update_counts(oid)
                     # count = self.component_get_counts(oid, bson.ObjectId(self.get_cookie('warehouse')))
                     # print(id, "..", count)
@@ -465,6 +465,40 @@ class edit(BaseHandler):
             output = bson.json_util.dumps(dout)
             self.write(output)
 
+        elif op == 'add_manufacture_row':
+            print("Novy radek pro vyrobu")
+
+
+
+            count = self.mdb.production_manufacturing.find({'production': bson.ObjectId(name)}).count()
+            sn = "{}{:03n}{}{}".format(str(bson.ObjectId(name))[-4:], count, 19, str(bson.ObjectId(name))[-1:])
+            production_id = bson.ObjectId(name)
+            date = "Date()"
+            author = ""
+
+            data = {
+                'production': production_id,
+                'sn': sn,
+                'state': 0,
+                'description':'',
+                'history': [],
+                #'created': datetime.datetime.now(),
+                'creator': author,
+            }
+
+            out = self.mdb.production_manufacturing.insert_one(data)
+            #out.inserted_id()
+            self.write("ok")
+
+        elif op == "get_manufacture_overview":
+            data = self.mdb.production_manufacturing.aggregate([
+                {'$match': {'production': bson.ObjectId(name)}},
+                {'$addFields': {'created': {'$toDate': '$_id'}} },
+                {'$addFields': {'created_date':{"$dateToString": {"date": "$_id" }}}  }
+            ])
+            data = list(data)
+            output = bson.json_util.dumps(data)
+            self.write(output)
 
 class ust_bom_upload(BaseHandler):
     def post(self, name):
