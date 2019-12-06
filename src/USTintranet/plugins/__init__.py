@@ -267,7 +267,7 @@ class BaseHandler(tornado.web.RequestHandler):
             {"$match": {'warehouse': warehouse}},
             # {"$project": {''}}
         ])
-        return (data)
+        return list(data)
 
     '''
     Ze zadaneho ObjectID skladu vrati informace o pozici
@@ -324,7 +324,7 @@ class BaseHandler(tornado.web.RequestHandler):
         for operation in out:
             operation = operation['history']
             warehouse = str(operation.get('stock', "5c67444e7e875154440cc28f"))
-            print(warehouse)
+            #print(warehouse)
 
             if warehouse not in overview['stocks']:
                 overview['stocks'][warehouse] = {
@@ -352,7 +352,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 print(operation)
 
         self.mdb.stock.update({"_id": id}, {"$set": {"overview": overview}})
-        print(bson.json_util.dumps(overview, indent=2))
+        #print(bson.json_util.dumps(overview, indent=2))
         print(colored("![component_update_counts]", "yellow", attrs=["bold"]))
 
     def component_get_buyrequests(self, id):

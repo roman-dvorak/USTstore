@@ -132,6 +132,11 @@
                         <input class="form-control form-control-lg" type="text" name="count" id="note" autofocus>
                     </div>
 
+                    <div class="form-group col-lg-12 col-md-6">
+                        <label>Pozice</label>
+                        <input class="form-control form-control-lg" type="text" name="count" id="positions">
+                    </div>
+
                     {% if stocktaking %}
                     <div class="row form-group col-lg-12 col-md-6">
                         <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
@@ -143,14 +148,33 @@
         </div>
 
         <div class="col-6 col-md-6 col-lg-7">
+            <div class="card">
+                <div class="card-body row">
+                    
+                    <div class="form-group row col-lg-12 col-md-6">
+                      <label class="col-sm-2 col-form-label">Pozice</label>
+                      <div class="col-sm-10"><select class="form-control" id="position_select">
+                        {%for place in places %} <option value="{{place['_id']}}">{{place['name']}} | {{place['text']}}</option>{%end%}
+                      </select></div>
+                    </div>
+
+                    <div class="form-group row col-lg-12 col-md-6">
+                      <label class="col-sm-2 col-form-label">Automaticky přidat</label>
+                      <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add"></div>
+                    </div>
+
+              </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-6 col-lg-7">
 
             <div class="list-group" id="stocktaking_history">
             </div>
         </div>
     </div>
 
-    <a href="/stocktaking/view/categories">Přehled skladu podle kategorií</a>
-    <a href="/stocktaking/events">Úprava inventur</a>
+    <a href="/stocktaking/view/categories" class="btn btn-outline-primary">Přehled skladu podle kategorií</a>
+    <a href="/stocktaking/events" class="btn btn-outline-primary">Úprava inventur</a>
     <div class="bg-danger">
     </div>
 </div>
@@ -164,6 +188,8 @@
           url: "/stocktaking/get_item/",
           data: {
             '_id': $('#sku_search').val(),
+            'stocktaking_position': $('#position_select').val(),
+            'add_position': $('#position_add').is(':checked'),
           },
           success: function( data, textStatus, jQxhr ){
             var first_time = true;
@@ -204,6 +230,18 @@
                       delay: 3000
                   });
                 }
+                
+                // Vytvoreni seznamu aktualnich pozic
+                var pos_text = "";
+                for (var i = 0; i < data.position.length; i++) {
+                    var pos = data.position[i];
+                    console.log(">", pos.info[0]);
+                    if (i>0) {
+                      pos_text += ', ';
+                    }
+                    pos_text += pos.info[0].name;
+                }
+                $('#positions').val(pos_text);
 
                 try{
                   $("#val_old").text(data.item.overview.stocks[data.warehouse._id.$oid].count.onstock);
@@ -308,6 +346,14 @@
         //$("#message").
     }
     clear_form();
+</script>
+
+<script type="text/javascript">
+  
+  $('#position_select').select2({
+  
+  });
+
 </script>
 
 
