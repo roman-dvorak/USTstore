@@ -14,7 +14,7 @@ HEADING_SIZE = 16
 
 FONT_DIR = os.path.join("static", "dejavu")
 
-
+# TODO je tu potenciální problém dlouhých adres, které mohou vyběhnout z papíru
 def generate_contract(user, contract, company_name, company_address, company_crn):
     name_doc = user.get("name", None)
     if not name_doc:

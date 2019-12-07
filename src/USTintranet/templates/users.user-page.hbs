@@ -258,20 +258,43 @@
                         <label for="contract-hour-rate-input">Hodinová sazba</label>
                         <input type="number" class="form-control" id="contract-hour-rate-input" required>
                     </div>
-
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="contract-is-signed-input">
-                        <label for="contract-is-signed-input" class="form-check-label">
-                            Smlouva je podepsaná (platná)
-                        </label>
-                    </div>
-
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
                 <button type="button" class="btn btn-primary" id="user-save-btn"
                         onclick="saveContractEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="upload-contract-scan-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát sken podepsané smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="upload-contract-scan-form" action="/users/api/u/{{_id}}/contracts/scan"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="contract-scan-id-input" name="_id">
+
+                    <div class="form-group">
+                        <label for="contract-scan-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="contract-scan-file-input" name="file">
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="user-save-btn"
+                        onclick="saveUploadContractScanModal()">Uložit
                 </button>
             </div>
         </div>
@@ -519,15 +542,18 @@
                                 </tr>
                                 {% end %}
                                 <tr>
-                                    <td>Je podepsaná?</td>
+                                    <td>Sken podepsané smlouvy</td>
                                     <td>
-                                        {% if not contract["is_signed_raw"] %}
+                                        {% if contract.get("scan_signed_url", None) %}
                                         <button type="button" class="btn btn-sm btn-secondary"
-                                                style="float: right; padding-bottom: 0" onclick="signContract(this)">
+                                                style="float: right; padding-bottom: 0"
+                                                onclick="showUploadContractScanModal(this)">
                                             <i class="material-icons" style="font-size: 17px">edit</i>
                                         </button>
+                                        <a href="{{contract['scan_signed_url']}}" target="_blank">Zobrazit</a>
+                                        {% else %}
+                                        <a href="#" onclick="showUploadContractScanModal(this)">Nahrát</a>
                                         {% end %}
-                                        {{contract["is_signed"]}}
                                     </td>
                                 </tr>
                                 {% if contract.get("invalidated", False) %}
@@ -771,7 +797,6 @@
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
-        data["is_signed"] = $("#contract-is-signed-input").prop("checked");
 
         sendContractDataAjax(data);
     }
@@ -943,16 +968,22 @@
         sendContractDataAjax(data);
     }
 
-    function signContract(button) {
-        let contractHeaderRow = $(button).closest("tr.contract-info").prev();
+    function showUploadContractScanModal(link) {
+        console.log(link);
+        let contractHeaderRow = $(link).closest("tr.contract-info").prev();
         let contractId = contractHeaderRow.data("id");
 
-        let data = {};
-        data["contract_id"] = contractId;
-        data["is_signed"] = true;
+        $("#contract-scan-id-input").val(contractId);
 
-        sendContractDataAjax(data);
+        $("#upload-contract-scan-modal").modal("show");
     }
+
+
+    function saveUploadContractScanModal() {
+        let form = document.forms["upload-contract-scan-form"];
+        form.submit();
+    }
+
 
     function ajaxError(jqXHR, textStatus, errorThrown) {
         let legibleError = decodeURIComponent(escape(errorThrown));

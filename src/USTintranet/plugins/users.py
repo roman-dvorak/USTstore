@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from random import randint
 
 import bson.json_util
 import tornado
@@ -24,6 +25,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
         (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
@@ -254,14 +256,12 @@ class UserPageHandler(BaseHandler):
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["is_signed"] = "Ano" if contract["is_signed"] else "Ne"
-            new["is_signed_raw"] = contract["is_signed"]
-            # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
+            new["scan_signed_url"] = contract.get("scan_signed_url", None)
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
             new["url"] = contract["url"]
 
             new["is_valid"] = False
-            if contract["is_signed"] and not contract.get("invalidated", False):
+            if not contract.get("invalidated", False):
                 if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
                     new["is_valid"] = True
 
@@ -314,9 +314,6 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
         if "contract_id" in contract:
             if contract.get("invalidated", False):
                 udb.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
-
-            if contract.get("is_signed", False):
-                udb.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
         else:
             contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
             contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
@@ -337,6 +334,39 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             contract["url"] = res.get_link()
 
             udb.add_user_contract(self.mdb.users, _id, contract)
+
+
+class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
+
+    def post(self, user_id):
+        contract_id = self.get_argument("_id")
+
+        if not self.request.files:
+            self.redirect(f"/users/u/{user_id}", permanent=True)
+            return
+
+        file = self.request.files["file"][0]
+        file_name = f"{user_id}_{contract_id}_scan_{randint(1000000, 9999999)}"
+        owncloud_url = self.process_file(file, file_name)
+        udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, owncloud_url)
+
+        self.redirect(f"/users/u/{user_id}", permanent=True)
+
+    def process_file(self, file, document_name):  # TODO zkopírované z dokumentů, chce to opravit (DRY)
+        extension = os.path.splitext(file["filename"])[1]
+
+        new_filename = f"{document_name}{extension}"
+        local_path = os.path.join("static", "tmp", new_filename)
+
+        with open(local_path, "wb") as f:
+            f.write(file["body"])
+
+        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "contracts", new_filename)
+        remote = save_file(self.mdb, owncloud_path)
+        res = upload_file(self.oc, local_path, remote)
+        print("res", res)
+
+        return res.get_link()
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):

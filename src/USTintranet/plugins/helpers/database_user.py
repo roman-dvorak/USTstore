@@ -166,13 +166,10 @@ def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, 
                     }})
 
 
-def sign_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
-    """
-    Nastaví key smlouvy "is_signed" na true.
-    """
+def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: str, contract_id: str, owncloud_url: str):
     coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
                     {"$set": {
-                        "contracts.$.is_signed": True
+                        "contracts.$.scan_signed_url": owncloud_url,
                     }})
 
 
