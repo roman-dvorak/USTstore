@@ -4,8 +4,6 @@
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
 
 <style>
     body {
@@ -108,34 +106,6 @@
 </div>
 
 
-<div class="modal fade" id="role-editor-modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="role-editor-title">Editor Rolí</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <input type="hidden" id="role-column-field">
-                    <input type="hidden" id="role-row-id">
-                    <div class="form-group">
-                        <label for="tagify-input">Role</label>
-                        <input type="text" class="form-control form-control-sm" id="tagify-input">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
-                <button type="button" class="btn btn-primary" data-dismiss="modal" id="role-save-btn">Uložit</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <div class="container-fluid">
     <div class="row">
         <div class="col">
@@ -189,12 +159,6 @@
     let editedData = {}; // formát {<user id>: {<editovaný field>: <nová hodnota>}}, obsahuje editované fieldy
     let newData = new Set(); // sem přijdou jen id nových uživatelů
     let deletedData = new Set(); // sem přijdou jen id smazaných uživatelů
-
-    let tagify = null;
-
-    $(document).ready(() => {
-        tagify = new Tagify(document.getElementById("tagify-input"));
-    });
 
     /**
      * Zobrazí oznámení v messages-span.
@@ -374,47 +338,6 @@
 
             moment.locale("cs");
             return moment(value, "YYYY-MM-DD").format("l");
-        };
-
-        /**
-         * Callback tabulatoru. Zobrazí modal editor rolí v podobě tagify inputu.
-         */
-        let showRoleEditor = function (e, cell) { // TODO focus input on modal show
-            let data = cell.getRow().getData();
-            let id = cell.getRow().getIndex();
-            let field = cell.getField();
-
-            tagify.removeAllTags();
-            tagify.addTags(cell.getValue());
-
-            clearMessage();
-
-            // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
-            $("#role-column-field").val(field);
-            $("#role-row-id").val(id);
-
-            $("#role-editor-modal").modal("show");
-        };
-
-        /**
-         * Přeparsuje role tagy z tagify a jestli se změnily role, uloží změny do tabulky (a do editedData).
-         */
-        let saveRoleEditor = function () {
-            let id = $("#role-row-id").val();
-            let field = $("#role-column-field").val();
-            let cell = table.getRow(id).getCell(field);
-
-            let new_tags = [];
-            for (let tag of tagify.value) {
-                new_tags.push(tag.value);
-            }
-
-            let old_value = cell.getValue();
-            if (!Array.isArray(old_value) || old_value.join() !== new_tags.join()) {
-                cell.setValue(new_tags);
-            }
-
-            tagify.removeAllTags();
         };
 
         /**
@@ -711,7 +634,6 @@
         };
 
         $("#address-save-btn").on("click", saveAddressEditor);
-        $("#role-save-btn").on("click", saveRoleEditor);
 
         return new Tabulator("#users-table", {
             width: '100%',
@@ -868,9 +790,9 @@
                 {
                     title: "Role",
                     field: "role",
-                    sorter: "string",
+                    editor: "input",
                     editable: false,
-                    cellDblClick: showRoleEditor,
+                    cellDblClick: dblClickStartEdit,
                 },
                 {
                     title: "Pracovní náplň",

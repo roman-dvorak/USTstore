@@ -4,8 +4,6 @@
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
 
 
 <style>
@@ -184,7 +182,7 @@
 
                     <div class="form-group">
                         <label for="role-input">Role</label>
-                        <input type="text" class="form-control form-control-sm" id="role-input">
+                        <input type="text" class="form-control" id="role-input">
                     </div>
 
                     <div class="form-group">
@@ -241,10 +239,10 @@
                         <input type="date" class="form-control" id="contract-signing-date-input" required>
                     </div>
 
-<!--                    <div class="form-group">-->
-<!--                        <label for="contract-signing-place-input">Místo uzavření</label>-->
-<!--                        <input type="text" class="form-control" id="contract-signing-place-input" required>-->
-<!--                    </div>-->
+                    <!--                    <div class="form-group">-->
+                    <!--                        <label for="contract-signing-place-input">Místo uzavření</label>-->
+                    <!--                        <input type="text" class="form-control" id="contract-signing-place-input" required>-->
+                    <!--                    </div>-->
 
                     <div class="form-group">
                         <label for="contract-valid-from-input">Platná od</label>
@@ -637,8 +635,6 @@
 
 <script>
 
-
-    let role_tagify = null;
     $(document).ready(() => {
         initBasicInfo();
         initContracts();
@@ -646,7 +642,6 @@
     });
 
     function initBasicInfo() {
-        role_tagify = new Tagify(document.getElementById("role-input"));
     }
 
     function initContracts() {
@@ -688,9 +683,7 @@
             input.value = ""
         }
         $("#notes-input").val("");
-
-        role_tagify.removeAllTags();
-        role_tagify.addTags("{{role}}".split(", "));
+        $("#role-input").val("{{role}}");
 
         let birthdateInput = $("#birthdate-input");
         birthdateInput.val("{{birthdate_iso}}");
@@ -715,12 +708,9 @@
         changes["skills"] = $("#skills-input").val();
         changes["notes"] = $("#notes-input").val();
 
-        let new_roles = [];
-        for (let role of role_tagify.value) {
-            new_roles.push(role.value)
-        }
-        if (new_roles.join(", ") !== "{{role}}") {
-            changes["role"] = new_roles;
+        let role_input = $("#role-input");
+        if (role_input.val().replace(" ", "") !== "{{role}}") {
+            changes["role"] = role_input.val();
         }
 
         let new_birthdate = $("#birthdate-input").val();

@@ -71,7 +71,10 @@ class ApiAdminTableHandler(BaseHandler):
             if "birthdate" in item:
                 item["birthdate"] = item["birthdate"].replace(microsecond=0).isoformat()
 
-            item.pop("pass", None)
+            item.pop("password", None)
+
+            if "role" in item:
+                item["role"] = ",".join(item["role"])
 
             if "addresses" in item:
                 item["residence_address"] = find_type_in_addresses(item["addresses"], "residence")
@@ -125,6 +128,9 @@ class ApiAdminTableHandler(BaseHandler):
         if "birthdate" in data and data["birthdate"] != "":
             data["birthdate"] = datetime.strptime(data["birthdate"], "%Y-%m-%d")
 
+        if "role" in data:
+            data["role"] = data["role"].replace(" ", "").split(",")
+
         if data:
             udb.update_user(self.mdb.users, _id, data)
 
@@ -154,6 +160,9 @@ class ApiEditUserHandler(BaseHandler):
 
         if "birthdate" in changes and changes["birthdate"] != "":
             changes["birthdate"] = datetime.strptime(changes["birthdate"], "%Y-%m-%d")
+
+        if "role" in changes:
+            changes["role"] = changes["role"].replace(" ", "").split(",")
 
         if changes:
             udb.update_user(self.mdb.users, _id, changes)
@@ -208,7 +217,7 @@ class UserPageHandler(BaseHandler):
             "email": user_document.get("email", ""),
             "phone_number": user_document.get("phone_number", ""),
             "account_number": user_document.get("account_number", ""),
-            "role": ", ".join(user_document.get("role", [])),
+            "role": ",".join(user_document.get("role", [])),
             "assignment": user_document.get("assignment", ""),
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
