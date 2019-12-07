@@ -9,8 +9,10 @@ from plugins.helpers.doc_keys import NAME_DOC_KEYS
 SPACE_SIZE = 6
 MULTICELL_SPACE_SIZE = 2
 FONT = "DejaVu"
-FONT_SIZE = 11
+FONT_SIZE = 10
 HEADING_SIZE = 16
+WIDTH = 35
+ONE_LINE_LIMIT = 60
 
 FONT_DIR = os.path.join("static", "dejavu")
 
@@ -54,6 +56,7 @@ def generate_contract(user, contract, company_name, company_address, company_crn
     pdf.add_font(FONT, 'I', os.path.join(FONT_DIR, 'DejaVuSerif-Italic.ttf'), uni=True)
 
     pdf.set_margins(25, 25)
+    pdf.set_auto_page_break(False)
     pdf.add_page()
 
     pdf.set_font(FONT, "B", HEADING_SIZE)
@@ -65,11 +68,11 @@ def generate_contract(user, contract, company_name, company_address, company_crn
     pdf.cell(w=0, txt="(do 300 hodin ročně)", align="C")
     pdf.ln(SPACE_SIZE * 2)
 
-    pdf.cell(w=50, txt="Zaměstnavatel:")
+    pdf.cell(w=WIDTH, txt="Zaměstnavatel:")
     pdf.cell(w=0, txt=company_name)
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="se sídlem:")
+    pdf.cell(w=WIDTH, txt="se sídlem:")
     pdf.cell(w=0, txt=f"{company_address}, IČO: {company_crn}")
     pdf.ln(SPACE_SIZE)
 
@@ -79,12 +82,31 @@ def generate_contract(user, contract, company_name, company_address, company_crn
     pdf.cell(w=0, txt="a")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="zaměstnanec:")
-    pdf.cell(w=0, txt=f"{full_name}, nar.: {birthdate}")
+    pdf.cell(w=WIDTH, txt="zaměstnanec:")
+
+    cell_text = f"{full_name}, nar.: {birthdate}"
+    if len(cell_text) < ONE_LINE_LIMIT:
+        pdf.cell(w=0, txt=cell_text)
+    else:
+        print("cell text length:", len(cell_text), cell_text)
+        pdf.cell(w=0, txt=f"{full_name},")
+        pdf.ln(SPACE_SIZE - 1)
+        pdf.cell(w=WIDTH, txt="")
+        pdf.cell(w=0, txt=f"nar.: {birthdate}")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="bytem:")
-    pdf.cell(w=0, txt=address)
+    pdf.cell(w=WIDTH, txt="bytem:")
+
+    if len(address) < ONE_LINE_LIMIT:
+        pdf.cell(w=0, txt=address)
+    else:
+        first_comma = address.find(", ") + 2
+        before_comma = address[:first_comma]
+        after_comma = address[first_comma:]
+        pdf.cell(w=0, txt=before_comma)
+        pdf.ln(SPACE_SIZE - 1)
+        pdf.cell(w=WIDTH, txt="")
+        pdf.cell(w=0, txt=after_comma)
     pdf.ln(SPACE_SIZE)
 
     pdf.cell(w=0, txt="uzavírají tuto")
@@ -141,12 +163,12 @@ def generate_contract(user, contract, company_name, company_address, company_crn
     pdf.cell(w=0, txt=f"V Praze, dne {str_ops.date_to_str(signing_date)}")
     pdf.ln(SPACE_SIZE * 3)
 
-    pdf.cell(w=100, txt="." * 50)
-    pdf.cell(w=50, txt="." * 50, align="R")
+    pdf.cell(w=124, txt="." * 50)
+    pdf.cell(w=WIDTH, txt="." * 50, align="R")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=100, txt="podpis zaměstnance")
-    pdf.cell(w=50, txt="podpis opráv. zástupce firmy", align="R")
+    pdf.cell(w=124, txt="podpis zaměstnance")
+    pdf.cell(w=WIDTH, txt="podpis opráv. zástupce firmy", align="R")
 
     pdf.output(output_path)
 
