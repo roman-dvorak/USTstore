@@ -15,7 +15,7 @@ HEADING_SIZE = 16
 FONT_DIR = os.path.join("static", "dejavu")
 
 
-def generate_contract(user, contract, company_name, company_address, company_id):
+def generate_contract(user, contract, company_name, company_address, company_crn):
     name_doc = user.get("name", None)
     if not name_doc:
         raise MissingInfoError("Uživatel nemá vyplněné jméno.")
@@ -70,7 +70,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     pdf.ln(SPACE_SIZE)
 
     pdf.cell(w=50, txt="se sídlem:")
-    pdf.cell(w=0, txt=f"{company_address}, IČO: {company_id}")
+    pdf.cell(w=0, txt=f"{company_address}, IČO: {company_crn}")
     pdf.ln(SPACE_SIZE)
 
     pdf.cell(w=0, txt="(dále jen zaměstnavatel)")

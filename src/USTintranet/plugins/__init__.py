@@ -198,6 +198,9 @@ class BaseHandler(tornado.web.RequestHandler):
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
 
+        self.company_info = self._get_company_info()
+        self.dpp_params = self._get_dpp_params()
+
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
             self.role = set(user_db['role'])
@@ -217,6 +220,7 @@ class BaseHandler(tornado.web.RequestHandler):
             print("uzivatel neni korektne prihlasen")
             self.logged = False
             return None
+
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:
@@ -581,6 +585,12 @@ class BaseHandler(tornado.web.RequestHandler):
         print(">> operation: {}".format(operation))
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
+
+    def _get_company_info(self):
+        return self.mdb.intranet.find_one({"_id": "company_info"})
+
+    def _get_dpp_params(self):
+        return self.mdb.intranet.find_one({"_id": "dpp_parameters"})
 
 
 #

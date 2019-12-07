@@ -213,7 +213,9 @@ class UserPageHandler(BaseHandler):
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
         }
-        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now()))
+        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now(),
+                                                       self.dpp_params["year_max_hours"],
+                                                       self.dpp_params["month_max_gross_wage"]))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
@@ -313,9 +315,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             contract["hour_rate"] = int(contract["hour_rate"])
 
             local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
-                                           "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
-                                           "U Jatek 19, 392 01 Soběslav",
-                                           "28155319")
+                                           self.company_info["name"],
+                                           self.company_info["address"],
+                                           self.company_info["crn"])
 
             owncloud_path = os.path.join(tornado.options.options.owncloud_root,
                                          "contracts",

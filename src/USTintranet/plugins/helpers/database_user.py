@@ -220,23 +220,58 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
         raise ValueError("Uživatel nemá dokument s tímto _id")
 
 
-def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str):
-    now = datetime.now()
+def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, date: datetime = None):
+    if not date:
+        date = datetime.now()
 
-    cursor = coll.find({
+    mdoc = coll.find_one({
         "_id": ObjectId(user_id),
         "contracts": {
             "$elemMatch": {
-                "valid_from": {"$lte": now},
-                "valid_until": {"$gte": now},
+                "valid_from": {"$lte": date},
+                "valid_until": {"$gte": date},
                 "invalidated": {"$exists": False}
             }
         }
     }, {"contracts.$": 1})
 
-    contracts = next(cursor, {}).get("contracts", {})
+    if not mdoc:
+        return None
 
-    return next(iter(contracts), None)
+    contracts = mdoc.get("contracts", None)  # TODO proč tu není prostě coll.find_one?
+
+    return contracts[0] if contracts else None
+
+
+def get_user_active_document(coll: pymongo.collection.Collection, user_id, document_type, date: datetime = None):
+    if not date:
+        date = datetime.now()
+
+    mdoc = coll.find_one({
+        "_id": ObjectId(user_id),
+        "documents": {
+            "$elemMatch": {
+                "valid_from": {"$lte": date},
+                "valid_until": {"$gte": date},
+                "type": document_type
+            }
+        }
+    }, {"documents.$": 1})
+
+    if not mdoc:
+        return None
+
+    documents = mdoc.get("documents", None)
+
+    return documents[0] if documents else None
+
+
+def get_user_active_tax_declaration(coll: pymongo.collection.Collection, user_id: str, date: datetime = None):
+    return get_user_active_document(coll, user_id, "tax_declaration", date)
+
+
+def get_user_active_study_certificate(coll: pymongo.collection.Collection, user_id: str, date: datetime = None):
+    return get_user_active_document(coll, user_id, "study_certificate", date)
 
 
 def update_email_is_validated_status(coll: pymongo.collection.Collection,
@@ -246,10 +281,10 @@ def update_email_is_validated_status(coll: pymongo.collection.Collection,
                                      token=""):
     if token:
         res = coll.update_one({"_id": ObjectId(user_id)},
-                        {"$set": {
-                            "email_validated": "pending",
-                            "email_validation_token": token,
-                        }})
+                              {"$set": {
+                                  "email_validated": "pending",
+                                  "email_validation_token": token,
+                              }})
     elif yes:
         coll.update_one({"_id": ObjectId(user_id)},
                         {
