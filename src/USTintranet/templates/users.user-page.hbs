@@ -52,9 +52,8 @@
         display: none;
     }
 
-    #delete-document-button {
+    .form-button {
         width: 100%;
-        /*display: none;*/
     }
 
     .item-black {
@@ -225,6 +224,11 @@
                 <form name="contract-editor-form">
                     <input type="hidden" id="contract-id-input">
 
+                    <button type="button" class="btn btn-secondary form-button"
+                            id="contracts-load-previous-values-button" onclick="contractLoadPreviousValues()">
+                        Načíst předchozí hodnoty
+                    </button>
+
                     <div class="form-group">
                         <label for="contract-type-select">Typ smlouvy</label>
                         <select class="form-control" id="contract-type-select" required>
@@ -315,7 +319,7 @@
                       method="post" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="document-id-input" name="_id">
 
-                    <button type="button" class="btn btn-secondary" id="delete-document-button"
+                    <button type="button" class="btn btn-secondary form-button" id="delete-document-button"
                             onclick="deleteDocument()">
                         Smazat dokument
                     </button>
@@ -671,6 +675,11 @@
     }
 
     function initContracts() {
+        setupContractHiding();
+        setContractFieldsChangeHandlers();
+    }
+
+    function setupContractHiding() {
         let contractInfos = $(".contract-info");
         contractInfos.first().show();
 
@@ -689,6 +698,17 @@
         if (contractInfos.length > 2) {
             showMore.show();
             contractHeaders.slice(2).hide();
+        }
+    }
+
+    function setContractFieldsChangeHandlers() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            e.addEventListener("change", () => {
+                sessionStorage.setItem(e.id, e.value);
+            });
         }
     }
 
@@ -984,6 +1004,17 @@
         form.submit();
     }
 
+    function contractLoadPreviousValues() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            let previousValue = sessionStorage.getItem(e.id);
+            if (previousValue != null) {
+                e.value = previousValue;
+            }
+        }
+    }
 
     function ajaxError(jqXHR, textStatus, errorThrown) {
         let legibleError = decodeURIComponent(escape(errorThrown));
