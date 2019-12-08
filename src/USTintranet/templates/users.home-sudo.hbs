@@ -11,12 +11,6 @@
         height: 100%;
     }
 
-    #body {
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-    }
-
     #users-table-control-panel {
         width: 100%;
         padding: 5px;
@@ -31,16 +25,12 @@
         float: right;
     }
 
-    #messages-span {
-        padding-left: 10px;
-        padding-right: 10px;
-        vertical-align: middle;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
     .tabulator {
+        position: absolute;
+        bottom: 0;
+        top: 185px;
         user-select: none;
+        overflow: auto;
     }
 
     #new-user-form-wrapper {
@@ -140,18 +130,14 @@
                         <button id="deselect-all" type="button" class="btn btn-light" onclick="deselectAllRows()">
                             Odznačit vše
                         </button>
-                        <span id="messages-span"></span>
                     </div>
                 </div>
-                <div id="users-table"></div>
             </div>
         </div>
     </div>
-
-    <div class="row">
-        <br><br><br>
-    </div>
 </div>
+
+<div id="users-table"></div>
 
 <script type="text/javascript">
 
@@ -161,17 +147,16 @@
     let deletedData = new Set(); // sem přijdou jen id smazaných uživatelů
 
     /**
-     * Zobrazí oznámení v messages-span.
+     * Zobrazí oznámení.
      */
     function setMessage(msg) {
-        $("#messages-span").text(msg);
-    }
-
-    /**
-     * Smaže poslední oznámení z messages-span.
-     */
-    function clearMessage() {
-        $("#messages-span").text("");
+        Lobibox.notify("default", {
+            size: "mini",
+            position: "center top",
+            rounded: true,
+            delay: 2000,
+            msg: msg,
+        })
     }
 
     function sendValidationEmail(user_id) {
@@ -232,8 +217,6 @@
          * Zdroj: https://github.com/olifolkerd/tabulator/issues/631
          */
         let dblClickStartEdit = function (e, cell) {
-            clearMessage();
-
             if (cell.getField() === "email") {
                 setMessage("Pozor, změnou emailové adresy můžete uživateli znemožnit přihlášení");
             }
@@ -245,7 +228,6 @@
          * Callback tabulatoru. Invertuje bool hodnotu buňky.
          */
         let boolCellChangeValue = function (e, cell) {
-            clearMessage();
             cell.setValue(!cell.getValue());
             e.preventDefault()
         };
@@ -262,8 +244,6 @@
             let city = data[field]["city"];
             let state = data[field]["state"];
             let zip = data[field]["zip"];
-
-            clearMessage();
 
             // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
             $("#address-column-field").val(field);
@@ -398,7 +378,6 @@
          * Callback tabutatoru. Zobrazí varování po doubleclicku na needitovatelnou buňku.
          */
         let uneditableMsg = function (e, cell) {
-            clearMessage();
             setMessage("Tato buňka není editovatelná")
         };
 
@@ -407,7 +386,6 @@
          * Funkce pro vývoj, nebude ve výsledném produktu.
          */
         let yetUneditableMsg = function (e, cell) {
-            clearMessage();
             setMessage("Editace není implementovaná")
         };
 
@@ -624,8 +602,6 @@
                                 editedData[user_id]["email_validated"] = "yes";
 
                                 saveUsersEdits();
-                            } else if (type === "close") {
-                                clearMessage();
                             }
                         }
                     });
@@ -637,7 +613,6 @@
 
         return new Tabulator("#users-table", {
             width: '100%',
-            height: '500px',
             movableColumns: true,
             history: true,
             selectable: true,
@@ -916,9 +891,7 @@
      */
     function undoTableAction() {
         let undone = table.undo();
-        if (undone) {
-            clearMessage();
-        } else {
+        if (!undone) {
             setMessage("Není co vzít zpět");
         }
     }
@@ -929,9 +902,7 @@
      */
     function redoTableAction() {
         let redone = table.redo();
-        if (redone) {
-            clearMessage();
-        } else {
+        if (!redone) {
             setMessage("Není co provést znovu")
         }
     }
@@ -1036,7 +1007,6 @@
             setMessage("Je vybráno více řádků");
             return;
         }
-        clearMessage();
         let row = selected[0];
         let id = row.getIndex();
         let url = `users/u/${id}`;
