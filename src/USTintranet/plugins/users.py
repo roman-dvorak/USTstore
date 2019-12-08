@@ -231,7 +231,10 @@ class UserPageHandler(BaseHandler):
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        template_params["documents"] = self.prepare_documents(documents, contracts)
+        study_certificates, tax_declarations = self.prepare_documents(documents, contracts)
+        template_params["documents"] = {}
+        template_params["documents"]["study_certificates"] = study_certificates
+        template_params["documents"]["tax_declarations"] = tax_declarations
 
         self.render("users.user-page.hbs", **template_params)
 
@@ -275,15 +278,13 @@ class UserPageHandler(BaseHandler):
     def prepare_documents(self, documents, contracts):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
-            "tax_declaration": "Prohlášení k dani",
-            "contract_scan": "Sken podepsané smlouvy"
+            "tax_declaration": "Prohlášení k dani"
         }
 
+        study_certificates = []
+        tax_declarations = []
+
         for document in documents:
-            if document["type"] == "contract_scan":
-                contract = next(item for item in contracts if item["_id"] == document["contract_id"])
-                document["valid_from"] = contract["valid_from"]
-                document["valid_until"] = contract["valid_until"]
 
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
@@ -302,7 +303,12 @@ class UserPageHandler(BaseHandler):
             date_texts = [date for date in [valid_from_text, valid_until_text] if date]
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
 
-        return documents
+            if document["type"] == "study_certificate":
+                study_certificates.append(document)
+            elif document["type"] == "tax_declaration":
+                tax_declarations.append(document)
+
+        return study_certificates, tax_declarations
 
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
