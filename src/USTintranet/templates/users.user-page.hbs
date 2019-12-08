@@ -333,14 +333,14 @@
 
                     <div class="form-group">
                         <label for="contract-scan-file-input">Soubor</label>
-                        <input type="file" class="form-control" id="contract-scan-file-input" name="file">
+                        <input type="file" class="form-control" id="contract-scan-file-input" name="file" required>
                     </div>
 
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
-                <button type="button" class="btn btn-primary" data-dismiss="modal" id="user-save-btn"
+                <button type="button" class="btn btn-primary" id="user-save-btn"
                         onclick="saveUploadContractScanModal()">Uložit
                 </button>
             </div>
@@ -1021,6 +1021,7 @@
 
         inputs.each((index, element) => {
             element = $(element);
+            console.log(element, element.val())
 
             if ((element.is(":visible") || validateHidden) && element.is(":required") && element.val() === "") {
                 markInvalid(element);
@@ -1079,6 +1080,9 @@
 
     function saveUploadContractScanModal() {
         let form = document.forms["upload-contract-scan-form"];
+
+        if (!validateRequired(form)) return;
+
         form.submit();
     }
 
