@@ -372,8 +372,7 @@
                         <select class="form-control" id="document-type-select" name="type" required>
                             <option value="study_certificate">Potvrzení o studiu</option>
                             <option value="tax_declaration">Prohlášení k dani</option>
-                            <option value="contract_scan">Sken podepsané smlouvy</option>
-                            <!--                            <option value="other">Jiné</option>-->
+                            <option value="cv">Životopis</option>
                         </select>
                     </div>
                     <div id="document-valid-dates-section">
@@ -389,19 +388,6 @@
                                    name="valid_until" required>
                         </div>
                     </div>
-
-                    <div id="document-select-contract-section">
-                        <div class="form-group">
-                            <label for="document-contract-select">Smlouva</label>
-                            <select class="form-control" id="document-contract-select" name="document_contract"
-                                    required>
-                                {% for contract in contracts %}
-                                <option value="{{contract['_id']}}">{{contract["title"]}}</option>
-                                {% end %}
-                            </select>
-                        </div>
-                    </div>
-
 
                     <div class="form-group">
                         <label for="document-notes-textarea">Poznámky</label>
@@ -1033,11 +1019,9 @@
 
     function handleDocumentTypeChange() {
         let selectedType = $("#document-type-select").val();
-        if (selectedType === "contract_scan") {
-            $("#document-select-contract-section").show();
+        if (selectedType === "cv") {
             $("#document-valid-dates-section").hide();
         } else {
-            $("#document-select-contract-section").hide();
             $("#document-valid-dates-section").show();
         }
     }
