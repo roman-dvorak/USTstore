@@ -307,20 +307,22 @@ class UserPageHandler(BaseHandler):
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):  # TODO rozmyslet si api
+    def post(self, user_id):  # TODO rozmyslet si api
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
         if "contract_id" in contract:
             if contract.get("invalidated", False):
-                udb.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
+                udb.invalidate_user_contract(self.mdb.users, user_id, contract["contract_id"])
         else:
             contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
             contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
             contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
             contract["hour_rate"] = int(contract["hour_rate"])
 
-            local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
+            contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
+
+            local_path = generate_contract(user_id, contract,
                                            self.company_info["name"],
                                            self.company_info["address"],
                                            self.company_info["crn"])
@@ -333,7 +335,7 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
             contract["url"] = res.get_link()
 
-            udb.add_user_contract(self.mdb.users, _id, contract)
+            udb.add_user_contract(self.mdb.users, user_id, contract)
 
 
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):

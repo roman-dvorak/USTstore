@@ -243,10 +243,13 @@
                         <input type="date" class="form-control" id="contract-signing-date-input" required>
                     </div>
 
-                    <!--                    <div class="form-group">-->
-                    <!--                        <label for="contract-signing-place-input">Místo uzavření</label>-->
-                    <!--                        <input type="text" class="form-control" id="contract-signing-place-input" required>-->
-                    <!--                    </div>-->
+                    <div class="form-group">
+                        <label for="contract-signing-place-input">
+                            Kde byla smlouva uzavřena
+                        </label>
+                        <input type="text" class="form-control" id="contract-signing-place-input"
+                               required>
+                    </div>
 
                     <div class="form-group">
                         <label for="contract-valid-from-input">Platná od</label>
@@ -263,6 +266,42 @@
                         <input type="number" class="form-control" id="contract-hour-rate-input" required>
                     </div>
                 </form>
+
+                <a href="#" onclick="showUserParamsInContractModal()" id="show-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Zobrazit parametry uživatele
+                </a>
+                <a href="#" onclick="hideUserParamsInContractModal()" id="hide-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Skrýt parametry uživatele
+                </a>
+                <form name="contract-user-params-form" class="collapse">
+                    <div class="form-group">
+                        <label for="contract-name-input">Jméno</label>
+                        <input type="text" class="form-control" id="contract-name-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-address-input">Adresa</label>
+                        <input type="text" class="form-control" id="contract-address-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-birthdate-input">Datum narození</label>
+                        <input type="date" class="form-control" id="contract-birthdate-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-account-number-input">Číslo účtu</label>
+                        <input type="text" class="form-control" id="contract-account-number-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-assignment-input">Pracovní náplň</label>
+                        <input type="text" class="form-control" id="contract-assignment-input" required>
+                    </div>
+                </form>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
@@ -800,6 +839,14 @@
     }
 
     function showContractEditor() {
+        hideUserParamsInContractModal();
+
+        $("#contract-name-input").val("{{name}}");
+        $("#contract-address-input").val("{{residence_address}}");
+        $("#contract-birthdate-input").val("{{birthdate_iso}}");
+        $("#contract-account-number-input").val("{{account_number}}");
+        $("#contract-assignment-input").val("{{assignment}}");
+
         $("#contract-editor-modal").modal("show");
     }
 
@@ -810,6 +857,11 @@
             return;
         }
 
+        if (!validateContractUserParamsForm()) {
+            showUserParamsInContractModal();
+            return;
+        }
+
         let data = {};
         data["type"] = $("#contract-type-select").val();
         data["signing_date"] = $("#contract-signing-date-input").val();
@@ -817,6 +869,12 @@
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
+
+        data["name"] = $("#contract-name-input").val();
+        data["address"] = $("#contract-address-input").val();
+        data["birthdate"] = $("#contract-birthdate-input").val();
+        data["account_number"] = $("#contract-account-number-input").val();
+        data["assignment"] = $("#contract-assignment-input").val();
 
         sendContractDataAjax(data);
     }
@@ -906,6 +964,10 @@
         return isValid;
     }
 
+    function validateContractUserParamsForm() {
+        return validateRequired(document.forms["contract-user-params-form"], true);
+    }
+
     function validateDocumentEditor() {
         let isValid = validateRequired(document.forms["document-editor-form"]);
 
@@ -937,18 +999,21 @@
 
     }
 
-    function validateRequired(form) {
+    function validateRequired(form, validateHidden = false) {
+        console.log(form, validateHidden);
         let isValid = true;
         let inputs = $(form).find("input, textarea, select");
 
         inputs.each((index, element) => {
             element = $(element);
-            if (element.is(":required") && element.is(":visible") && element.val() === "") {
+
+            if ((element.is(":visible") || validateHidden) && element.is(":required") && element.val() === "") {
                 markInvalid(element);
                 isValid = false;
             } else {
                 markValid(element);
             }
+
         });
         console.log("vysledek validateRequired");
         console.log(isValid);
@@ -1014,6 +1079,20 @@
                 e.value = previousValue;
             }
         }
+    }
+
+    function hideUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").hide();
+        $("#show-user-params-in-contract-modal-link").show();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("hide");
+    }
+
+    function showUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").show();
+        $("#show-user-params-in-contract-modal-link").hide();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("show");
     }
 
     function ajaxError(jqXHR, textStatus, errorThrown) {
