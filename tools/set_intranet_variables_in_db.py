@@ -1,6 +1,6 @@
 import pymongo
 
-DB_NAME = "USTintranet"
+DB_NAME = "USTdev"
 COMPANY_INFO_MDOC = {
     "_id": "company_info",
     "name": "Universal Scientific Technologies s.r.o.",

@@ -45,11 +45,13 @@ def plug_info():
 
 class home(BaseHandler):
     def get(self):
+        wrehouse = bson.ObjectId(self.get_cookie('warehouse', False))
+        places = self.warehouse_get_positions(wrehouse)
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
         if current: stocktaking_info = self.mdb.stock_taking.find_one({'_id': current})
         else: stocktaking_info = None
 
-        self.render('stocktaking.home.hbs', stocktaking = stocktaking_info)
+        self.render('stocktaking.home.hbs', stocktaking = stocktaking_info, places = places)
 
 
 ##
@@ -122,7 +124,9 @@ class load_item(BaseHandler):
         self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
         item = self.get_argument('_id', None)
-        print("ARGUMENT JE....", item)
+        stk_position = self.get_argument('stocktaking_position', None)
+        add_position = self.get_argument('add_position', None)
+        print("ARGUMENT JE....", item, stk_position, add_position)
         #self.write(item)
         out = {}
 
@@ -137,18 +141,21 @@ class load_item(BaseHandler):
 
             # TODO: vyhledavani pomoci jinych parametru
 
+        if add_position:
+            self.component_set_position(bson.ObjectId(item), bson.ObjectId(stk_position))
         print("ObjectID pro nacteni", item)
         self.component_update_counts(item)
         out['item'] = self.mdb.stock.find_one({'_id': item})
         out['warehouse'] = self.get_warehouse()
-        out['invetury'] = self.get_inventory()
+        out['position'] = self.component_get_positions(id = item)
+        out['inventory'] = self.get_inventory()
         out = bson.json_util.dumps(out)
         self.write(out)
 
     def get_inventory(self):
         current_id = self.mdb.intranet.find_one({'_id': 'stock_taking'})
-        current = self.mdb.stock_taking.find_one({'_id': current_id['current']})
-        return list(current)
+        current = list(self.mdb.stock_taking.find({'_id': current_id['current']}))[0]
+        return current
 
 class save_stocktaking(BaseHandler):
     def post(self):
