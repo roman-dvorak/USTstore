@@ -10,7 +10,8 @@ from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
 from plugins.helpers.exceptions import BadInputError
-from plugins.helpers.mdoc_ops import compile_user_month_info, get_user_year_days_of_vacation
+from plugins.helpers.finance import calculate_tax
+from plugins.helpers.mdoc_ops import compile_user_month_info, get_user_days_of_vacation_in_year
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -60,12 +61,20 @@ class ApiAdminMonthTableHandler(BaseHandler):
 
         users = udb.get_users(self.mdb.users)
         for user in users:
-            active_contract = udb.get_user_active_contract(self.mdb.users, user["_id"])
+            # TODO tady je edge case: smlouva a dokumenty s kontrolují k prvnímu dnu v měsíci
+            # a je předpoklad, že platí celý měsíc!
+            active_contract = udb.get_user_active_contract(self.mdb.users, user["_id"], month)
+            apply_deduction = bool(udb.get_user_active_tax_declaration(self.mdb.users, user["_id"], month))
+            apply_deduction_student = bool(udb.get_user_active_study_certificate(self.mdb.users, user["_id"], month))
+
             hour_rate = active_contract["hour_rate"] if active_contract else 0
             month_workspans = adb.get_user_workspans(self.mdb.users, user["_id"], month, next_month)
             hours_worked = sum(ws["hours"] for ws in month_workspans)
             gross_wage = hours_worked * hour_rate
-            tax_amount = 0
+            tax_amount = calculate_tax(gross_wage,
+                                       self.dpp_params["tax_rate"],
+                                       self.dpp_params["tax_deduction"] if apply_deduction else 0,
+                                       self.dpp_params["tax_deduction_student"] if apply_deduction_student else 0)
             net_wage = gross_wage - tax_amount
 
             row = {
@@ -197,8 +206,10 @@ class ApiMonthInfoHandler(BaseHandler):
     def post(self, user_id, date):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
 
-        data = compile_user_month_info(self.mdb.users, user_id, month)
-        data["year_days_of_vacation"] = get_user_year_days_of_vacation(self.mdb.users, user_id, month)
+        data = compile_user_month_info(self.mdb.users, user_id, month,
+                                       self.dpp_params["year_max_hours"],
+                                       self.dpp_params["month_max_gross_wage"])
+        data["year_days_of_vacation"] = get_user_days_of_vacation_in_year(self.mdb.users, user_id, month)
 
         self.write(bson.json_util.dumps(data))
 

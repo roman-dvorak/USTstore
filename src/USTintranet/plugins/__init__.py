@@ -198,6 +198,9 @@ class BaseHandler(tornado.web.RequestHandler):
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
 
+        self.company_info = self._get_company_info()
+        self.dpp_params = self._get_dpp_params()
+
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
             self.role = set(user_db['role'])
@@ -217,6 +220,7 @@ class BaseHandler(tornado.web.RequestHandler):
             print("uzivatel neni korektne prihlasen")
             self.logged = False
             return None
+
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:
@@ -267,7 +271,7 @@ class BaseHandler(tornado.web.RequestHandler):
             {"$match": {'warehouse': warehouse}},
             # {"$project": {''}}
         ])
-        return list(data)
+        return (data)
 
     '''
     Ze zadaneho ObjectID skladu vrati informace o pozici
@@ -324,7 +328,7 @@ class BaseHandler(tornado.web.RequestHandler):
         for operation in out:
             operation = operation['history']
             warehouse = str(operation.get('stock', "5c67444e7e875154440cc28f"))
-            #print(warehouse)
+            print(warehouse)
 
             if warehouse not in overview['stocks']:
                 overview['stocks'][warehouse] = {
@@ -352,7 +356,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 print(operation)
 
         self.mdb.stock.update({"_id": id}, {"$set": {"overview": overview}})
-        #print(bson.json_util.dumps(overview, indent=2))
+        print(bson.json_util.dumps(overview, indent=2))
         print(colored("![component_update_counts]", "yellow", attrs=["bold"]))
 
     def component_get_buyrequests(self, id):
@@ -581,6 +585,12 @@ class BaseHandler(tornado.web.RequestHandler):
         print(">> operation: {}".format(operation))
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
+
+    def _get_company_info(self):
+        return self.mdb.intranet.find_one({"_id": "company_info"})
+
+    def _get_dpp_params(self):
+        return self.mdb.intranet.find_one({"_id": "dpp_parameters"})
 
 
 #

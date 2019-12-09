@@ -15,7 +15,11 @@ def find_type_in_addresses(addresses: list, addr_type: str):
     return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
 
 
-def compile_user_month_info(coll: pymongo.collection.Collection, user_id: str, date: datetime):
+def compile_user_month_info(coll: pymongo.collection.Collection,
+                            user_id: str,
+                            date: datetime,
+                            year_max_hours,  # TODO tohle je hack, vyřešit přeuspořádáním BaseHandleru
+                            month_max_gross_wage):
     result = {}
 
     start_of_month = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -30,11 +34,11 @@ def compile_user_month_info(coll: pymongo.collection.Collection, user_id: str, d
     result["month_hours_worked"] = sum(ws["hours"] for ws in month_workspans)
     result["year_hours_worked"] = sum(ws["hours"] for ws in year_workspans)
 
-    # TODO doplnit DPČ a pracovní smlouvu, tahat z databáze
+    # TODO doplnit DPČ a pracovní smlouvu
     if active_contract and active_contract["type"] == "dpp":
         result["hour_rate"] = active_contract["hour_rate"]
-        result["year_max_hours"] = 300
-        result["month_max_hours"] = int(2 * 10000 / active_contract["hour_rate"]) / 2
+        result["year_max_hours"] = year_max_hours
+        result["month_max_hours"] = int(2 * month_max_gross_wage / active_contract["hour_rate"]) / 2
         result["month_available_hours"] = result["month_max_hours"] - result["month_hours_worked"]
         result["year_available_hours"] = result["year_max_hours"] - result["year_hours_worked"]
         result["month_money_made"] = result["hour_rate"] * result["month_hours_worked"]
@@ -49,7 +53,7 @@ def compile_user_month_info(coll: pymongo.collection.Collection, user_id: str, d
     return result
 
 
-def get_user_year_days_of_vacation(coll: pymongo.collection.Collection, user_id: str, date: datetime):
+def get_user_days_of_vacation_in_year(coll: pymongo.collection.Collection, user_id: str, date: datetime):
     start_of_year = date.replace(day=1, month=1)
     end_of_year = start_of_year + relativedelta(years=1) - relativedelta(days=1)
     vacations = adb.get_user_vacations(coll, user_id, start_of_year)

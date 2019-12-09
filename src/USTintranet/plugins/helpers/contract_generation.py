@@ -9,34 +9,34 @@ from plugins.helpers.doc_keys import NAME_DOC_KEYS
 SPACE_SIZE = 6
 MULTICELL_SPACE_SIZE = 2
 FONT = "DejaVu"
-FONT_SIZE = 11
+FONT_SIZE = 10
 HEADING_SIZE = 16
+WIDTH = 35
+ONE_LINE_LIMIT = 60
 
 FONT_DIR = os.path.join("static", "dejavu")
 
 
-def generate_contract(user, contract, company_name, company_address, company_id):
-    name_doc = user.get("name", None)
-    if not name_doc:
-        raise MissingInfoError("Uživatel nemá vyplněné jméno.")
+def generate_contract(user_id, contract, company_name, company_address, company_crn):
+    name = contract.get("name", None)
+    if not name:
+        raise MissingInfoError("Chybí jméno uživatele.")
 
-    full_name = " ".join([name_doc[key] for key in NAME_DOC_KEYS if name_doc.get(key, None)])
-    if not full_name:
-        raise MissingInfoError("Uživatel nemá vyplněné jméno.")
-
-    birthdate = str_ops.date_to_str(user.get("birthdate", None))
+    birthdate = str_ops.date_to_str(contract.get("birthdate", None))
     if not birthdate:
-        raise MissingInfoError("Uživatel nemá vyplněné datum narození.")
+        raise MissingInfoError("Chybí datum narození.")
 
-    address = str_ops.address_to_str(find_type_in_addresses(user.get("addresses", []), "residence"))
+    address = contract.get("address", None)
     if not address:
-        raise MissingInfoError("Uživatel nemá vyplněnou adresu trvalého bydliště.")
+        raise MissingInfoError("Chybí adresa trvalého bydliště.")
 
-    assignment = user.get("assignment", None)
+    assignment = contract.get("assignment", None)
     if not assignment:
-        raise MissingInfoError("Uživatel nemá vyplněnou pracovní náplň.")
+        raise MissingInfoError("Chybí pracovní náplň.")
 
-    account_number = user.get("account_number", None)
+    account_number = contract.get("account_number", None)
+    if not account_number:
+        raise MissingInfoError("Chybí číslo účtu.")
 
     valid_from = str_ops.date_to_str(contract["valid_from"])
     valid_until = str_ops.date_to_str(contract["valid_until"])
@@ -46,7 +46,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
         raise MissingInfoError("Problém se smlouvou.")
 
     output_path = f"static/tmp/" \
-                  f"{user['_id']}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
+                  f"{user_id}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
 
     pdf = fpdf.FPDF("P", "mm", "A4")
     pdf.add_font(FONT, '', os.path.join(FONT_DIR, 'DejaVuSerif.ttf'), uni=True)
@@ -54,6 +54,7 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     pdf.add_font(FONT, 'I', os.path.join(FONT_DIR, 'DejaVuSerif-Italic.ttf'), uni=True)
 
     pdf.set_margins(25, 25)
+    pdf.set_auto_page_break(False)
     pdf.add_page()
 
     pdf.set_font(FONT, "B", HEADING_SIZE)
@@ -65,12 +66,12 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     pdf.cell(w=0, txt="(do 300 hodin ročně)", align="C")
     pdf.ln(SPACE_SIZE * 2)
 
-    pdf.cell(w=50, txt="Zaměstnavatel:")
+    pdf.cell(w=WIDTH, txt="Zaměstnavatel:")
     pdf.cell(w=0, txt=company_name)
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="se sídlem:")
-    pdf.cell(w=0, txt=f"{company_address}, IČO: {company_id}")
+    pdf.cell(w=WIDTH, txt="se sídlem:")
+    pdf.cell(w=0, txt=f"{company_address}, IČO: {company_crn}")
     pdf.ln(SPACE_SIZE)
 
     pdf.cell(w=0, txt="(dále jen zaměstnavatel)")
@@ -79,12 +80,31 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     pdf.cell(w=0, txt="a")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="zaměstnanec:")
-    pdf.cell(w=0, txt=f"{full_name}, nar.: {birthdate}")
+    pdf.cell(w=WIDTH, txt="zaměstnanec:")
+
+    cell_text = f"{name}, nar.: {birthdate}"
+    if len(cell_text) < ONE_LINE_LIMIT:
+        pdf.cell(w=0, txt=cell_text)
+    else:
+        print("cell text length:", len(cell_text), cell_text)
+        pdf.cell(w=0, txt=f"{name},")
+        pdf.ln(SPACE_SIZE - 1)
+        pdf.cell(w=WIDTH, txt="")
+        pdf.cell(w=0, txt=f"nar.: {birthdate}")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=50, txt="bytem:")
-    pdf.cell(w=0, txt=address)
+    pdf.cell(w=WIDTH, txt="bytem:")
+
+    if len(address) < ONE_LINE_LIMIT:
+        pdf.cell(w=0, txt=address)
+    else:
+        first_comma = address.find(", ") + 2
+        before_comma = address[:first_comma]
+        after_comma = address[first_comma:]
+        pdf.cell(w=0, txt=before_comma)
+        pdf.ln(SPACE_SIZE - 1)
+        pdf.cell(w=WIDTH, txt="")
+        pdf.cell(w=0, txt=after_comma)
     pdf.ln(SPACE_SIZE)
 
     pdf.cell(w=0, txt="uzavírají tuto")
@@ -141,12 +161,12 @@ def generate_contract(user, contract, company_name, company_address, company_id)
     pdf.cell(w=0, txt=f"V Praze, dne {str_ops.date_to_str(signing_date)}")
     pdf.ln(SPACE_SIZE * 3)
 
-    pdf.cell(w=100, txt="." * 50)
-    pdf.cell(w=50, txt="." * 50, align="R")
+    pdf.cell(w=124, txt="." * 50)
+    pdf.cell(w=WIDTH, txt="." * 50, align="R")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=100, txt="podpis zaměstnance")
-    pdf.cell(w=50, txt="podpis opráv. zástupce firmy", align="R")
+    pdf.cell(w=124, txt="podpis zaměstnance")
+    pdf.cell(w=WIDTH, txt="podpis opráv. zástupce firmy", align="R")
 
     pdf.output(output_path)
 

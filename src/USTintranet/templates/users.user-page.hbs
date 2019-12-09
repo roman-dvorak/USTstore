@@ -4,8 +4,6 @@
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify@2.23.1/dist/tagify.css" rel="stylesheet">
 
 
 <style>
@@ -46,17 +44,16 @@
         float: right;
     }
 
-    .document-header {
+    .document-header, .document-type-header {
         cursor: pointer;
     }
 
-    .document-info {
+    .document-info, .document-type {
         display: none;
     }
 
-    #delete-document-button {
+    .form-button {
         width: 100%;
-        /*display: none;*/
     }
 
     .item-black {
@@ -69,6 +66,10 @@
 
     .link-show-file {
         text-align: center;
+    }
+
+    #documents table table tr:first-child th {
+        border-top: 0;
     }
 </style>
 
@@ -184,7 +185,7 @@
 
                     <div class="form-group">
                         <label for="role-input">Role</label>
-                        <input type="text" class="form-control form-control-sm" id="role-input">
+                        <input type="text" class="form-control" id="role-input">
                     </div>
 
                     <div class="form-group">
@@ -227,6 +228,11 @@
                 <form name="contract-editor-form">
                     <input type="hidden" id="contract-id-input">
 
+                    <button type="button" class="btn btn-secondary form-button"
+                            id="contracts-load-previous-values-button" onclick="contractLoadPreviousValues()">
+                        Načíst předchozí hodnoty
+                    </button>
+
                     <div class="form-group">
                         <label for="contract-type-select">Typ smlouvy</label>
                         <select class="form-control" id="contract-type-select" required>
@@ -241,10 +247,13 @@
                         <input type="date" class="form-control" id="contract-signing-date-input" required>
                     </div>
 
-<!--                    <div class="form-group">-->
-<!--                        <label for="contract-signing-place-input">Místo uzavření</label>-->
-<!--                        <input type="text" class="form-control" id="contract-signing-place-input" required>-->
-<!--                    </div>-->
+                    <div class="form-group">
+                        <label for="contract-signing-place-input">
+                            Kde byla smlouva uzavřena
+                        </label>
+                        <input type="text" class="form-control" id="contract-signing-place-input"
+                               required>
+                    </div>
 
                     <div class="form-group">
                         <label for="contract-valid-from-input">Platná od</label>
@@ -260,12 +269,71 @@
                         <label for="contract-hour-rate-input">Hodinová sazba</label>
                         <input type="number" class="form-control" id="contract-hour-rate-input" required>
                     </div>
+                </form>
 
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="contract-is-signed-input">
-                        <label for="contract-is-signed-input" class="form-check-label">
-                            Smlouva je podepsaná (platná)
-                        </label>
+                <a href="#" onclick="showUserParamsInContractModal()" id="show-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Zobrazit parametry uživatele
+                </a>
+                <a href="#" onclick="hideUserParamsInContractModal()" id="hide-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Skrýt parametry uživatele
+                </a>
+                <form name="contract-user-params-form" class="collapse">
+                    <div class="form-group">
+                        <label for="contract-name-input">Jméno</label>
+                        <input type="text" class="form-control" id="contract-name-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-address-input">Adresa</label>
+                        <input type="text" class="form-control" id="contract-address-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-birthdate-input">Datum narození</label>
+                        <input type="date" class="form-control" id="contract-birthdate-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-account-number-input">Číslo účtu</label>
+                        <input type="text" class="form-control" id="contract-account-number-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-assignment-input">Pracovní náplň</label>
+                        <input type="text" class="form-control" id="contract-assignment-input" required>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveContractEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="upload-contract-scan-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát sken podepsané smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="upload-contract-scan-form" action="/users/api/u/{{_id}}/contracts/scan"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="contract-scan-id-input" name="_id">
+
+                    <div class="form-group">
+                        <label for="contract-scan-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="contract-scan-file-input" name="file" required>
                     </div>
 
                 </form>
@@ -273,7 +341,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
                 <button type="button" class="btn btn-primary" id="user-save-btn"
-                        onclick="saveContractEditor()">Uložit
+                        onclick="saveUploadContractScanModal()">Uložit
                 </button>
             </div>
         </div>
@@ -294,7 +362,7 @@
                       method="post" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="document-id-input" name="_id">
 
-                    <button type="button" class="btn btn-secondary" id="delete-document-button"
+                    <button type="button" class="btn btn-secondary form-button" id="delete-document-button"
                             onclick="deleteDocument()">
                         Smazat dokument
                     </button>
@@ -308,8 +376,7 @@
                         <select class="form-control" id="document-type-select" name="type" required>
                             <option value="study_certificate">Potvrzení o studiu</option>
                             <option value="tax_declaration">Prohlášení k dani</option>
-                            <option value="contract_scan">Sken podepsané smlouvy</option>
-                            <!--                            <option value="other">Jiné</option>-->
+                            <!--                            <option value="cv">Životopis</option>-->
                         </select>
                     </div>
                     <div id="document-valid-dates-section">
@@ -325,19 +392,6 @@
                                    name="valid_until" required>
                         </div>
                     </div>
-
-                    <div id="document-select-contract-section">
-                        <div class="form-group">
-                            <label for="document-contract-select">Smlouva</label>
-                            <select class="form-control" id="document-contract-select" name="document_contract"
-                                    required>
-                                {% for contract in contracts %}
-                                <option value="{{contract['_id']}}">{{contract["title"]}}</option>
-                                {% end %}
-                            </select>
-                        </div>
-                    </div>
-
 
                     <div class="form-group">
                         <label for="document-notes-textarea">Poznámky</label>
@@ -521,15 +575,18 @@
                                 </tr>
                                 {% end %}
                                 <tr>
-                                    <td>Je podepsaná?</td>
+                                    <td>Sken podepsané smlouvy</td>
                                     <td>
-                                        {% if not contract["is_signed_raw"] %}
+                                        {% if contract.get("scan_signed_url", None) %}
                                         <button type="button" class="btn btn-sm btn-secondary"
-                                                style="float: right; padding-bottom: 0" onclick="signContract(this)">
+                                                style="float: right; padding-bottom: 0"
+                                                onclick="showUploadContractScanModal(this)">
                                             <i class="material-icons" style="font-size: 17px">edit</i>
                                         </button>
+                                        <a href="{{contract['scan_signed_url']}}" target="_blank">Zobrazit</a>
+                                        {% else %}
+                                        <a href="#" onclick="showUploadContractScanModal(this)">Nahrát</a>
                                         {% end %}
-                                        {{contract["is_signed"]}}
                                     </td>
                                 </tr>
                                 {% if contract.get("invalidated", False) %}
@@ -571,62 +628,80 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for document in documents %}
-                    <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
-                        <th>
-                            <button class="btn btn-dark btn-sm document-edit-btn" onclick="showDocumentEditor(this)">
-                                Upravit
-                            </button>
-                            {{document["title"]}}
-                        </th>
+                    {% for doc_type in documents.keys() %}
+                    {% if len(documents[doc_type]) > 0 %}
+                    <tr class="document-type-header">
+                        <th>{{documents[doc_type][0]["type_text"]}}</th>
                     </tr>
-                    <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
-                        data-id="{{document["_id"]}}">
+                    <tr class="document-type">
                         <td>
                             <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
                                 <tbody>
-                                <tr>
-                                    <td style="border-top: 0px">Druh dokumentu</td>
-                                    <td style="border-top: 0px" class="document-type-cell"
-                                        data-raw="{{document["type"]}}">
-                                        {{document["type_text"]}}
-                                    </td>
+                                {% for document in documents[doc_type] %}
+                                <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
+                                    <th>
+                                        <button class="btn btn-dark btn-sm document-edit-btn"
+                                                onclick="showDocumentEditor(this)">
+                                            Upravit
+                                        </button>
+                                        {{document["title"]}}
+                                    </th>
                                 </tr>
-                                {% if document.get("valid_from_text", None) %}
-                                <tr>
-                                    <td>Začátek platnosti</td>
-                                    <td class="document-valid-from-cell" data-raw="{{document["valid_from"]}}">
-                                        {{document["valid_from_text"]}}
+                                <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
+                                    data-id="{{document["_id"]}}">
+                                    <td>
+                                        <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
+                                            <tbody>
+                                            <tr>
+                                                <td style="border-top: 0px">Druh dokumentu</td>
+                                                <td style="border-top: 0px" class="document-type-cell"
+                                                    data-raw="{{document["type"]}}">
+                                                    {{document["type_text"]}}
+                                                </td>
+                                            </tr>
+                                            {% if document.get("valid_from_text", None) %}
+                                            <tr>
+                                                <td>Začátek platnosti</td>
+                                                <td class="document-valid-from-cell"
+                                                    data-raw="{{document["valid_from"]}}">
+                                                    {{document["valid_from_text"]}}
+                                                </td>
+                                            </tr>
+                                            {% end %}
+                                            {% if document.get("valid_until_text", None) %}
+                                            <tr>
+                                                <td>Konec platnosti</td>
+                                                <td class="document-valid-until-cell"
+                                                    data-raw="{{document["valid_until"]}}">
+                                                    {{document["valid_until_text"]}}
+                                                </td>
+                                            </tr>
+                                            {% end %}
+                                            {% if document.get("notes", None) %}
+                                            <tr>
+                                                <td>Poznámka</td>
+                                                <td class="document-notes-cell" data-raw="{{document["notes"]}}">
+                                                    {{document["notes"]}}
+                                                </td>
+                                            </tr>
+                                            {% end %}
+                                            <tr>
+                                                <td colspan="2" class="link-show-file">
+                                                    <a href="{{document.get('url', '#')}}" target="_blank">
+                                                        Zobrazit soubor
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
                                     </td>
                                 </tr>
                                 {% end %}
-                                {% if document.get("valid_until_text", None) %}
-                                <tr>
-                                    <td>Konec platnosti</td>
-                                    <td class="document-valid-until-cell" data-raw="{{document["valid_until"]}}">
-                                        {{document["valid_until_text"]}}
-                                    </td>
-                                </tr>
-                                {% end %}
-                                {% if document.get("notes", None) %}
-                                <tr>
-                                    <td>Poznámka</td>
-                                    <td class="document-notes-cell" data-raw="{{document["notes"]}}">
-                                        {{document["notes"]}}
-                                    </td>
-                                </tr>
-                                {% end %}
-                                <tr>
-                                    <td colspan="2" class="link-show-file">
-                                        <a href="{{document.get('url', '#')}}" target="_blank">
-                                            Zobrazit soubor
-                                        </a>
-                                    </td>
-                                </tr>
                                 </tbody>
                             </table>
                         </td>
                     </tr>
+                    {% end %}
                     {% end %}
                     </tbody>
                 </table>
@@ -637,8 +712,6 @@
 
 <script>
 
-
-    let role_tagify = null;
     $(document).ready(() => {
         initBasicInfo();
         initContracts();
@@ -646,10 +719,14 @@
     });
 
     function initBasicInfo() {
-        role_tagify = new Tagify(document.getElementById("role-input"));
     }
 
     function initContracts() {
+        setupContractHiding();
+        setContractFieldsChangeHandlers();
+    }
+
+    function setupContractHiding() {
         let contractInfos = $(".contract-info");
         contractInfos.first().show();
 
@@ -671,11 +748,29 @@
         }
     }
 
+    function setContractFieldsChangeHandlers() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            e.addEventListener("change", () => {
+                sessionStorage.setItem(e.id, e.value);
+            });
+        }
+    }
+
     function initDocuments() {
         let documentInfos = $(".document-info");
         let documentHeaders = $(".document-header");
         documentHeaders.on("click", event => {
             documentInfos.hide();
+            $(event.target).closest("tr").next().show();
+        });
+
+        let documentTypes = $(".document-type");
+        let documentTypeHeaders = $(".document-type-header");
+        documentTypeHeaders.on("click", event => {
+            documentTypes.hide();
             $(event.target).closest("tr").next().show();
         });
 
@@ -688,9 +783,7 @@
             input.value = ""
         }
         $("#notes-input").val("");
-
-        role_tagify.removeAllTags();
-        role_tagify.addTags("{{role}}".split(", "));
+        $("#role-input").val("{{role}}");
 
         let birthdateInput = $("#birthdate-input");
         birthdateInput.val("{{birthdate_iso}}");
@@ -715,12 +808,9 @@
         changes["skills"] = $("#skills-input").val();
         changes["notes"] = $("#notes-input").val();
 
-        let new_roles = [];
-        for (let role of role_tagify.value) {
-            new_roles.push(role.value)
-        }
-        if (new_roles.join(", ") !== "{{role}}") {
-            changes["role"] = new_roles;
+        let role_input = $("#role-input");
+        if (role_input.val().replace(" ", "") !== "{{role}}") {
+            changes["role"] = role_input.val();
         }
 
         let new_birthdate = $("#birthdate-input").val();
@@ -764,6 +854,14 @@
     }
 
     function showContractEditor() {
+        hideUserParamsInContractModal();
+
+        $("#contract-name-input").val("{{name}}");
+        $("#contract-address-input").val("{{residence_address}}");
+        $("#contract-birthdate-input").val("{{birthdate_iso}}");
+        $("#contract-account-number-input").val("{{account_number}}");
+        $("#contract-assignment-input").val("{{assignment}}");
+
         $("#contract-editor-modal").modal("show");
     }
 
@@ -774,6 +872,11 @@
             return;
         }
 
+        if (!validateContractUserParamsForm()) {
+            showUserParamsInContractModal();
+            return;
+        }
+
         let data = {};
         data["type"] = $("#contract-type-select").val();
         data["signing_date"] = $("#contract-signing-date-input").val();
@@ -781,7 +884,12 @@
         data["valid_from"] = $("#contract-valid-from-input").val();
         data["valid_until"] = $("#contract-valid-until-input").val();
         data["hour_rate"] = $("#contract-hour-rate-input").val();
-        data["is_signed"] = $("#contract-is-signed-input").prop("checked");
+
+        data["name"] = $("#contract-name-input").val();
+        data["address"] = $("#contract-address-input").val();
+        data["birthdate"] = $("#contract-birthdate-input").val();
+        data["account_number"] = $("#contract-account-number-input").val();
+        data["assignment"] = $("#contract-assignment-input").val();
 
         sendContractDataAjax(data);
     }
@@ -871,6 +979,10 @@
         return isValid;
     }
 
+    function validateContractUserParamsForm() {
+        return validateRequired(document.forms["contract-user-params-form"], true);
+    }
+
     function validateDocumentEditor() {
         let isValid = validateRequired(document.forms["document-editor-form"]);
 
@@ -902,18 +1014,22 @@
 
     }
 
-    function validateRequired(form) {
+    function validateRequired(form, validateHidden = false) {
+        console.log(form, validateHidden);
         let isValid = true;
         let inputs = $(form).find("input, textarea, select");
 
         inputs.each((index, element) => {
             element = $(element);
-            if (element.is(":required") && element.is(":visible") && element.val() === "") {
+            console.log(element, element.val())
+
+            if ((element.is(":visible") || validateHidden) && element.is(":required") && element.val() === "") {
                 markInvalid(element);
                 isValid = false;
             } else {
                 markValid(element);
             }
+
         });
         console.log("vysledek validateRequired");
         console.log(isValid);
@@ -933,11 +1049,9 @@
 
     function handleDocumentTypeChange() {
         let selectedType = $("#document-type-select").val();
-        if (selectedType === "contract_scan") {
-            $("#document-select-contract-section").show();
+        if (selectedType === "cv") {
             $("#document-valid-dates-section").hide();
         } else {
-            $("#document-select-contract-section").hide();
             $("#document-valid-dates-section").show();
         }
     }
@@ -953,15 +1067,49 @@
         sendContractDataAjax(data);
     }
 
-    function signContract(button) {
-        let contractHeaderRow = $(button).closest("tr.contract-info").prev();
+    function showUploadContractScanModal(link) {
+        console.log(link);
+        let contractHeaderRow = $(link).closest("tr.contract-info").prev();
         let contractId = contractHeaderRow.data("id");
 
-        let data = {};
-        data["contract_id"] = contractId;
-        data["is_signed"] = true;
+        $("#contract-scan-id-input").val(contractId);
 
-        sendContractDataAjax(data);
+        $("#upload-contract-scan-modal").modal("show");
+    }
+
+
+    function saveUploadContractScanModal() {
+        let form = document.forms["upload-contract-scan-form"];
+
+        if (!validateRequired(form)) return;
+
+        form.submit();
+    }
+
+    function contractLoadPreviousValues() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            let previousValue = sessionStorage.getItem(e.id);
+            if (previousValue != null) {
+                e.value = previousValue;
+            }
+        }
+    }
+
+    function hideUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").hide();
+        $("#show-user-params-in-contract-modal-link").show();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("hide");
+    }
+
+    function showUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").show();
+        $("#show-user-params-in-contract-modal-link").hide();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("show");
     }
 
     function ajaxError(jqXHR, textStatus, errorThrown) {

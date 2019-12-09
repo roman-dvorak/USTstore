@@ -43,7 +43,7 @@ CONTRACT_DOC_KEYS = [
     "valid_from",
     "valid_until",
     "hour_rate",
-    "is_signed",
+    "scan_signed_url",
 ]
 DOCUMENT_DOC_KEYS = [
     "type",

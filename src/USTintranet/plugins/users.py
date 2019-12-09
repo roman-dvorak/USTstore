@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
+from random import randint
 
 import bson.json_util
 import tornado
@@ -24,6 +25,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
         (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
@@ -71,7 +73,10 @@ class ApiAdminTableHandler(BaseHandler):
             if "birthdate" in item:
                 item["birthdate"] = item["birthdate"].replace(microsecond=0).isoformat()
 
-            item.pop("pass", None)
+            item.pop("password", None)
+
+            if "role" in item:
+                item["role"] = ",".join(item["role"])
 
             if "addresses" in item:
                 item["residence_address"] = find_type_in_addresses(item["addresses"], "residence")
@@ -125,6 +130,9 @@ class ApiAdminTableHandler(BaseHandler):
         if "birthdate" in data and data["birthdate"] != "":
             data["birthdate"] = datetime.strptime(data["birthdate"], "%Y-%m-%d")
 
+        if "role" in data:
+            data["role"] = data["role"].replace(" ", "").split(",")
+
         if data:
             udb.update_user(self.mdb.users, _id, data)
 
@@ -154,6 +162,9 @@ class ApiEditUserHandler(BaseHandler):
 
         if "birthdate" in changes and changes["birthdate"] != "":
             changes["birthdate"] = datetime.strptime(changes["birthdate"], "%Y-%m-%d")
+
+        if "role" in changes:
+            changes["role"] = changes["role"].replace(" ", "").split(",")
 
         if changes:
             udb.update_user(self.mdb.users, _id, changes)
@@ -208,17 +219,22 @@ class UserPageHandler(BaseHandler):
             "email": user_document.get("email", ""),
             "phone_number": user_document.get("phone_number", ""),
             "account_number": user_document.get("account_number", ""),
-            "role": ", ".join(user_document.get("role", [])),
+            "role": ",".join(user_document.get("role", [])),
             "assignment": user_document.get("assignment", ""),
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
         }
-        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now()))
+        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now(),
+                                                       self.dpp_params["year_max_hours"],
+                                                       self.dpp_params["month_max_gross_wage"]))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        template_params["documents"] = self.prepare_documents(documents, contracts)
+        study_certificates, tax_declarations = self.prepare_documents(documents, contracts)
+        template_params["documents"] = {}
+        template_params["documents"]["study_certificates"] = study_certificates
+        template_params["documents"]["tax_declarations"] = tax_declarations
 
         self.render("users.user-page.hbs", **template_params)
 
@@ -243,14 +259,12 @@ class UserPageHandler(BaseHandler):
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["is_signed"] = "Ano" if contract["is_signed"] else "Ne"
-            new["is_signed_raw"] = contract["is_signed"]
-            # new["button_text"] = "Zneplatnit" if contract["is_signed"] else "Nastavit jako platnou"
+            new["scan_signed_url"] = contract.get("scan_signed_url", None)
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
             new["url"] = contract["url"]
 
             new["is_valid"] = False
-            if contract["is_signed"] and not contract.get("invalidated", False):
+            if not contract.get("invalidated", False):
                 if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
                     new["is_valid"] = True
 
@@ -264,15 +278,13 @@ class UserPageHandler(BaseHandler):
     def prepare_documents(self, documents, contracts):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
-            "tax_declaration": "Prohlášení k dani",
-            "contract_scan": "Sken podepsané smlouvy"
+            "tax_declaration": "Prohlášení k dani"
         }
 
+        study_certificates = []
+        tax_declarations = []
+
         for document in documents:
-            if document["type"] == "contract_scan":
-                contract = next(item for item in contracts if item["_id"] == document["contract_id"])
-                document["valid_from"] = contract["valid_from"]
-                document["valid_until"] = contract["valid_until"]
 
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
@@ -291,31 +303,35 @@ class UserPageHandler(BaseHandler):
             date_texts = [date for date in [valid_from_text, valid_until_text] if date]
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
 
-        return documents
+            if document["type"] == "study_certificate":
+                study_certificates.append(document)
+            elif document["type"] == "tax_declaration":
+                tax_declarations.append(document)
+
+        return study_certificates, tax_declarations
 
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):  # TODO rozmyslet si api
+    def post(self, user_id):  # TODO rozmyslet si api
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
         if "contract_id" in contract:
             if contract.get("invalidated", False):
-                udb.invalidate_user_contract(self.mdb.users, _id, contract["contract_id"])
-
-            if contract.get("is_signed", False):
-                udb.sign_user_contract(self.mdb.users, _id, contract["contract_id"])
+                udb.invalidate_user_contract(self.mdb.users, user_id, contract["contract_id"])
         else:
             contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
             contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
             contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
             contract["hour_rate"] = int(contract["hour_rate"])
 
-            local_path = generate_contract(udb.get_user(self.mdb.users, _id), contract,
-                                           "Universal Scientific Technologies s.r.o.",  # TODO tahat z databáze
-                                           "U Jatek 19, 392 01 Soběslav",
-                                           "28155319")
+            contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
+
+            local_path = generate_contract(user_id, contract,
+                                           self.company_info["name"],
+                                           self.company_info["address"],
+                                           self.company_info["crn"])
 
             owncloud_path = os.path.join(tornado.options.options.owncloud_root,
                                          "contracts",
@@ -325,7 +341,40 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
             contract["url"] = res.get_link()
 
-            udb.add_user_contract(self.mdb.users, _id, contract)
+            udb.add_user_contract(self.mdb.users, user_id, contract)
+
+
+class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
+
+    def post(self, user_id):
+        contract_id = self.get_argument("_id")
+
+        if not self.request.files:
+            self.redirect(f"/users/u/{user_id}", permanent=True)
+            return
+
+        file = self.request.files["file"][0]
+        file_name = f"{user_id}_{contract_id}_scan_{randint(1000000, 9999999)}"
+        owncloud_url = self.process_file(file, file_name)
+        udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, owncloud_url)
+
+        self.redirect(f"/users/u/{user_id}", permanent=True)
+
+    def process_file(self, file, document_name):  # TODO zkopírované z dokumentů, chce to opravit (DRY)
+        extension = os.path.splitext(file["filename"])[1]
+
+        new_filename = f"{document_name}{extension}"
+        local_path = os.path.join("static", "tmp", new_filename)
+
+        with open(local_path, "wb") as f:
+            f.write(file["body"])
+
+        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "contracts", new_filename)
+        remote = save_file(self.mdb, owncloud_path)
+        res = upload_file(self.oc, local_path, remote)
+        print("res", res)
+
+        return res.get_link()
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
@@ -402,11 +451,12 @@ class ApiUserValidateEmail(BaseHandler):
 
         if not user_mdoc["email_validated"] == "pending":
             self.render("users.email_validation.hbs", success=False)
+            return
 
         token_in_db = user_mdoc["email_validation_token"]
         if token == token_in_db:
-            self.render("users.email_validation.hbs", success=True)
             udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+            self.render("users.email_validation.hbs", success=True)
         else:
             self.render("users.email_validation.hbs", success=False)
 
