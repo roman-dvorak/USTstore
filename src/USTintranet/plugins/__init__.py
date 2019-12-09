@@ -590,7 +590,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return self.mdb.intranet.find_one({"_id": "company_info"})
 
     def _get_dpp_params(self):
-        return self.mdb.intranet.find_one({"_id": "dpp_parameters"})
+        return self.mdb.intranet.find_one({"_id": "dpp_params"})
 
 
 #
