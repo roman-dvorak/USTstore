@@ -148,14 +148,14 @@ class load_item(BaseHandler):
         out['item'] = self.mdb.stock.find_one({'_id': item})
         out['warehouse'] = self.get_warehouse()
         out['position'] = self.component_get_positions(id = item)
-        out['invetury'] = self.get_inventory()
+        out['inventory'] = self.get_inventory()
         out = bson.json_util.dumps(out)
         self.write(out)
 
     def get_inventory(self):
         current_id = self.mdb.intranet.find_one({'_id': 'stock_taking'})
-        current = self.mdb.stock_taking.find_one({'_id': current_id['current']})
-        return list(current)
+        current = list(self.mdb.stock_taking.find({'_id': current_id['current']}))[0]
+        return current
 
 class save_stocktaking(BaseHandler):
     def post(self):

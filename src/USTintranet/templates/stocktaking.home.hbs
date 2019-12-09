@@ -134,7 +134,7 @@
 
                     <div class="form-group col-lg-12 col-md-6">
                         <label>Pozice</label>
-                        <input class="form-control form-control-lg" type="text" name="count" id="positions">
+                        <input class="form-control form-control-lg" type="text" name="count" id="positions" disabled>
                     </div>
 
                     {% if stocktaking %}
@@ -193,7 +193,6 @@
           },
           success: function( data, textStatus, jQxhr ){
             var first_time = true;
-            console.log(data)
             if(data.item != null){
                 item = data;
                 item['count'] = 0;
@@ -207,9 +206,14 @@
                 //     //$("#val_old").append(" + "+data.history[row].bilance);
                 //     item.count += data.history[row].bilance;
                 // }
-                for (rec in data.item.history){
+
+        // Zjisti, jestli uz to bylo inventurovane
+                for (rec_i in data.item.history){
+                  var rec = data.item.history[rec_i];
                   if (rec.operation == 'inventory'){
-                    if (rec.inventory_id.$oid == data.inventory._id.$oid){
+                    console.log("inventura", rec);
+                    console.log(data);
+                    if (rec.inventory.$oid == data.inventory._id.$oid && rec.stock.$oid == data.warehouse._id.$oid){
                       first_time = false;
                     } 
                   }
@@ -223,7 +227,7 @@
                   });
                 }else{
                   $("#message").addClass('bg-warning');
-                  $("#message").text("Inventora této polozky již problěhla...");
+                  $("#message").text("Inventura této položky již problěhla...");
                   Lobibox.notify('warning', {
                       title: 'Tato položka již byla inventurovaná..',
                       msg: 'U položky <b>'+$('#sku_search').val()+'</b> inventura již problěhla.',
