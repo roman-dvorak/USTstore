@@ -25,16 +25,14 @@ def make_handlers(module, plugin):
         (r'/login', plugin.LoginHandler),
         (r'/logout', plugin.LogoutHandler),
         (r'/registration', plugin.RegistrationHandler),
-        (r'/api/backup', plugin.doBackup),
-        (r'/system', plugin.system_handler),
-        (r'/system/', plugin.system_handler)]
+        (r'/api/backup', plugin.doBackup),]
     return handlers
 
 
 def plug_info():
     return {
-        "module": "system",
-        "name": "system"
+        "module": "init",
+        "name": "init"
     }
 
 
@@ -106,8 +104,16 @@ def database_init():
         tornado.options.options.mdb_database]
 
 
-class Intranet(
-    tornado.web.RequestHandler):  # tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
+def get_company_info(database):
+    return database.intranet.find_one({"_id": "company_info"}) or {}
+
+
+def get_dpp_params(database):
+    return database.intranet.find_one({"_id": "dpp_params"}) or {}
+
+
+class Intranet(tornado.web.RequestHandler):
+    # tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
     def prepare(self):
         self.xsrf_token
         try:
@@ -198,8 +204,8 @@ class BaseHandler(tornado.web.RequestHandler):
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
 
-        self.company_info = self._get_company_info()
-        self.dpp_params = self._get_dpp_params()
+        self.company_info = get_company_info(self.mdb)
+        self.dpp_params = get_dpp_params(self.mdb)
 
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
@@ -220,7 +226,6 @@ class BaseHandler(tornado.web.RequestHandler):
             print("uzivatel neni korektne prihlasen")
             self.logged = False
             return None
-
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:
@@ -586,12 +591,6 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
 
-    def _get_company_info(self):
-        return self.mdb.intranet.find_one({"_id": "company_info"})
-
-    def _get_dpp_params(self):
-        return self.mdb.intranet.find_one({"_id": "dpp_params"})
-
 
 #
 #    def update_component(self, component):
@@ -700,14 +699,3 @@ class doBackup(BaseHandlerOwnCloud):
         self.oc.put_directory(remote, 'static/tmp/mdb')
         # os.remove('static/tmp/mdb')
         self.write("OK")
-
-
-class system_handler(BaseHandler):
-    def get(self):
-        self.render('system.homepage.hbs', warehouses=self.get_warehouseses())
-
-    def post(self):
-        operation = self.get_argument('operation')
-        if operation == 'set_warehouse':
-            self.set_cookie("warehouse", self.get_argument('warehouse'))
-            print("Nastaveno cookie pro vybrany warehouse")

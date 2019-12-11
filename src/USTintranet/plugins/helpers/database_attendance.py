@@ -5,6 +5,7 @@ from bson import ObjectId
 
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array
 
+# TODO brát jako parametr databázi, ne kolekci
 
 def add_user_workspan(coll: pymongo.collection.Collection, user_id, workspan):
     workspan_id = str(ObjectId())

@@ -4,7 +4,7 @@
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
-
+<script src="/static/validation.js"></script>
 
 <style>
     body {
@@ -16,6 +16,20 @@
         width: 100%;
         height: 100%;
         overflow: auto;
+    }
+
+    .page-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-outline-dark {
+        border-color: #212529;
+    }
+
+    .btn-outline-dark:hover {
+        background-color: #212529;
     }
 
     .address-form-part {
@@ -411,8 +425,10 @@
 </div>
 
 <div class="container">
-    <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
-
+    <div class="page-title">
+        <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
+        <button type="button" class="btn btn-outline-dark">Docházková karta</button>
+    </div>
     <div class="row">
         <div class="col col-12 col-lg-6">
             <div id="basic-info">
@@ -492,35 +508,6 @@
         </div>
 
         <div class="col col-12 col-lg-6">
-            <div id="work-info">
-                <table class="table">
-                    <thead class="thead-dark">
-                    <tr>
-                        <th>Docházka a ohodnocení</th>
-                        <th class="text-right">
-                            <a href="/attendance/u/{{_id}}" role="button" class="btn btn-light">
-                                Docházková karta
-                            </a>
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Odpracované hodiny v tomto měsíci</td>
-                        <td>{{month_hours_worked}}</td>
-                    </tr>
-                    <tr>
-                        <td>Aktuální hrubá mzda za tento měsíc</td>
-                        <td>{{month_money_made or '-'}}</td>
-                    </tr>
-                    <tr>
-                        <td>Finanční ohodnocení za minulý měsíc</td>
-                        <td>-</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
             <div id="contracts">
                 <table class="table">
                     <thead class="thead-dark">
@@ -868,7 +855,7 @@
     function saveContractEditor() {
         let form = document.forms["contract-editor-form"];
         console.log(form);
-        if (!validateContractEditor()) {
+        if (!validateContractEditorForm()) {
             return;
         }
 
@@ -944,7 +931,7 @@
     function saveDocumentEditor() {
         let form = document.forms["document-editor-form"];
         console.log(form);
-        if (validateDocumentEditor()) {
+        if (validateDocumentEditorForm()) {
             form.submit();
             // console.log("OK")
         }
@@ -966,7 +953,7 @@
 
     }
 
-    function validateContractEditor() {
+    function validateContractEditorForm() {
         let isValid = validateRequired(document.forms["contract-editor-form"]);
 
         let signing_date = $("#contract-signing-date-input");
@@ -983,7 +970,7 @@
         return validateRequired(document.forms["contract-user-params-form"], true);
     }
 
-    function validateDocumentEditor() {
+    function validateDocumentEditorForm() {
         let isValid = validateRequired(document.forms["document-editor-form"]);
 
         let type = $("#document-type-select").val();
@@ -996,55 +983,6 @@
         }
 
         return isValid;
-    }
-
-    function validateOneDateBeforeOther(soonerInput, laterInput) {
-        let soonerVal = $(soonerInput).val();
-        let laterVal = $(laterInput).val();
-        console.log(soonerVal);
-
-        if (soonerVal === "" || laterVal === "") return false;
-
-        if (moment(soonerVal).isAfter(moment(laterVal))) {
-            markInvalid(laterInput);
-            markInvalid(soonerInput);
-            return false;
-        }
-        return true;
-
-    }
-
-    function validateRequired(form, validateHidden = false) {
-        console.log(form, validateHidden);
-        let isValid = true;
-        let inputs = $(form).find("input, textarea, select");
-
-        inputs.each((index, element) => {
-            element = $(element);
-            console.log(element, element.val())
-
-            if ((element.is(":visible") || validateHidden) && element.is(":required") && element.val() === "") {
-                markInvalid(element);
-                isValid = false;
-            } else {
-                markValid(element);
-            }
-
-        });
-        console.log("vysledek validateRequired");
-        console.log(isValid);
-        return isValid;
-
-    }
-
-    function markValid(input) {
-        input.addClass("is-valid");
-        setTimeout(() => input.removeClass("is-valid"), 2000)
-    }
-
-    function markInvalid(input) {
-        input.addClass("is-invalid");
-        setTimeout(() => input.removeClass("is-invalid"), 2000)
     }
 
     function handleDocumentTypeChange() {

@@ -5,7 +5,7 @@ import bson.json_util
 from dateutil.relativedelta import relativedelta
 from tornado.web import HTTPError
 
-from plugins import BaseHandler
+from plugins import BaseHandler, get_dpp_params
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
@@ -49,6 +49,44 @@ class HomeHandler(BaseHandler):
             self.render('attendance.home-sudo.hbs')
         else:
             self.redirect(f"/attendance/u/{me['_id']}")
+
+
+class AttendanceCalculator:
+
+    def __init__(self, user_id, from_date, to_date, database):
+        self.user_id = user_id
+        self.from_date = from_date
+        self.to_date = to_date
+        self.database = database
+
+        self.dpp_params = get_dpp_params(self.database)
+        self.year_max_hours = self.dpp_params["year_max_hours"]
+        self.month_max_gross_wage = self.dpp_params["month_max_gross_wage"]
+        self.tax_rate = self.dpp_params["tax_rate"]
+        self.tax_deduction = self.dpp_params["tax_deduction"]
+        self.tax_deduction_student = self.dpp_params["tax_deduction_student"]
+
+    @property
+    def hours_worked(self):
+        return
+
+    @property
+    def hour_rate(self):
+        return
+
+    @property
+    def gross_wage(self):
+        return
+
+    @property
+    def tax_amount(self):
+        return
+
+    def net_wage(self):
+        return
+
+    def available_hours(self):
+        return
 
 
 class ApiAdminMonthTableHandler(BaseHandler):
@@ -212,7 +250,6 @@ class ApiMonthInfoHandler(BaseHandler):
         data["year_days_of_vacation"] = get_user_days_of_vacation_in_year(self.mdb.users, user_id, month)
 
         self.write(bson.json_util.dumps(data))
-
 
 
 class ApiAddWorkspanHandler(BaseHandler):

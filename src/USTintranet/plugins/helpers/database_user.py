@@ -8,7 +8,7 @@ from pymongo.collection import ReturnDocument
 
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts
 
-coll = pymongo.MongoClient().USTintranet.users
+# TODO brát jako parametr databázi, ne kolekci
 
 
 def get_users(coll: pymongo.collection.Collection, **by):
