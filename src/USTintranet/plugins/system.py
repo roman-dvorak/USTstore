@@ -46,4 +46,38 @@ class ParametersHandler(BaseHandler):
         dpp_tax_deduction = self.get_argument("dpp_tax_deduction")
         dpp_tax_deduction_student = self.get_argument("dpp_tax_deduction_student")
 
+        company_info = {}
+        dpp_params = {}
+
+        if company_name:
+            company_info["name"] = company_name
+
+        if company_address:
+            company_info["address"] = company_address
+
+        if company_crn:
+            company_info["crn"] = company_crn
+
+        if dpp_year_max_hours:
+            dpp_params["year_max_hours"] = int(dpp_year_max_hours)
+
+        if dpp_month_max_gross_wage:
+            dpp_params["month_max_gross_wage"] = int(dpp_month_max_gross_wage)
+
+        if dpp_tax_rate:
+            dpp_params["tax_rate"] = int(dpp_tax_rate)
+
+        if dpp_tax_deduction:
+            dpp_params["tax_deduction"] = int(dpp_tax_deduction)
+
+        if dpp_tax_deduction_student:
+            dpp_params["tax_deduction_student"] = int(dpp_tax_deduction_student)
+
+        if company_info:
+            self.mdb.intranet.update_one({"_id": "company_info"},
+                                         {"$set": company_info})
+        if dpp_params:
+            self.mdb.intranet.update_one({"_id": "dpp_params"},
+                                         {"$set": dpp_params})
+
         self.redirect("/system/parameters")

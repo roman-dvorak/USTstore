@@ -27,60 +27,50 @@
                 <div class="form-group">
                     <label for="company-name">Jméno společnosti</label>
                     <input type="text" class="form-control" id="company-name" name="company_name"
-                           placeholder="{{company_info.get("name", "")}}" required>
+                           placeholder="{{company_info.get("name", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="company-address">Adresa společnosti</label>
                     <input type="text" class="form-control" id="company-address" name="company_address"
-                           placeholder="{{company_info.get("address", "")}}" required>
+                           placeholder="{{company_info.get("address", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="company-crn">IČO společnosti</label>
                     <input type="text" class="form-control" id="company-crn" name="company_crn"
-                           placeholder="{{company_info.get("crn", "")}}" required>
+                           placeholder="{{company_info.get("crn", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="dpp-year-max-hours">Maximální počet hodin v roce pro DPP</label>
-                    <input type="text" class="form-control" id="dpp-year-max-hours" name="dpp_year_max_hours"
-                           placeholder="{{dpp_params.get("year_max_hours", "")}}" required>
+                    <input type="number" class="form-control" id="dpp-year-max-hours" name="dpp_year_max_hours"
+                           placeholder="{{dpp_params.get("year_max_hours", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="dpp-month-max-gross-wage">Maximální hrubá mzda v měsíci pro DPP</label>
-                    <input type="text" class="form-control" id="dpp-month-max-gross-wage" name="dpp_month_max_gross_wage"
-                           placeholder="{{dpp_params.get("month_max_gross_wage", "")}}" required>
+                    <input type="number" class="form-control" id="dpp-month-max-gross-wage" name="dpp_month_max_gross_wage"
+                           placeholder="{{dpp_params.get("month_max_gross_wage", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="dpp-tax-rate">Daňová sazba</label>
-                    <input type="text" class="form-control" id="dpp-tax-rate" name="dpp_tax_rate"
-                           placeholder="{{dpp_params.get("tax_rate", "")}}" required>
+                    <input type="number" class="form-control" id="dpp-tax-rate" name="dpp_tax_rate"
+                           placeholder="{{dpp_params.get("tax_rate", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="dpp-tax-deduction">Daňový odpočet na osobu</label>
-                    <input type="text" class="form-control" id="dpp-tax-deduction" name="dpp_tax_deduction"
-                           placeholder="{{dpp_params.get("tax_deduction", "")}}" required>
+                    <input type="number" class="form-control" id="dpp-tax-deduction" name="dpp_tax_deduction"
+                           placeholder="{{dpp_params.get("tax_deduction", "")}}">
                 </div>
                 <div class="form-group">
                     <label for="dpp-tax-deduction-student">Daňový odpočet na studenta</label>
-                    <input type="text" class="form-control" id="dpp-tax-deduction-student"
+                    <input type="number" class="form-control" id="dpp-tax-deduction-student"
                            name="dpp_tax_deduction_student"
-                           placeholder="{{dpp_params.get("tax_deduction_student", "")}}" required>
+                           placeholder="{{dpp_params.get("tax_deduction_student", "")}}">
                 </div>
                 <div class="form-group">
-                    <button type="button" class="btn" onclick="submitForm()">Uložit</button>
+                    <button type="submit" class="btn">Uložit</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<script>
-    function submitForm() {
-        let form = document.forms["parameters-form"];
-
-        if (validateRequired(form)) {
-            form.submit();
-        }
-    }
-</script>
 
 {% end %}{# block body#}
