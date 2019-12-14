@@ -66,11 +66,33 @@
                            placeholder="{{dpp_params.get("tax_deduction_student", "")}}">
                 </div>
                 <div class="form-group">
-                    <button type="submit" class="btn">Uložit</button>
+                    <button type="button" class="btn" onclick="submitForm()">Uložit</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    function submitForm() {
+        Lobibox.confirm({
+            msg: "Pozor, úpravou těchto parametrů můžete rozbít intranet. Pokračovat?",
+            buttons: {
+                yes: {
+                    text: "Ano",
+                },
+                no: {
+                    text: "Ne",
+                }
+            },
+            callback: function (lobibox, type) {
+                if (type === "yes") {
+                    let form = document.forms["parameters-form"];
+                    form.submit();
+                }
+            }
+        })
+    }
+</script>
 
 {% end %}{# block body#}

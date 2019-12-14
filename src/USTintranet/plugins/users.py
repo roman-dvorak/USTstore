@@ -10,6 +10,7 @@ import os
 
 from tornado.web import HTTPError
 
+from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
 from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
@@ -340,6 +341,10 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
             res = upload_file(self.oc, local_path, remote)
 
             contract["url"] = res.get_link()
+
+            for key in contract.keys():
+                if key not in CONTRACT_DOC_KEYS:
+                    del contract[key]
 
             udb.add_user_contract(self.mdb.users, user_id, contract)
 

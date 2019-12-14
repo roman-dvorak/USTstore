@@ -8,6 +8,7 @@ from pymongo.collection import ReturnDocument
 
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts
 
+
 # TODO brát jako parametr databázi, ne kolekci
 
 
@@ -240,6 +241,22 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
     return contracts[0] if contracts else None
 
 
+def get_user_active_contracts(db, user_id: str, from_date: datetime, to_date: datetime, sort_by="valid_from"):
+    cursor = db.users.aggregate([
+        {"$match": {"_id": ObjectId(user_id)}},
+        {"$unwind": "$contracts"},
+        {"$match": {
+            "$nor": [
+                {"contracts.valid_from": {"$gte": to_date}},
+                {"contracts.valid_until": {"$lt": from_date}},
+            ]
+        }},
+        {"$sort": {f"contracts.{sort_by}": -1}},
+        {"$group": {"_id": "$_id", "contracts": {"$push": "$contracts"}}}
+    ])
+    return next(cursor, {}).get("contracts", [])
+
+
 def get_user_active_document(coll: pymongo.collection.Collection, user_id, document_type, date: datetime = None):
     if not date:
         date = datetime.now()
@@ -261,6 +278,28 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
     documents = mdoc.get("documents", None)
 
     return documents[0] if documents else None
+
+
+def get_user_active_documents(db,
+                              user_id: str,
+                              document_type: str,
+                              from_date: datetime,
+                              to_date: datetime,
+                              sort_by="valid_from"):
+    cursor = db.users.aggregate([
+        {"$match": {"_id": ObjectId(user_id)}},
+        {"$unwind": "$documents"},
+        {"$match": {"documents.type": document_type}},
+        {"$match": {
+            "$nor": [
+                {"documents.valid_from": {"$gte": to_date}},
+                {"documents.valid_until": {"$lt": from_date}},
+            ]
+        }},
+        {"$sort": {f"documents.{sort_by}": -1}},
+        {"$group": {"_id": "$_id", "documents": {"$push": "documents"}}}
+    ])
+    return next(cursor, {}).get("documents", [])
 
 
 def get_user_active_tax_declaration(coll: pymongo.collection.Collection, user_id: str, date: datetime = None):

@@ -23,14 +23,14 @@ def add_user_vacation(coll: pymongo.collection.Collection, user_id, vacation):
     return vacation_id
 
 
-def get_user_workspans(coll: pymongo.collection.Collection, user_id, since: datetime, to: datetime):
-    cursor = coll.aggregate([
+def get_user_workspans(db, user_id, from_date: datetime, to_date: datetime):
+    cursor = db.users.aggregate([
         {"$match": {"_id": ObjectId(user_id)}},
         {"$unwind": "$workspans"},
         {"$match": {
             "workspans.from": {
-                "$gte": since,
-                "$lt": to,
+                "$gte": from_date,
+                "$lt": to_date,
             }
         }},
         {"$sort": {"workspans.from": 1}},

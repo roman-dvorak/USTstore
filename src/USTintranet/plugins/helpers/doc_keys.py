@@ -40,6 +40,7 @@ CONTRACT_DOC_KEYS = [
     "_id",
     "type",
     "signing_date",
+    "signing_place",
     "valid_from",
     "valid_until",
     "hour_rate",
@@ -68,4 +69,19 @@ WORKSPAN_DOC_KEYS = [
     "from",
     "hours",
     "assignment",
+]
+
+OWNCLOUD_DOC_KEYS = [
+    "_id",
+    "versions",
+    "directory",
+    "filename",  # jméno souboru tak jak ho uživatel dá do ukládací fce
+]
+
+OWNCLOUD_VERSION_DOC_KEYS = [
+    "version",  # number
+    "url",
+    "by",
+    "when",
+    "path",  # skutečná cesta k souboru na owncloudu (s id a verzí)
 ]

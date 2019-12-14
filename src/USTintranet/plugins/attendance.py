@@ -1,4 +1,5 @@
 import calendar
+import functools
 from datetime import datetime, timedelta
 
 import bson.json_util
@@ -51,6 +52,23 @@ class HomeHandler(BaseHandler):
             self.redirect(f"/attendance/u/{me['_id']}")
 
 
+def cachedproperty(func):
+    func_name = func.__name__
+
+    @property
+    @functools.wraps(func)
+    def inner(self):
+        if not hasattr(self, "_cache"):
+            self._cache = {}
+
+        if func_name not in self._cache:
+            self._cache[func_name] = func(self)
+
+        return self._cache[func_name]
+
+    return inner
+
+
 class AttendanceCalculator:
 
     def __init__(self, user_id, from_date, to_date, database):
@@ -66,27 +84,59 @@ class AttendanceCalculator:
         self.tax_deduction = self.dpp_params["tax_deduction"]
         self.tax_deduction_student = self.dpp_params["tax_deduction_student"]
 
-    @property
+        self._cache = {}
+
+    @cachedproperty
+    def workspans(self):
+        return adb.get_user_workspans(self.database, self.user_id, self.from_date, self.to_date)
+
+    @cachedproperty
+    def contracts(self):
+        return udb.get_user_active_contracts(self.database, self.user_id, self.from_date, self.to_date)
+
+    @cachedproperty
+    def study_certificates(self):
+        return self._get_documents("study_certificate")
+
+    @cachedproperty
+    def tax_declarations(self):
+        return self._get_documents("tax_declarations")
+
+    @cachedproperty
     def hours_worked(self):
-        return
+        return sum(ws["hours"] for ws in self.workspans)
 
-    @property
+    @cachedproperty
     def hour_rate(self):
-        return
+        hour_rates = [contract["hour_rate"] for contract in self.contracts]
 
-    @property
+        if hour_rates and all(hour_rates[0] == hr for hr in hour_rates):
+            return hour_rates[0]
+
+        return 0
+
+    @cachedproperty
     def gross_wage(self):
         return
 
-    @property
+    @cachedproperty
     def tax_amount(self):
         return
 
+    @cachedproperty
     def net_wage(self):
         return
 
+    @cachedproperty
     def available_hours(self):
         return
+
+    def _get_documents(self, document_type):
+        return udb.get_user_active_documents(self.database,
+                                             self.user_id,
+                                             document_type,
+                                             self.from_date,
+                                             self.to_date)
 
 
 class ApiAdminMonthTableHandler(BaseHandler):
