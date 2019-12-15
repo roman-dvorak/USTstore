@@ -384,17 +384,25 @@
         }
 
         populateCalendar(ajaxData) {
-            console.log(ajaxData);
+            console.log("ajaxData", ajaxData);
             if (typeof ajaxData === "undefined") this._ajaxMonthData();
 
+            console.log("monthShown", this.monthShown.toString());
             let lastMonth = this.monthShown.subtract(1, "months");
+            console.log("lastMonth", lastMonth.toLocaleString());
             let nextMonth = this.monthShown.add(1, "months");
+            console.log("nextMonth", nextMonth.toLocaleString());
 
             let firstDay = this.monthShown.day();
+            console.log("firstDay", firstDay);
             let daysInMonth = this.monthShown.daysInMonth();
+            console.log("daysInMonth", daysInMonth);
             let daysInLastMonth = lastMonth.daysInMonth();
+            console.log("daysInLastMonth", daysInLastMonth);
 
-            let lastMonthDaysCounter = daysInLastMonth - (firstDay - 1) + 1;
+            // firstDay == 0 znamená neděli, ((firstDay - 1 + 7) % 7) je fix na to
+            let lastMonthDaysCounter = daysInLastMonth - ((firstDay - 1 + 7) % 7) + 1;
+            console.log("lastMonthDaysCounter", lastMonthDaysCounter);
             let thisMonthDaysCounter = 1;
             let nextMonthDaysCounter = 1;
 
