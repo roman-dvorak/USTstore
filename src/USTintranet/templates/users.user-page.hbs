@@ -461,7 +461,7 @@
 <div class="container">
     <div class="page-title">
         <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
-        <button type="button" class="btn btn-outline-dark">Docházková karta</button>
+        <a href="/attendance/u/{{_id}}" role="button" class="btn btn-outline-dark">Docházková karta</a>
     </div>
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -642,6 +642,14 @@
 </div>
 
 <style>
+    table.table tbody + tbody {
+        border-top-width: 1px;
+    }
+
+    td.wrapper {
+        padding-top: 0;
+    }
+
     table.inner {
         margin-left: auto;
         margin-right: auto;
@@ -650,7 +658,6 @@
 
     table.table.inner tr:first-child td, table.table.inner tr:first-child th {
         border-top: 0;
-        padding-top: 0;
     }
 
     tr.show-file-link {
@@ -659,18 +666,21 @@
 
     tr.document-title {
         cursor: pointer;
-        display: none;
-    }
-
-    tr.document-title:first-child {
-        display: table-row;
     }
 
     tr.document-content {
         display: none;
     }
 
-    tr.show-older {
+    tbody.document {
+        display: none;
+    }
+
+    tbody.document:first-child {
+        display: table-row-group;
+    }
+
+    tbody.show-older {
         text-align: center;
         cursor: pointer;
     }
@@ -689,28 +699,27 @@
             </th>
         </tr>
         </thead>
-        <tbody>
 
-        </tbody>
     </table>
 </template>
 
 <template id="template-documents-subtable">
+    <tbody class="subtable">
     <tr class="document-type-row">
         <th class="document-type">Typ dokumentu</th>
     </tr>
     <tr>
-        <td>
+        <td class="wrapper">
             <table class="table inner">
-                <tbody>
 
-                </tbody>
             </table>
         </td>
     </tr>
+    </tbody>
 </template>
 
 <template id="template-document">
+    <tbody class="document">
     <tr class="document-title">
         <th>
             <div class="btn-group edit-invalidate-buttons" role="group" style="float: right">
@@ -727,14 +736,15 @@
         </th>
     </tr>
     <tr class="document-content">
-        <td>
+        <td class="wrapper">
             <table class="table inner">
-                <tbody>
+                <tbody class="rows">
 
                 </tbody>
             </table>
         </td>
     </tr>
+    </tbody>
 </template>
 
 <template id="template-document-row">
@@ -753,11 +763,13 @@
 </template>
 
 <template id="template-show-older-row">
-    <tr class="show-older">
+    <tbody class="show-older">
+    <tr>
         <th>
             Zobrazit starší
         </th>
     </tr>
+    </tbody>
 </template>
 {% autoescape None %}
 <script>
@@ -824,12 +836,12 @@
         const documentsDiv = document.getElementById("documents");
 
         const table = document.importNode(tableTemplate.content, true);
-        const tableBody = table.querySelector("tbody");
+        const tableTag = table.querySelector("table");
 
         for (let documentType in documentsData)
             if (documentsData.hasOwnProperty(documentType)) {
                 const subtable = buildDocumentsSubtable(documentsData[documentType]);
-                if (subtable) tableBody.appendChild(subtable);
+                if (subtable) tableTag.appendChild(subtable);
             }
 
         documentsDiv.appendChild(table);
@@ -842,16 +854,16 @@
         const subtableTemplate = document.getElementById("template-documents-subtable");
         const subtable = document.importNode(subtableTemplate.content, true);
         const subtableDocumentType = subtable.querySelector("th.document-type");
-        const subtableBody = subtable.querySelector("tbody");
+        const subtableTableTag = subtable.querySelector("table");
 
         subtableDocumentType.textContent = subtableData[0]["type_text"];
 
         for (let docData of subtableData) {
             const doc = buildDocument(docData);
-            subtableBody.appendChild(doc);
+            subtableTableTag.appendChild(doc);
         }
 
-        subtableBody.appendChild(buildShowOlderRow());
+        subtableTableTag.appendChild(buildShowOlderRow());
 
         return subtable;
     }
@@ -859,26 +871,29 @@
     function buildDocument(docData) {
         const documentTemplate = document.getElementById("template-document");
         const doc = document.importNode(documentTemplate.content, true);
+        const documentBody = doc.querySelector("tbody.document");
         const documentTitleRow = doc.querySelector("tr.document-title");
         const documentContentRow = doc.querySelector("tr.document-content");
         const documentTitle = doc.querySelector("tr.document-title th span");
-        const documentBody = doc.querySelector("tbody");
+        const documentRows = doc.querySelector("tbody.rows");
+
+        documentBody.setAttribute("data-id", docData["_id"]);
 
         documentTitle.textContent = docData["title"];
 
         if (docData.hasOwnProperty("valid_from_text"))
-            documentBody.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
+            documentRows.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
         if (docData.hasOwnProperty("valid_until_text"))
-            documentBody.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
+            documentRows.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
         if (docData.hasOwnProperty("invalidated_text")) {
-            documentBody.appendChild(buildDocumentRow("Zneplatněn dne", docData["invalidated_text"]));
+            documentRows.appendChild(buildDocumentRow("Zneplatněn dne", docData["invalidated_text"]));
             documentTitle.style.textDecoration = "line-through";
         }
         if (docData.hasOwnProperty("notes"))
-            documentBody.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
+            documentRows.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
 
         if (docData.hasOwnProperty("url"))
-            documentBody.appendChild(buildShowFileRow(docData["url"]));
+            documentRows.appendChild(buildShowFileRow(docData["url"]));
 
         if (!docData["is_valid"]) {
             documentTitleRow.style.color = "grey";
@@ -890,9 +905,6 @@
             const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
             $(buttons).hide();
         }
-
-        documentTitleRow.setAttribute("data-id", docData["_id"]);
-        documentContentRow.setAttribute("data-id", docData["_id"]);
 
         documentTitleRow.addEventListener("click", () => {
             const next = $(documentTitleRow).next();
@@ -929,11 +941,11 @@
         const showOlderRowTemplate = document.getElementById("template-show-older-row");
         const showOlderRow = document.importNode(showOlderRowTemplate.content, true);
 
-        const row = showOlderRow.querySelector("tr.show-older");
-        row.addEventListener("click", () => {
-            const row_jquery = $(row);
-            row_jquery.siblings(".document-title").show();
-            row_jquery.hide();
+        const tbody = showOlderRow.querySelector("tbody.show-older");
+        tbody.addEventListener("click", () => {
+            const tbody_jquery = $(tbody);
+            tbody_jquery.siblings().show();
+            tbody_jquery.hide();
         });
 
         return showOlderRow;
@@ -1183,7 +1195,7 @@
     function invalidateDocument(button) {
         event.stopPropagation();
 
-        const documentId = button.closest("tr.document-title").getAttribute("data-id");
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
 
         $.ajax({
             url: "/users/api/u/{{_id}}/documents/invalidate",
@@ -1200,7 +1212,7 @@
     function reuploadDocument(button) {
         event.stopPropagation();
 
-        const documentId = button.closest("tr.document-title").getAttribute("data-id");
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
         document.getElementById("reupload-document-id-input").value = documentId;
 
         $("#reupload-document-modal").modal("show");
