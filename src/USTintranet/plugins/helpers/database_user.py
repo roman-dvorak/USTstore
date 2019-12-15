@@ -29,6 +29,8 @@ def get_user(coll: pymongo.collection.Collection, _id: str):
     Vrátí mdokument daného uživatele. Uživatel má field "_id" s textovou verzí ObjectID jeho mdokumentu.
     """
     user = coll.find_one({'_id': ObjectId(_id)})
+    if not user:
+        return None
     user["_id"] = str(user["_id"])
     return user
 
@@ -195,6 +197,19 @@ def delete_user_document(coll: pymongo.collection.Collection, user_id: str, docu
                     }})
 
 
+def invalidate_user_document(coll: pymongo.collection.Collection, user_id: str, document_id: str):
+    coll.update_one({"_id": ObjectId(user_id), "documents._id": document_id},
+                    {"$set": {
+                        "documents.$.invalidated": datetime.now().replace(microsecond=0)
+                    }})
+
+
+def get_user_document_owncloud_id(coll: pymongo.collection.Collection, user_id: str, document_id: str):
+    document_mdoc = coll.find_one({"_id": ObjectId(user_id), "documents._id": document_id}, {"documents.$": 1})
+    print(document_mdoc)
+    return document_mdoc["documents"][0]["file"]
+
+
 def update_user_document(coll: pymongo.collection.Collection, user_id: str, document_id: str, document: dict):
     """
     Upraví dokument s daným document_id daného uživatele. Má-li field hodnotu "" (prázdný řetězec) nebo None,
@@ -249,6 +264,7 @@ def get_user_active_contracts(db, user_id: str, from_date: datetime, to_date: da
             "$nor": [
                 {"contracts.valid_from": {"$gte": to_date}},
                 {"contracts.valid_until": {"$lt": from_date}},
+                {"contracts.invalidated": {"$exists": True}},
             ]
         }},
         {"$sort": {f"contracts.{sort_by}": -1}},

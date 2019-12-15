@@ -45,13 +45,14 @@ CONTRACT_DOC_KEYS = [
     "valid_until",
     "hour_rate",
     "scan_signed_url",
+    "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
 ]
 DOCUMENT_DOC_KEYS = [
     "type",
     "valid_from",
     "valid_until",
-    "path_to_file",
-    "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
+    "file",
+    "invalidated",  # datetime zrušení, key existuje jen pokud dokument byl předčasně zrušen
 ]
 VACATION_DOC_KEYS = [
     "from",
@@ -79,7 +80,6 @@ OWNCLOUD_DOC_KEYS = [
 ]
 
 OWNCLOUD_VERSION_DOC_KEYS = [
-    "version",  # number
     "url",
     "by",
     "when",

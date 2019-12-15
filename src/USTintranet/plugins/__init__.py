@@ -15,9 +15,14 @@ import datetime
 import os
 import bson
 from hashlib import blake2s
+
+from bson import ObjectId
 from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
+
+from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
+    get_file_last_version_number
 
 
 def make_handlers(module, plugin):
@@ -25,7 +30,7 @@ def make_handlers(module, plugin):
         (r'/login', plugin.LoginHandler),
         (r'/logout', plugin.LogoutHandler),
         (r'/registration', plugin.RegistrationHandler),
-        (r'/api/backup', plugin.doBackup),]
+        (r'/api/backup', plugin.doBackup), ]
     return handlers
 
 
@@ -603,10 +608,96 @@ class BaseHandlerJson(BaseHandler):
 
 
 class BaseHandlerOwnCloud(BaseHandler):
+
     def prepare(self):
         self.oc = owncloud.Client(tornado.options.options.owncloud_url)
         self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
+
         super(BaseHandlerOwnCloud, self).prepare()
+
+    def upload_to_owncloud(self,
+                           oc_directory,
+                           oc_filename,
+                           local_path,
+                           uploaded_by_id,
+                           delete_local=True):
+        file_id = ObjectId()
+
+        oc_path = generate_actual_owncloud_path(str(file_id),
+                                                oc_directory,
+                                                oc_filename,
+                                                0,
+                                                tornado.options.options.owncloud_root)
+
+        self.oc.put_file(oc_path, local_path)
+        shared_url = self.oc.share_file_with_link(oc_path).get_link()
+
+        coll: pymongo.collection.Collection = self.mdb.owncloud
+        coll.insert_one({
+            "_id": file_id,
+            "directory": oc_directory,
+            "filename": oc_filename,
+            "versions": {
+                "0": {
+                    "by": uploaded_by_id,
+                    "when": datetime.datetime.now(),
+                    "path": oc_path,
+                    "url": shared_url,
+                }
+            }
+        })
+
+        if delete_local:
+            os.remove(local_path)
+
+        return file_id
+
+    def update_owncloud_file(self,
+                             file_id: ObjectId,
+                             local_path: str,
+                             uploaded_by_id: str,
+                             delete_local=True):
+        coll: pymongo.collection.Collection = self.mdb.owncloud
+        file_mdoc = coll.find_one({"_id": file_id})
+
+        version_number = get_file_last_version_number(file_mdoc) + 1
+        oc_path = generate_actual_owncloud_path(str(file_id),
+                                                file_mdoc['directory'],
+                                                file_mdoc['filename'],
+                                                version_number,
+                                                tornado.options.options.owncloud_root)
+
+        self.oc.put_file(oc_path, local_path)
+        shared_url = self.oc.share_file_with_link(oc_path).get_link()
+
+        coll.update_one({"_id": file_id},
+                        {"$set": {
+                            f"versions.{version_number}": {
+                                "by": uploaded_by_id,
+                                "when": datetime.datetime.now(),
+                                "path": oc_path,
+                                "url": shared_url,
+                            }
+                        }})
+
+        if delete_local:
+            os.remove(local_path)
+
+    def save_uploaded_files(self, input_name, directory="static/tmp"):
+        if not self.request.files or not self.request.files[input_name]:
+            return None
+
+        processed_paths = []
+
+        for file in self.request.files[input_name]:
+            file_path = os.path.join(directory, file["filename"])
+
+            with open(file_path, "wb") as f:
+                f.write(file["body"])
+
+            processed_paths.append(file_path)
+
+        return processed_paths
 
 
 def password_hash(user_name, password):

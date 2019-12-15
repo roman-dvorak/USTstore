@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import json
 from datetime import datetime, timedelta
 from random import randint
 
@@ -19,6 +20,7 @@ from plugins import BaseHandlerOwnCloud
 from plugins import BaseHandler, save_file, upload_file
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
+from plugins.helpers.owncloud_utils import get_file_url
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -28,7 +30,8 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
-        (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
         (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
@@ -232,10 +235,7 @@ class UserPageHandler(BaseHandler):
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        study_certificates, tax_declarations = self.prepare_documents(documents, contracts)
-        template_params["documents"] = {}
-        template_params["documents"]["study_certificates"] = study_certificates
-        template_params["documents"]["tax_declarations"] = tax_declarations
+        template_params["documents_json"] = self.prepare_documents(documents)
 
         self.render("users.user-page.hbs", **template_params)
 
@@ -276,7 +276,7 @@ class UserPageHandler(BaseHandler):
 
         return result
 
-    def prepare_documents(self, documents, contracts):
+    def prepare_documents(self, documents):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
             "tax_declaration": "Prohlášení k dani"
@@ -295,11 +295,19 @@ class UserPageHandler(BaseHandler):
             else:
                 document["is_valid"] = False
 
+            if "invalidated" in document:
+                document["is_valid"] = False
+                document["invalidated_text"] = str_ops.date_to_str(document["invalidated"])
+                document["invalidated"] = str_ops.date_to_iso_str(document["invalidated"])
+
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
             document["valid_until_text"] = valid_until_text
             document["valid_from"] = str_ops.date_to_iso_str(document.get("valid_from", None))
             document["valid_until"] = str_ops.date_to_iso_str(document.get("valid_until", None))
+
+            document["url"] = get_file_url(self.mdb, document["file"])
+            del document["file"]
 
             date_texts = [date for date in [valid_from_text, valid_until_text] if date]
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
@@ -309,7 +317,12 @@ class UserPageHandler(BaseHandler):
             elif document["type"] == "tax_declaration":
                 tax_declarations.append(document)
 
-        return study_certificates, tax_declarations
+        final_structure = {
+            "study_certificate": study_certificates,
+            "tax_declaration": tax_declarations,
+        }
+
+        return json.dumps(final_structure)
 
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
@@ -414,12 +427,12 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             if file:
                 user_mdoc = udb.get_user(self.mdb.users, _id)
                 file_name = self.make_document_name(user_mdoc, document, document_id)
-                owncloud_url = self.process_file(file, file_name)
-                udb.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
+                file_id = self.process_file(_id, file, file_name)
+                udb.update_user_document(self.mdb.users, _id, document_id, {"file": file_id})
 
         self.redirect(f"/users/u/{_id}", permanent=True)
 
-    def process_file(self, file, document_name):
+    def process_file(self, user_id, file, document_name):
         extension = os.path.splitext(file["filename"])[1]
 
         new_filename = f"{document_name}{extension}"
@@ -428,23 +441,35 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         with open(local_path, "wb") as f:
             f.write(file["body"])
 
-        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
-        remote = save_file(self.mdb, owncloud_path)
-        res = upload_file(self.oc, local_path, remote)
+        res = self.upload_to_owncloud("documents", new_filename, local_path, user_id)
         print("res", res)
 
-        return res.get_link()
+        return res
 
     def make_document_name(self, user_mdoc, document, document_id):
         surname = user_mdoc.get("name", {}).get("surname", "unknown")
         return f"{document_id}_{surname}_{document['type']}"
 
 
-class ApiUserDeleteDocumentHandler(BaseHandler):
+class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
+    def post(self, user_id):
+        document_id = self.get_argument("_id")
+        print(document_id)
+        local_path, = self.save_uploaded_files("file")
+
+        owncloud_id = udb.get_user_document_owncloud_id(self.mdb.users, user_id, document_id)
+        self.update_owncloud_file(owncloud_id, local_path, str(self.actual_user["_id"]))
+
+        self.redirect(f"/users/u/{user_id}", permanent=True)
+
+
+class ApiUserInvalidateDocumentHandler(BaseHandler):
+
+    def post(self, user_id):
         document_id = self.request.body.decode("utf-8")
-        udb.delete_user_document(self.mdb.users, _id, document_id)
+        print("invalidating", document_id)
+        udb.invalidate_user_document(self.mdb.users, user_id, document_id)
 
 
 class ApiUserValidateEmail(BaseHandler):

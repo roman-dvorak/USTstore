@@ -54,15 +54,21 @@
         cursor: pointer;
     }
 
+    .document-show-more {
+        display: none;
+        text-align: center;
+        cursor: pointer;
+    }
+
     .document-edit-btn {
         float: right;
     }
 
-    .document-header, .document-type-header {
+    .document-header {
         cursor: pointer;
     }
 
-    .document-info, .document-type {
+    .document-info {
         display: none;
     }
 
@@ -82,9 +88,6 @@
         text-align: center;
     }
 
-    #documents table table tr:first-child th {
-        border-top: 0;
-    }
 </style>
 
 <div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
@@ -362,6 +365,37 @@
     </div>
 </div>
 
+<div class="modal" id="reupload-document-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát jinou verzi dokumentu</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="reupload-document-form" action="/users/api/u/{{_id}}/documents/reupload"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="reupload-document-id-input" name="_id">
+
+                    <div class="form-group">
+                        <label for="reupload-document-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="reupload-document-file-input" name="file" required>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveReuploadDocumentModal()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal" id="document-editor-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -602,102 +636,133 @@
             </div>
 
             <div id="documents">
-                <table class="table">
-                    <thead class="thead-dark">
-                    <tr>
-                        <th>
-                            <button type="button" class="btn btn-light" style="float: right;"
-                                    onclick="showDocumentEditor(this, true)">
-                                Přidat
-                            </button>
-                            Dokumenty
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for doc_type in documents.keys() %}
-                    {% if len(documents[doc_type]) > 0 %}
-                    <tr class="document-type-header">
-                        <th>{{documents[doc_type][0]["type_text"]}}</th>
-                    </tr>
-                    <tr class="document-type">
-                        <td>
-                            <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
-                                <tbody>
-                                {% for document in documents[doc_type] %}
-                                <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
-                                    <th>
-                                        <button class="btn btn-dark btn-sm document-edit-btn"
-                                                onclick="showDocumentEditor(this)">
-                                            Upravit
-                                        </button>
-                                        {{document["title"]}}
-                                    </th>
-                                </tr>
-                                <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
-                                    data-id="{{document["_id"]}}">
-                                    <td>
-                                        <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
-                                            <tbody>
-                                            <tr>
-                                                <td style="border-top: 0px">Druh dokumentu</td>
-                                                <td style="border-top: 0px" class="document-type-cell"
-                                                    data-raw="{{document["type"]}}">
-                                                    {{document["type_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% if document.get("valid_from_text", None) %}
-                                            <tr>
-                                                <td>Začátek platnosti</td>
-                                                <td class="document-valid-from-cell"
-                                                    data-raw="{{document["valid_from"]}}">
-                                                    {{document["valid_from_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            {% if document.get("valid_until_text", None) %}
-                                            <tr>
-                                                <td>Konec platnosti</td>
-                                                <td class="document-valid-until-cell"
-                                                    data-raw="{{document["valid_until"]}}">
-                                                    {{document["valid_until_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            {% if document.get("notes", None) %}
-                                            <tr>
-                                                <td>Poznámka</td>
-                                                <td class="document-notes-cell" data-raw="{{document["notes"]}}">
-                                                    {{document["notes"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            <tr>
-                                                <td colspan="2" class="link-show-file">
-                                                    <a href="{{document.get('url', '#')}}" target="_blank">
-                                                        Zobrazit soubor
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                </tr>
-                                {% end %}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    {% end %}
-                    {% end %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    table.inner {
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0;
+    }
+
+    table.table.inner tr:first-child td, table.table.inner tr:first-child th {
+        border-top: 0;
+        padding-top: 0;
+    }
+
+    tr.show-file-link {
+        text-align: center;
+    }
+
+    tr.document-title {
+        cursor: pointer;
+        display: none;
+    }
+
+    tr.document-title:first-child {
+        display: table-row;
+    }
+
+    tr.document-content {
+        display: none;
+    }
+
+    tr.show-older {
+        text-align: center;
+        cursor: pointer;
+    }
+</style>
+
+<template id="template-documents-table">
+    <table class="table">
+        <thead class="thead-dark">
+        <tr>
+            <th>
+                <button type="button" class="btn btn-light" style="float: right;"
+                        onclick="showDocumentEditor(this, true)">
+                    Přidat
+                </button>
+                Dokumenty
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+</template>
+
+<template id="template-documents-subtable">
+    <tr class="document-type-row">
+        <th class="document-type">Typ dokumentu</th>
+    </tr>
+    <tr>
+        <td>
+            <table class="table inner">
+                <tbody>
+
+                </tbody>
+            </table>
+        </td>
+    </tr>
+</template>
+
+<template id="template-document">
+    <tr class="document-title">
+        <th>
+            <div class="btn-group edit-invalidate-buttons" role="group" style="float: right">
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="reuploadDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">edit</i>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="invalidateDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">close</i>
+                </button>
+            </div>
+            <span></span>
+        </th>
+    </tr>
+    <tr class="document-content">
+        <td>
+            <table class="table inner">
+                <tbody>
+
+                </tbody>
+            </table>
+        </td>
+    </tr>
+</template>
+
+<template id="template-document-row">
+    <tr>
+        <td></td>
+        <td></td>
+    </tr>
+</template>
+
+<template id="template-show-file-row">
+    <tr class="show-file-link">
+        <td colspan="2">
+            <a target="_blank">Zobrazit soubor</a>
+        </td>
+    </tr>
+</template>
+
+<template id="template-show-older-row">
+    <tr class="show-older">
+        <th>
+            Zobrazit starší
+        </th>
+    </tr>
+</template>
+{% autoescape None %}
 <script>
+
+    const DOCUMENTS_JSON = `{{documents_json}}`;
 
     $(document).ready(() => {
         initBasicInfo();
@@ -747,21 +812,131 @@
     }
 
     function initDocuments() {
-        let documentInfos = $(".document-info");
-        let documentHeaders = $(".document-header");
-        documentHeaders.on("click", event => {
-            documentInfos.hide();
-            $(event.target).closest("tr").next().show();
-        });
-
-        let documentTypes = $(".document-type");
-        let documentTypeHeaders = $(".document-type-header");
-        documentTypeHeaders.on("click", event => {
-            documentTypes.hide();
-            $(event.target).closest("tr").next().show();
-        });
+        buildDocumentsTable(JSON.parse(DOCUMENTS_JSON));
 
         $("#document-type-select").on("change", handleDocumentTypeChange);
+    }
+
+    function buildDocumentsTable(documentsData) {
+        console.log("documentsData", documentsData);
+
+        const tableTemplate = document.getElementById("template-documents-table");
+        const documentsDiv = document.getElementById("documents");
+
+        const table = document.importNode(tableTemplate.content, true);
+        const tableBody = table.querySelector("tbody");
+
+        for (let documentType in documentsData)
+            if (documentsData.hasOwnProperty(documentType)) {
+                const subtable = buildDocumentsSubtable(documentsData[documentType]);
+                if (subtable) tableBody.appendChild(subtable);
+            }
+
+        documentsDiv.appendChild(table);
+    }
+
+    function buildDocumentsSubtable(subtableData) {
+        console.log("subtableData", subtableData);
+        if (subtableData.length === 0) return false;
+
+        const subtableTemplate = document.getElementById("template-documents-subtable");
+        const subtable = document.importNode(subtableTemplate.content, true);
+        const subtableDocumentType = subtable.querySelector("th.document-type");
+        const subtableBody = subtable.querySelector("tbody");
+
+        subtableDocumentType.textContent = subtableData[0]["type_text"];
+
+        for (let docData of subtableData) {
+            const doc = buildDocument(docData);
+            subtableBody.appendChild(doc);
+        }
+
+        subtableBody.appendChild(buildShowOlderRow());
+
+        return subtable;
+    }
+
+    function buildDocument(docData) {
+        const documentTemplate = document.getElementById("template-document");
+        const doc = document.importNode(documentTemplate.content, true);
+        const documentTitleRow = doc.querySelector("tr.document-title");
+        const documentContentRow = doc.querySelector("tr.document-content");
+        const documentTitle = doc.querySelector("tr.document-title th span");
+        const documentBody = doc.querySelector("tbody");
+
+        documentTitle.textContent = docData["title"];
+
+        if (docData.hasOwnProperty("valid_from_text"))
+            documentBody.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
+        if (docData.hasOwnProperty("valid_until_text"))
+            documentBody.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
+        if (docData.hasOwnProperty("invalidated_text")) {
+            documentBody.appendChild(buildDocumentRow("Zneplatněn dne", docData["invalidated_text"]));
+            documentTitle.style.textDecoration = "line-through";
+        }
+        if (docData.hasOwnProperty("notes"))
+            documentBody.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
+
+        if (docData.hasOwnProperty("url"))
+            documentBody.appendChild(buildShowFileRow(docData["url"]));
+
+        if (!docData["is_valid"]) {
+            documentTitleRow.style.color = "grey";
+            documentContentRow.style.color = "grey";
+        }
+
+        if (docData.hasOwnProperty("invalidated") ||
+                moment(docData["valid_until"]).isBefore(moment())) {
+            const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
+            $(buttons).hide();
+        }
+
+        documentTitleRow.setAttribute("data-id", docData["_id"]);
+        documentContentRow.setAttribute("data-id", docData["_id"]);
+
+        documentTitleRow.addEventListener("click", () => {
+            const next = $(documentTitleRow).next();
+            console.log(next);
+            if (next.is(":hidden")) next.show();
+            else next.hide();
+        });
+
+        return doc;
+    }
+
+    function buildDocumentRow(title, value) {
+        const documentRowTemplate = document.getElementById("template-document-row");
+        const documentRow = document.importNode(documentRowTemplate.content, true);
+
+        const tds = documentRow.querySelectorAll("td");
+        tds[0].textContent = title;
+        tds[1].textContent = value;
+
+        return documentRow;
+    }
+
+    function buildShowFileRow(url) {
+        const showFileRowTemplate = document.getElementById("template-show-file-row");
+        const showFileRow = document.importNode(showFileRowTemplate.content, true);
+
+        const link = showFileRow.querySelector("a");
+        link.href = url;
+
+        return showFileRow;
+    }
+
+    function buildShowOlderRow() {
+        const showOlderRowTemplate = document.getElementById("template-show-older-row");
+        const showOlderRow = document.importNode(showOlderRowTemplate.content, true);
+
+        const row = showOlderRow.querySelector("tr.show-older");
+        row.addEventListener("click", () => {
+            const row_jquery = $(row);
+            row_jquery.siblings(".document-title").show();
+            row_jquery.hide();
+        });
+
+        return showOlderRow;
     }
 
     function showUserEditor() {
@@ -1005,6 +1180,32 @@
         sendContractDataAjax(data);
     }
 
+    function invalidateDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tr.document-title").getAttribute("data-id");
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/documents/invalidate",
+            type: "post",
+            data: documentId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: ajaxError,
+        });
+    }
+
+    function reuploadDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tr.document-title").getAttribute("data-id");
+        document.getElementById("reupload-document-id-input").value = documentId;
+
+        $("#reupload-document-modal").modal("show");
+    }
+
     function showUploadContractScanModal(link) {
         console.log(link);
         let contractHeaderRow = $(link).closest("tr.contract-info").prev();
@@ -1015,9 +1216,16 @@
         $("#upload-contract-scan-modal").modal("show");
     }
 
-
     function saveUploadContractScanModal() {
         let form = document.forms["upload-contract-scan-form"];
+
+        if (!validateRequired(form)) return;
+
+        form.submit();
+    }
+
+    function saveReuploadDocumentModal() {
+        let form = document.forms["reupload-document-form"];
 
         if (!validateRequired(form)) return;
 
