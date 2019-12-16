@@ -33,3 +33,14 @@ def get_mdocument_set_unset_dicts(document, unset_values=(None, "")):
     to_unset = {key: to_set.pop(key) for key, value in document.items() if value in unset_values}
 
     return to_set, to_unset
+
+
+def get_user_embedded_mdoc_by_id(database, user_id: str, field: str, mdoc_id: str):
+    mdoc = database.users.find_one({"_id": ObjectId(user_id), f"{field}._id": mdoc_id},
+                                   {f"{field}.$": 1})
+    if not mdoc:
+        return None
+
+    field_content = mdoc.get(field, None)
+
+    return field_content[0] if field_content else None

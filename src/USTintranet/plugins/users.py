@@ -28,6 +28,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
@@ -228,7 +229,7 @@ class UserPageHandler(BaseHandler):
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
         }
-        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now(),
+        template_params.update(compile_user_month_info(self.mdb, _id, datetime.now(),
                                                        self.dpp_params["year_max_hours"],
                                                        self.dpp_params["month_max_gross_wage"]))
 
@@ -331,9 +332,9 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
-        if "contract_id" in contract:
-            if contract.get("invalidated", False):
-                udb.invalidate_user_contract(self.mdb.users, user_id, contract["contract_id"])
+        if "_id" in contract:
+            raise ValueError("Nedefinovaný stav")  # pozůstatek po předchozí funkcionalitě
+
         else:
             contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
             contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
@@ -355,11 +356,26 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
             contract["url"] = res.get_link()
 
-            for key in contract.keys():
+            for key in list(contract.keys()):
                 if key not in CONTRACT_DOC_KEYS:
                     del contract[key]
 
             udb.add_user_contract(self.mdb.users, user_id, contract)
+
+
+class ApiUserInvalidateContractHandler(BaseHandler):
+
+    def post(self, user_id):
+        req = self.request.body.decode("utf-8")
+        data = json.loads(req)
+
+        invalidation_date = str_ops.datetime_from_iso_str(data["date"])
+        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, data["_id"])
+
+        if not (contract_mdoc["valid_from"] <= invalidation_date <= contract_mdoc["valid_until"]):
+            raise BadInputError("Datum zneplatnění smlouvy musí spadat do období platnosti smlouvy.")
+
+        udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
@@ -467,9 +483,16 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 class ApiUserInvalidateDocumentHandler(BaseHandler):
 
     def post(self, user_id):
-        document_id = self.request.body.decode("utf-8")
-        print("invalidating", document_id)
-        udb.invalidate_user_document(self.mdb.users, user_id, document_id)
+        req = self.request.body.decode("utf-8")
+        data = json.loads(req)
+
+        invalidation_date = str_ops.datetime_from_iso_str(data["date"])
+        document_mdoc = udb.get_user_document_by_id(self.mdb, user_id, data["_id"])
+
+        if not (document_mdoc["valid_from"] <= invalidation_date <= document_mdoc["valid_until"]):
+            raise BadInputError("Datum zneplatnění dokumentu musí spadat do období platnosti dokumentu.")
+
+        udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
 class ApiUserValidateEmail(BaseHandler):

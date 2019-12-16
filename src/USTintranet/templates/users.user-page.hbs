@@ -1182,14 +1182,41 @@
     }
 
     function invalidateContract(button) {
+        event.stopPropagation();
+
         let contractHeaderRow = $(button).closest("tr");
         let contractId = contractHeaderRow.data("id");
 
-        let data = {};
-        data["contract_id"] = contractId;
-        data["invalidated"] = true;
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění smlouvy",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
+            },
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = contractId;
+                    data["date"] = lb.getValue();
 
-        sendContractDataAjax(data);
+                    $.ajax({
+                        url: "/users/api/u/{{_id}}/contracts/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
     }
 
     function invalidateDocument(button) {
@@ -1197,15 +1224,35 @@
 
         const documentId = button.closest("tbody.document").getAttribute("data-id");
 
-        $.ajax({
-            url: "/users/api/u/{{_id}}/documents/invalidate",
-            type: "post",
-            data: documentId,
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění dokumentu",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
             },
-            error: ajaxError,
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = documentId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/users/api/u/{{_id}}/documents/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
         });
     }
 

@@ -1,5 +1,6 @@
 import calendar
 import functools
+import json
 from datetime import datetime, timedelta
 
 import bson.json_util
@@ -24,7 +25,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
-        (r'/{}/api/u/(.*)/vacations/delete'.format(plugin_name), plugin_namespace.ApiDeleteVacationHandler),
+        (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
         (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
         (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -52,30 +53,13 @@ class HomeHandler(BaseHandler):
             self.redirect(f"/attendance/u/{me['_id']}")
 
 
-def cachedproperty(func):
-    func_name = func.__name__
-
-    @property
-    @functools.wraps(func)
-    def inner(self):
-        if not hasattr(self, "_cache"):
-            self._cache = {}
-
-        if func_name not in self._cache:
-            self._cache[func_name] = func(self)
-
-        return self._cache[func_name]
-
-    return inner
-
-
 class AttendanceCalculator:
 
-    def __init__(self, user_id, from_date, to_date, database):
-        self.user_id = user_id
-        self.from_date = from_date
-        self.to_date = to_date
+    def __init__(self, database, user_id, date: datetime):
         self.database = database
+        self.user_id = user_id
+        self.month = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        self.year = self.month.replace(month=1)
 
         self.dpp_params = get_dpp_params(self.database)
         self.year_max_hours = self.dpp_params["year_max_hours"]
@@ -84,59 +68,124 @@ class AttendanceCalculator:
         self.tax_deduction = self.dpp_params["tax_deduction"]
         self.tax_deduction_student = self.dpp_params["tax_deduction_student"]
 
-        self._cache = {}
+        self._month_hours_worked = None
+        self._month_gross_wage = None
+        self._month_tax_amount = None
 
-    @cachedproperty
-    def workspans(self):
-        return adb.get_user_workspans(self.database, self.user_id, self.from_date, self.to_date)
+        self._year_hours_worked = None
+        self._year_gross_wage = None
+        self._year_tax_amount = None
 
-    @cachedproperty
-    def contracts(self):
-        return udb.get_user_active_contracts(self.database, self.user_id, self.from_date, self.to_date)
+    def _calculate_this_month(self):
+        hours_worked, gross_wage, tax_amount = self._calculate_given_month(self.month)
 
-    @cachedproperty
-    def study_certificates(self):
-        return self._get_documents("study_certificate")
+        self._month_hours_worked = hours_worked
+        self._month_gross_wage = gross_wage
+        self._month_tax_amount = tax_amount
 
-    @cachedproperty
-    def tax_declarations(self):
-        return self._get_documents("tax_declarations")
+    def _calculate_given_month(self, month: datetime):
+        next_month = month + relativedelta(months=1)
 
-    @cachedproperty
-    def hours_worked(self):
-        return sum(ws["hours"] for ws in self.workspans)
+        workspans = adb.get_user_workspans(self.database, self.user_id, month, next_month)
 
-    @cachedproperty
-    def hour_rate(self):
-        hour_rates = [contract["hour_rate"] for contract in self.contracts]
+        has_study_certificate = bool(udb.get_user_active_documents(self.database, self.user_id, "study_certificate",
+                                                                   month, next_month))
+        has_tax_declaration = bool(udb.get_user_active_documents(self.database, self.user_id, "tax_declaration",
+                                                                 month, next_month))
+        contract = None
 
-        if hour_rates and all(hour_rates[0] == hr for hr in hour_rates):
-            return hour_rates[0]
+        hours_worked = 0
+        gross_wage = 0
+        for workspan in workspans:
+            if not contract or contract["_id"] != workspan["contract"]:
+                contract = udb.get_user_active_contract(self.database.users, self.user_id, workspan["from"])
 
-        return 0
+            if not contract:
+                raise ValueError("Pro některé zapsané hodiny uživatele nepřipadá platná smlouva.")
 
-    @cachedproperty
-    def gross_wage(self):
+            hours_worked += workspan["hours"]
+            gross_wage += workspan["hours"] * contract["hour_rate"]
+
+        tax_amount = calculate_tax(gross_wage, self.tax_rate,
+                                   self.tax_deduction if has_tax_declaration else 0,
+                                   self.tax_deduction_student if has_study_certificate else 0)
+
+        return hours_worked, gross_wage, tax_amount
+
+    def _calculate_this_year(self):
+        hours_worked = 0
+        gross_wage = 0
+        tax_amount = 0
+        for month in range(12):
+            start_of_month = datetime(self.year.year, month, 1)
+            month_hours_worked, month_gross_wage, month_tax_amount = self._calculate_given_month(start_of_month)
+
+            hours_worked += month_hours_worked
+            gross_wage += month_gross_wage
+            tax_amount += month_tax_amount
+
+        self._year_hours_worked = hours_worked
+        self._year_gross_wage = gross_wage
+        self._year_tax_amount = tax_amount
+
+    @property
+    def month_hours_worked(self):
+        if self._month_hours_worked is None:
+            self._calculate_this_month()
+
+        return self._month_hours_worked
+
+    @property
+    def month_gross_wage(self):
+        if self._month_gross_wage is None:
+            self._calculate_this_month()
+
+        return self._month_gross_wage
+
+    @property
+    def month_tax_amount(self):
+        if self._month_tax_amount is None:
+            self._calculate_this_month()
+
+        return self._month_tax_amount
+
+    @property
+    def year_hours_worked(self):
+        if self._year_hours_worked is None:
+            self._calculate_this_month()
+
+        return self._year_hours_worked
+
+    @property
+    def year_gross_wage(self):
+        if self._year_gross_wage is None:
+            self._calculate_this_month()
+
+        return self._year_gross_wage
+
+    @property
+    def year_tax_amount(self):
+        if self._year_tax_amount is None:
+            self._calculate_this_month()
+
+        return self._year_tax_amount
+
+    @property
+    def month_hour_rate(self):
+        return self.month_gross_wage / self.month_hours_worked
+
+    @property
+    def year_hour_rate(self):
+        return self.year_gross_wage / self.year_hours_worked
+
+    def month_net_wage(self):
+        return self.month_gross_wage - self.month_tax_amount
+
+    def year_net_wage(self):
+        return self.year_gross_wage - self.year_tax_amount
+
+    def month_available_hours(self):
         return
-
-    @cachedproperty
-    def tax_amount(self):
-        return
-
-    @cachedproperty
-    def net_wage(self):
-        return
-
-    @cachedproperty
-    def available_hours(self):
-        return
-
-    def _get_documents(self, document_type):
-        return udb.get_user_active_documents(self.database,
-                                             self.user_id,
-                                             document_type,
-                                             self.from_date,
-                                             self.to_date)
 
 
 class ApiAdminMonthTableHandler(BaseHandler):
@@ -156,7 +205,7 @@ class ApiAdminMonthTableHandler(BaseHandler):
             apply_deduction_student = bool(udb.get_user_active_study_certificate(self.mdb.users, user["_id"], month))
 
             hour_rate = active_contract["hour_rate"] if active_contract else 0
-            month_workspans = adb.get_user_workspans(self.mdb.users, user["_id"], month, next_month)
+            month_workspans = adb.get_user_workspans(self.mdb, user["_id"], month, next_month)
             hours_worked = sum(ws["hours"] for ws in month_workspans)
             gross_wage = hours_worked * hour_rate
             tax_amount = calculate_tax(gross_wage,
@@ -195,7 +244,7 @@ class ApiAdminYearTableHandler(BaseHandler):
         for user in users:
             active_contract = udb.get_user_active_contract(self.mdb.users, user["_id"])
             hour_rate = active_contract["hour_rate"] if active_contract else 0
-            year_workspans = adb.get_user_workspans(self.mdb.users, user["_id"], year, next_year)
+            year_workspans = adb.get_user_workspans(self.mdb, user["_id"], year, next_year)
             hours_worked = sum(ws["hours"] for ws in year_workspans)
             gross_wage = hours_worked * hour_rate
             tax_amount = 0
@@ -224,12 +273,14 @@ class UserAttendanceHandler(BaseHandler):
 
         user_document = udb.get_user(self.mdb.users, user_id)
 
-        day_workspans = adb.get_user_workspans(self.mdb.users, user_id, date, date + timedelta(days=1))
+        day_workspans = adb.get_user_workspans(self.mdb, user_id, date, date + timedelta(days=1))
+        print("day_workspans", day_workspans)
+        print("date", date)
         for ws in day_workspans:
             ws["to"] = str_ops.date_to_time_str(ws["from"] + timedelta(minutes=round(ws["hours"] * 60)))
             ws["from"] = str_ops.date_to_time_str(ws["from"])
 
-        current_and_future_vacations = adb.get_user_vacations(self.mdb.users, user_id, date)
+        current_and_future_vacations = adb.get_user_vacations(self.mdb, user_id, date)
         is_vacation_day = current_and_future_vacations and current_and_future_vacations[0]["from"] <= date
 
         for vacation in current_and_future_vacations:
@@ -257,7 +308,7 @@ class ApiCalendarHandler(BaseHandler):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
         num_days_in_month = calendar.monthrange(month.year, month.month)[1]
 
-        vacations = adb.get_user_vacations(self.mdb.users,
+        vacations = adb.get_user_vacations(self.mdb,
                                            user_id,
                                            month - relativedelta(months=1),
                                            month + relativedelta(months=2))
@@ -268,7 +319,7 @@ class ApiCalendarHandler(BaseHandler):
             vacation_days += [str_ops.date_to_iso_str(vacation["from"] + timedelta(days=i))
                               for i in range(vacation_length)]
 
-        workspans = adb.get_user_workspans(self.mdb.users,
+        workspans = adb.get_user_workspans(self.mdb,
                                            user_id,
                                            month - relativedelta(months=1),
                                            month + relativedelta(months=2))
@@ -294,10 +345,10 @@ class ApiMonthInfoHandler(BaseHandler):
     def post(self, user_id, date):
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
 
-        data = compile_user_month_info(self.mdb.users, user_id, month,
+        data = compile_user_month_info(self.mdb, user_id, month,
                                        self.dpp_params["year_max_hours"],
                                        self.dpp_params["month_max_gross_wage"])
-        data["year_days_of_vacation"] = get_user_days_of_vacation_in_year(self.mdb.users, user_id, month)
+        data["year_days_of_vacation"] = get_user_days_of_vacation_in_year(self.mdb, user_id, month)
 
         self.write(bson.json_util.dumps(data))
 
@@ -305,27 +356,35 @@ class ApiMonthInfoHandler(BaseHandler):
 class ApiAddWorkspanHandler(BaseHandler):
 
     def post(self, user_id):
-        # TODO upravování poslaných dat (jsonovaného dictu) a ukládaní přímo jich do db je potenciálně problematické
-        # lepší by asi bylo postavit nový dict a items které není potřeba upravovat prostě zkopírovat
-        # možná trochu porušuje DRY ale je to čitelnější (je jasnější co se ukládá do db)
-
         req = self.request.body.decode("utf-8")
-        workspan = bson.json_util.loads(req)
+        form_data = bson.json_util.loads(req)
 
-        workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(workspan["date"], workspan["from"])
-        del workspan["date"]
-        workspan["hours"] = float(workspan["hours"])
+        today = str_ops.datetime_from_iso_str(form_data["date"])
+
+        workspan = {}
+        workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(form_data["date"], form_data["from"])
+        workspan["hours"] = float(form_data["hours"])
+        workspan["assignment"] = form_data["assignment"]
+
+        for doctype in ["study_certificate", "tax_declaration"]:
+            document_mdoc = udb.get_user_active_document(self.mdb.users, user_id, doctype, today)
+            workspan[doctype] = document_mdoc["_id"] if document_mdoc else None
+
+        contract_mdoc = udb.get_user_active_contract(self.mdb.users, user_id, today)
+        workspan["contract"] = contract_mdoc["_id"] if contract_mdoc else None
 
         self.check_vacations_conflicts(user_id, workspan)
         self.check_workspans_conflicts(user_id, workspan)
 
-        adb.add_user_workspan(self.mdb.users, user_id, workspan)
+        print("ukladam workspan", workspan)
+
+        adb.add_user_workspan(self.mdb, user_id, workspan)
 
     def check_vacations_conflicts(self, user_id, workspan):
         # z databáze dostaneme dovolené končící dnes nebo později seřazené podle data konce.
         # první dovolená je nejblíž, stačí tedy zkontrolovat, jestli začíná dnes nebo dříve.
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
-        vacations = adb.get_user_vacations(self.mdb.users, user_id, today)
+        vacations = adb.get_user_vacations(self.mdb, user_id, today)
         if vacations and vacations[0]["from"] <= workspan["from"]:
             raise BadInputError("Na dovolené se nepracuje.")
 
@@ -333,7 +392,7 @@ class ApiAddWorkspanHandler(BaseHandler):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
         tomorow = today + relativedelta(days=1)
 
-        todays_workspans = adb.get_user_workspans(self.mdb.users, user_id, today, tomorow)
+        todays_workspans = adb.get_user_workspans(self.mdb, user_id, today, tomorow)
         workspan_end = workspan["from"] + relativedelta(minutes=int(workspan["hours"] * 60))
 
         for other_ws in todays_workspans:
@@ -360,7 +419,7 @@ class ApiAddVacationHandler(BaseHandler):
         if vacation["from"] > vacation["to"]:
             raise BadInputError("Dovolená skončila dříve než začala.")
 
-        other_vacations = adb.get_user_vacations(self.mdb.users, user_id, vacation["from"])
+        other_vacations = adb.get_user_vacations(self.mdb, user_id, vacation["from"])
         for other_vac in other_vacations:
             latest_start = max(vacation["from"], other_vac["from"])
             earliest_end = min(vacation["to"], other_vac["to"])
@@ -368,18 +427,26 @@ class ApiAddVacationHandler(BaseHandler):
             if latest_start <= earliest_end:
                 raise BadInputError("Časový konflikt s jinou dovolenou.")
 
-        adb.add_user_vacation(self.mdb.users, user_id, vacation)
+        adb.add_user_vacation(self.mdb, user_id, vacation)
 
 
-class ApiDeleteVacationHandler(BaseHandler):
+class ApiInterruptVacationHandler(BaseHandler):
 
     def post(self, user_id):
-        vacation_id = self.request.body.decode("utf-8")
-        adb.delete_user_vacation(self.mdb.users, user_id, vacation_id)
+        req = self.request.body.decode("utf-8")
+        data = json.loads(req)
+
+        interruption_date = str_ops.datetime_from_iso_str(data["date"])
+        vacation_mdoc = adb.get_user_vacation_by_id(self.mdb, user_id, data["_id"])
+
+        if not (vacation_mdoc["from"] <= interruption_date <= vacation_mdoc["to"]):
+            raise BadInputError("Datum přerušení musí být mezi začátkem a koncem dovolené!")
+
+        adb.interrupt_user_vacation(self.mdb, user_id, data["_id"], interruption_date)
 
 
 class ApiDeleteWorkspanHandler(BaseHandler):
 
     def post(self, user_id):
         workspan_id = self.request.body.decode("utf-8")
-        adb.delete_user_workspan(self.mdb.users, user_id, workspan_id)
+        adb.delete_user_workspan(self.mdb, user_id, workspan_id)

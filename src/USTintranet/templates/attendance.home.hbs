@@ -12,11 +12,6 @@
         border-color: #aaaaaa;
     }
 
-    .row-delete-btn {
-        padding-bottom: 0;
-        padding-top: 0;
-    }
-
     #vacations table td:nth-child(3) {
         text-align: center;
     }
@@ -115,8 +110,8 @@
                         <td>{{vacation["to"]}}</td>
                         <td>
                             <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{vacation['_id']}}"
-                                    onclick="deleteVacation(this)">
-                                &times;
+                                    onclick="interruptVacation(this)" style="padding-bottom: 0">
+                                <i class="material-icons" style="font-size: 17px">close</i>
                             </button>
                         </td>
                     </tr>
@@ -235,7 +230,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td><input class="workspan-from" type="time" step="1800"></td>
+                        <td><input class="workspan-from" type="time" step="1800" value="09:00"></td>
                         <td><input class="workspan-to" type="time" step="1800"></td>
                         <td><input class="workspan-hours" type="number" style="width: 50px"
                                    min="0" max="12" step="0.5"></td>
@@ -649,18 +644,38 @@
         });
     }
 
-    function deleteVacation(button) {
+    function interruptVacation(button) {
         let vacationId = $(button).data("id");
 
-        $.ajax({
-            url: "/attendance/api/u/{{_id}}/vacations/delete",
-            type: "post",
-            data: vacationId,
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
+        Lobibox.prompt("date", {
+            "title": "Datum přerušení dovolené",
+            "value": calendar.dateSelected.format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
             },
-            error: ajaxError,
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = vacationId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/attendance/api/u/{{_id}}/vacations/interrupt",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
         });
     }
 

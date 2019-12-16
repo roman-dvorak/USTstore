@@ -3,28 +3,27 @@ from datetime import datetime
 import pymongo
 from bson import ObjectId
 
-from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array
+from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_user_embedded_mdoc_by_id
 
-# TODO brát jako parametr databázi, ne kolekci
 
-def add_user_workspan(coll: pymongo.collection.Collection, user_id, workspan):
+def add_user_workspan(database, user_id, workspan):
     workspan_id = str(ObjectId())
 
-    add_embedded_mdoc_to_mdoc_array(coll, user_id, "workspans", workspan, workspan_id)
+    add_embedded_mdoc_to_mdoc_array(database.users, user_id, "workspans", workspan, workspan_id, filter_values=())
 
     return workspan_id
 
 
-def add_user_vacation(coll: pymongo.collection.Collection, user_id, vacation):
+def add_user_vacation(database, user_id, vacation):
     vacation_id = str(ObjectId())
 
-    add_embedded_mdoc_to_mdoc_array(coll, user_id, "vacations", vacation, vacation_id)
+    add_embedded_mdoc_to_mdoc_array(database.users, user_id, "vacations", vacation, vacation_id)
 
     return vacation_id
 
 
-def get_user_workspans(db, user_id, from_date: datetime, to_date: datetime):
-    cursor = db.users.aggregate([
+def get_user_workspans(database, user_id, from_date: datetime, to_date: datetime):
+    cursor = database.users.aggregate([
         {"$match": {"_id": ObjectId(user_id)}},
         {"$unwind": "$workspans"},
         {"$match": {
@@ -40,7 +39,7 @@ def get_user_workspans(db, user_id, from_date: datetime, to_date: datetime):
     return next(cursor, {}).get("workspans", [])
 
 
-def get_user_vacations(coll: pymongo.collection.Collection,
+def get_user_vacations(database,
                        user_id: str,
                        earliest_end: datetime,
                        latest_end: datetime = None):
@@ -50,7 +49,7 @@ def get_user_vacations(coll: pymongo.collection.Collection,
     if latest_end:
         earliest_latest_dict["$lt"] = latest_end
 
-    cursor = coll.aggregate([
+    cursor = database.users.aggregate([
         {"$match": {"_id": ObjectId(user_id)}},
         {"$unwind": "$vacations"},
         {"$match": {
@@ -63,19 +62,21 @@ def get_user_vacations(coll: pymongo.collection.Collection,
     return next(cursor, {}).get("vacations", [])
 
 
-def delete_user_vacation(coll: pymongo.collection.Collection, user_id, vacation_id):
-    coll.update_one({"_id": ObjectId(user_id)},
-                    {"$pull": {
-                        "vacations": {
-                            "_id": vacation_id
-                        }
-                    }})
+def get_user_vacation_by_id(database, user_id: str, vacation_id: str):
+    return get_user_embedded_mdoc_by_id(database, user_id, "vacations", vacation_id)
 
 
-def delete_user_workspan(coll: pymongo.collection.Collection, user_id, workspan_id):
-    coll.update_one({"_id": ObjectId(user_id)},
-                    {"$pull": {
-                        "workspans": {
-                            "_id": workspan_id
-                        }
-                    }})
+def interrupt_user_vacation(database, user_id, vacation_id, new_end_date):
+    database.users.update_one({"_id": ObjectId(user_id), "vacations._id": vacation_id},
+                              {"$set": {
+                                  "vacations.$.to": new_end_date,
+                              }})
+
+
+def delete_user_workspan(database, user_id, workspan_id):
+    database.users.update_one({"_id": ObjectId(user_id)},
+                              {"$pull": {
+                                  "workspans": {
+                                      "_id": workspan_id
+                                  }
+                              }})

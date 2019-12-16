@@ -6,7 +6,8 @@ import warnings
 
 from pymongo.collection import ReturnDocument
 
-from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts
+from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts, \
+    get_user_embedded_mdoc_by_id
 
 
 # TODO brát jako parametr databázi, ne kolekci
@@ -158,14 +159,17 @@ def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contrac
     add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, str(ObjectId()))
 
 
-def invalidate_user_contract(coll: pymongo.collection.Collection, user_id: str, contract_id: str):
+def invalidate_user_contract(coll: pymongo.collection.Collection,
+                             user_id: str,
+                             contract_id: str,
+                             invalidation_date: datetime):
     """
     Přidá do mdocumentu smlouvy key "invalidated" obsahující aktuální datum. Toto značí zneplatnění smlouvy,
     nelze vzít zpět.
     """
     coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
                     {"$set": {
-                        "contracts.$.invalidated": datetime.now().replace(microsecond=0)
+                        "contracts.$.invalidated": invalidation_date,
                     }})
 
 
@@ -197,10 +201,13 @@ def delete_user_document(coll: pymongo.collection.Collection, user_id: str, docu
                     }})
 
 
-def invalidate_user_document(coll: pymongo.collection.Collection, user_id: str, document_id: str):
+def invalidate_user_document(coll: pymongo.collection.Collection,
+                             user_id: str,
+                             document_id: str,
+                             invalidation_date: datetime):
     coll.update_one({"_id": ObjectId(user_id), "documents._id": document_id},
                     {"$set": {
-                        "documents.$.invalidated": datetime.now().replace(microsecond=0)
+                        "documents.$.invalidated": invalidation_date
                     }})
 
 
@@ -251,7 +258,7 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
     if not mdoc:
         return None
 
-    contracts = mdoc.get("contracts", None)  # TODO proč tu není prostě coll.find_one?
+    contracts = mdoc.get("contracts", None)
 
     return contracts[0] if contracts else None
 
@@ -283,7 +290,8 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
             "$elemMatch": {
                 "valid_from": {"$lte": date},
                 "valid_until": {"$gte": date},
-                "type": document_type
+                "type": document_type,
+                "invalidated": {"$exists": False},
             }
         }
     }, {"documents.$": 1})
@@ -357,3 +365,11 @@ def update_email_is_validated_status(coll: pymongo.collection.Collection,
                                 "email_validation_token": "",
                             },
                         })
+
+
+def get_user_contract_by_id(database, user_id: str, contract_id: str):
+    return get_user_embedded_mdoc_by_id(database, user_id, "contracts", contract_id)
+
+
+def get_user_document_by_id(database, user_id: str, document_id: str):
+    return get_user_embedded_mdoc_by_id(database, user_id, "documents", document_id)
