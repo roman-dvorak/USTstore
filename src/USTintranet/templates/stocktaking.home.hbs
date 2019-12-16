@@ -5,6 +5,7 @@
     item = null;
     current_page = [];
     list_page = 0;
+    var inventory = '{{stocktaking['_id']}}';
 </script>
 
 <style type="text/css">
@@ -79,7 +80,7 @@
 
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row row-cols-1 row-cols-md-3">
         <div class="col-6 col-md-12 col-lg-5">
             <div class="card">
                 <div class="card-body row">
@@ -165,6 +166,24 @@
 
               </div>
             </div>
+
+          <div class="row">
+              <div class="col-6"><div class="card">
+                  <div class="card-header">Bez inventury</div>
+                  <div class="card-body">
+                    <div id="list_of_position_pending">
+                    </div>
+                  </div></div>
+              </div>
+              <div class="col-6"><div class="card">
+                  <div class="card-header">S inventurou</div>
+                  <div class="card-body">
+                    <div id="list_of_position_done">
+                    </div>
+                </div></div>
+              </div>
+          </div>
+
         </div>
         <div class="col-6 col-md-6 col-lg-7">
 
@@ -471,6 +490,69 @@ function add_history(name, count, status = null){
 
   $('#stocktaking_history').prepend(html);
 }
+
+</script>
+
+
+<script type="text/javascript">
+  
+  function update_list_of_position(){
+        $('#list_of_position_pending').empty();
+        $('#list_of_position_done').empty();
+        $.ajax({
+          type: "GET",
+          url: "/store/api/items/by_position/",
+          //contentType : 'application/json',
+          data: {
+                //'selected': active_categories(),
+                'position': $('#position_select').val(),
+          },
+          success: function( data, textStatus, jQxhr ){
+              data = JSON.parse(data)
+
+              console.log('/products/', data, textStatus);
+              for (var i = 0; i < data.length; i++) {
+                  var x = data[i];
+                  //console.log(x);
+                  var first_time = true;
+
+                  for (rec_i in x.history){
+                    var rec = x.history[rec_i];
+                    if (rec.operation == 'inventory'){
+                      //console.log("inventura", rec);
+                      //console.log(x);
+                      if (rec.inventory != undefined && rec.inventory.$oid == inventory){
+                        first_time = false;
+                      } 
+                    }
+                  }
+
+
+                  if (first_time) {
+                    //console.log("poprve", x);
+                    $( "#list_of_position_pending" ).append( "<p>" + x.name + "</p>" );
+                  }else{
+
+                    //console.log("opakovane", x);
+                    $( "#list_of_position_done" ).append( "<p>" + x.name + "</p>" );
+                  }
+
+              }
+              
+              //update_view();
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+              console.log('ERR, /store/api/products/')
+              console.log( errorThrown );
+          }
+        });
+
+
+
+  }
+
+  //update_list_of_position();
+  $('#position_select').on('change', update_list_of_position());
 
 </script>
 

@@ -493,7 +493,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 x['full_url'] = x.get('url', '')
 
                 if x['supplier'].lower() == 'tme':
-                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'])
+                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'].replace('/','_'))
 
                 elif x['supplier'].lower() == 'mouser':
                     x['full_url'] = "https://cz.mouser.com/ProductDetail/{}".format(x['symbol'])
