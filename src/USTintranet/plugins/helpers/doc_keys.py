@@ -44,7 +44,8 @@ CONTRACT_DOC_KEYS = [
     "valid_from",
     "valid_until",
     "hour_rate",
-    "scan_signed_url",
+    "file",
+    "scan_file",
     "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
 ]
 DOCUMENT_DOC_KEYS = [

@@ -43,6 +43,7 @@ def get_user_contracts(coll: pymongo.collection.Collection, _id: str, sort_by="s
     cursor = coll.aggregate([
         {"$match": {"_id": ObjectId(_id)}},
         {"$unwind": "$contracts"},
+        {"$match": {"contracts.type": "dpp"}},  # TODO udělat to obecně ne jen pro dpp
         {"$sort": {f"contracts.{sort_by}": -1}},
         {"$group": {"_id": "$_id", "contracts": {"$push": "$contracts"}}}
     ])
@@ -159,6 +160,27 @@ def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contrac
     add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, str(ObjectId()))
 
 
+def add_user_contract_preview(coll: pymongo.collection.Collection, user_id: str, contract: dict):
+    contract_id = str(ObjectId())
+
+    contract = dict(contract)
+    contract["type"] = f"{contract['type']}_preview"
+    add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, contract_id)
+
+    return contract_id
+
+
+def unmark_user_contract_as_preview(database, user_id: str, contract_id: str):
+    contract_mdoc = get_user_contract_by_id(database, user_id, contract_id)
+
+    new_type = contract_mdoc["type"].replace("_preview", "")
+
+    database.users.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+                              {"$set": {
+                                  "contracts.$.type": new_type,
+                              }})
+
+
 def invalidate_user_contract(coll: pymongo.collection.Collection,
                              user_id: str,
                              contract_id: str,
@@ -173,10 +195,10 @@ def invalidate_user_contract(coll: pymongo.collection.Collection,
                     }})
 
 
-def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: str, contract_id: str, owncloud_url: str):
+def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: str, contract_id: str, file_id):
     coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
                     {"$set": {
-                        "contracts.$.scan_signed_url": owncloud_url,
+                        "contracts.$.scan_file": file_id,
                     }})
 
 
@@ -213,7 +235,6 @@ def invalidate_user_document(coll: pymongo.collection.Collection,
 
 def get_user_document_owncloud_id(coll: pymongo.collection.Collection, user_id: str, document_id: str):
     document_mdoc = coll.find_one({"_id": ObjectId(user_id), "documents._id": document_id}, {"documents.$": 1})
-    print(document_mdoc)
     return document_mdoc["documents"][0]["file"]
 
 
@@ -250,7 +271,8 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
             "$elemMatch": {
                 "valid_from": {"$lte": date},
                 "valid_until": {"$gte": date},
-                "invalidated": {"$exists": False}
+                "invalidated": {"$exists": False},
+                "type": "dpp"  # TODO udělat obecně
             }
         }
     }, {"contracts.$": 1})
@@ -263,16 +285,17 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
     return contracts[0] if contracts else None
 
 
-def get_user_active_contracts(db, user_id: str, from_date: datetime, to_date: datetime, sort_by="valid_from"):
-    cursor = db.users.aggregate([
+def get_user_active_contracts(database, user_id: str, from_date: datetime, to_date: datetime, sort_by="valid_from"):
+    cursor = database.users.aggregate([
         {"$match": {"_id": ObjectId(user_id)}},
         {"$unwind": "$contracts"},
         {"$match": {
             "$nor": [
-                {"contracts.valid_from": {"$gte": to_date}},
+                {"contracts.valid_from": {"$gt": to_date}},
                 {"contracts.valid_until": {"$lt": from_date}},
                 {"contracts.invalidated": {"$exists": True}},
-            ]
+            ],
+            "contracts.type": "dpp",  # TODO udělat obecně
         }},
         {"$sort": {f"contracts.{sort_by}": -1}},
         {"$group": {"_id": "$_id", "contracts": {"$push": "$contracts"}}}

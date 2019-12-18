@@ -3,6 +3,7 @@
 
 # tento soubor ma link ve slozce ./plugins
 # original je umisten ve slozce ./handlers
+import time
 
 import tornado
 import tornado.web
@@ -629,7 +630,7 @@ class BaseHandlerOwnCloud(BaseHandler):
                                                 0,
                                                 tornado.options.options.owncloud_root)
 
-        self.oc.put_file(oc_path, local_path)
+        self.put_file(oc_path, local_path)
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll: pymongo.collection.Collection = self.mdb.owncloud
@@ -652,6 +653,12 @@ class BaseHandlerOwnCloud(BaseHandler):
 
         return file_id
 
+    def put_file(self, oc_path, local_path):
+        start_time = time.time()
+        print("-> nahrávám soubor na owncloud")
+        self.oc.put_file(oc_path, local_path)
+        print(f"-> soubor nahrán za {(time.time() - start_time):.2f} sekund")
+
     def update_owncloud_file(self,
                              file_id: ObjectId,
                              local_path: str,
@@ -667,7 +674,7 @@ class BaseHandlerOwnCloud(BaseHandler):
                                                 version_number,
                                                 tornado.options.options.owncloud_root)
 
-        self.oc.put_file(oc_path, local_path)
+        self.put_file(oc_path, local_path)
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll.update_one({"_id": file_id},

@@ -9,6 +9,7 @@ import tornado
 import tornado.options
 import os
 
+from dateutil.relativedelta import relativedelta
 from tornado.web import HTTPError
 
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
@@ -30,6 +31,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
         (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
+        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiUserFinalizeContractHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
         (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
         (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
@@ -261,9 +263,13 @@ class UserPageHandler(BaseHandler):
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["scan_signed_url"] = contract.get("scan_signed_url", None)
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
-            new["url"] = contract["url"]
+            new["url"] = get_file_url(self.mdb, contract["file"])
+
+            if "scan_file" in contract:
+                new["scan_signed_url"] = get_file_url(self.mdb, contract["scan_file"])
+            else:
+                new["scan_signed_url"] = None
 
             new["is_valid"] = False
             if not contract.get("invalidated", False):
@@ -328,39 +334,78 @@ class UserPageHandler(BaseHandler):
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):  # TODO rozmyslet si api
+    def post(self, user_id):
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
         if "_id" in contract:
             raise ValueError("Nedefinovaný stav")  # pozůstatek po předchozí funkcionalitě
 
-        else:
-            contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
-            contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
-            contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
-            contract["hour_rate"] = int(contract["hour_rate"])
+        contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
+        contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
+        contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
+        contract["hour_rate"] = int(contract["hour_rate"])
+        contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
 
-            contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
+        if not self.check_for_conflict_with_other_contracts(user_id, contract):
+            raise BadInputError("Uživatel může mít v danou chvíli jen jednu platnou smlouvu.")
 
-            local_path = generate_contract(user_id, contract,
-                                           self.company_info["name"],
-                                           self.company_info["address"],
-                                           self.company_info["crn"])
+        if not self.check_for_inconsistent_hour_rate(user_id, contract):
+            raise BadInputError("Uživatel musí mít po celý měsíc stejnou hodinovou mzdu.")
 
-            owncloud_path = os.path.join(tornado.options.options.owncloud_root,
-                                         "contracts",
-                                         os.path.basename(local_path))
-            remote = save_file(self.mdb, owncloud_path)
-            res = upload_file(self.oc, local_path, remote)
+        local_path = generate_contract(user_id, contract,
+                                       self.company_info["name"],
+                                       self.company_info["address"],
+                                       self.company_info["crn"])
 
-            contract["url"] = res.get_link()
+        file_id = self.upload_to_owncloud("contracts", os.path.basename(local_path), local_path, user_id)
 
-            for key in list(contract.keys()):
-                if key not in CONTRACT_DOC_KEYS:
-                    del contract[key]
+        contract["file"] = file_id
 
-            udb.add_user_contract(self.mdb.users, user_id, contract)
+        for key in list(contract.keys()):
+            if key not in CONTRACT_DOC_KEYS:
+                del contract[key]
+
+        contract_id = udb.add_user_contract_preview(self.mdb.users, user_id, contract)
+
+        response = {
+            "_id": contract_id,
+            "url": get_file_url(self.mdb, file_id)
+        }
+        self.write(json.dumps(response))
+
+    def check_for_conflict_with_other_contracts(self, user_id, contract):
+        other_contracts = udb.get_user_active_contracts(self.mdb,
+                                                        user_id,
+                                                        contract["valid_from"],
+                                                        contract["valid_until"])
+        print("-> checking conflicts, other contracts:", other_contracts)
+        return not other_contracts
+
+    def check_for_inconsistent_hour_rate(self, user_id, contract):
+        month_of_start = contract["valid_from"].replace(day=1)
+        month_of_end = contract["valid_until"].replace(day=1)
+
+        for month in [month_of_start, month_of_end]:
+            other_contracts = udb.get_user_active_contracts(self.mdb,
+                                                            user_id,
+                                                            month,
+                                                            month + relativedelta(months=1))
+            print("-> checking hour rates, other contracts:", other_contracts)
+            for other_contract in other_contracts:
+                print("-> other contract:", other_contract)
+                if contract["hour_rate"] != other_contract["hour_rate"]:
+                    return False
+
+        return True
+
+
+class ApiUserFinalizeContractHandler(BaseHandler):
+
+    def post(self, user_id):
+        contract_id = self.request.body.decode("utf-8")
+
+        udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
 
 
 class ApiUserInvalidateContractHandler(BaseHandler):
@@ -383,32 +428,21 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
     def post(self, user_id):
         contract_id = self.get_argument("_id")
 
-        if not self.request.files:
+        local_path, = self.save_uploaded_files("file")
+        if not local_path:
             self.redirect(f"/users/u/{user_id}", permanent=True)
             return
 
-        file = self.request.files["file"][0]
-        file_name = f"{user_id}_{contract_id}_scan_{randint(1000000, 9999999)}"
-        owncloud_url = self.process_file(file, file_name)
-        udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, owncloud_url)
+        file_name = os.path.basename(local_path)
+
+        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
+        if "scan_file" in contract_mdoc:
+            self.update_owncloud_file(contract_mdoc["scan_file"], local_path, self.actual_user["_id"])
+        else:
+            file_id = self.upload_to_owncloud("contracts", file_name, local_path, self.actual_user["_id"])
+            udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, file_id)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
-
-    def process_file(self, file, document_name):  # TODO zkopírované z dokumentů, chce to opravit (DRY)
-        extension = os.path.splitext(file["filename"])[1]
-
-        new_filename = f"{document_name}{extension}"
-        local_path = os.path.join("static", "tmp", new_filename)
-
-        with open(local_path, "wb") as f:
-            f.write(file["body"])
-
-        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "contracts", new_filename)
-        remote = save_file(self.mdb, owncloud_path)
-        res = upload_file(self.oc, local_path, remote)
-        print("res", res)
-
-        return res.get_link()
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
@@ -422,49 +456,23 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "notes": self.get_argument("notes")
         }
         print("document", document)
-
-        if document["type"] == "contract_scan":
-            document["contract_id"] = self.get_argument("document_contract")
-            document.pop("valid_from", None)
-            document.pop("valid_until", None)
+        if document.get("_id", None):
+            raise ValueError("nedefinovaný stav")
 
         document["valid_from"] = str_ops.datetime_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.datetime_from_iso_str(document.get("valid_until", None))
 
-        if document.get("_id", None):
-            udb.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
-        else:
-            document_id = udb.add_user_document(self.mdb.users, _id, document)
+        local_path, = self.save_uploaded_files("file")
+        if not local_path:
+            raise BadInputError("Problém se souborem")
 
-            file = None
-            if self.request.files:
-                file = self.request.files["file"][0]
+        file_name = os.path.basename(local_path)
+        file_id = self.upload_to_owncloud("documents", file_name, local_path, self.actual_user["_id"])
 
-            if file:
-                user_mdoc = udb.get_user(self.mdb.users, _id)
-                file_name = self.make_document_name(user_mdoc, document, document_id)
-                file_id = self.process_file(_id, file, file_name)
-                udb.update_user_document(self.mdb.users, _id, document_id, {"file": file_id})
+        document["file"] = file_id
+        udb.add_user_document(self.mdb.users, _id, document)
 
         self.redirect(f"/users/u/{_id}", permanent=True)
-
-    def process_file(self, user_id, file, document_name):
-        extension = os.path.splitext(file["filename"])[1]
-
-        new_filename = f"{document_name}{extension}"
-        local_path = os.path.join("static", "tmp", new_filename)
-
-        with open(local_path, "wb") as f:
-            f.write(file["body"])
-
-        res = self.upload_to_owncloud("documents", new_filename, local_path, user_id)
-        print("res", res)
-
-        return res
-
-    def make_document_name(self, user_mdoc, document, document_id):
-        surname = user_mdoc.get("name", {}).get("surname", "unknown")
-        return f"{document_id}_{surname}_{document['type']}"
 
 
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):

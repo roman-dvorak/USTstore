@@ -232,9 +232,10 @@
     </div>
 </div>
 
-<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog">
+<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog"
+     data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" id="contract-form-modal-part">
             <div class="modal-header">
                 <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
                 <button type="button" class="close" data-dismiss="modal">
@@ -328,6 +329,28 @@
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
                 <button type="button" class="btn btn-primary" id="user-save-btn"
                         onclick="saveContractEditor()">Uložit
+                </button>
+            </div>
+        </div>
+        <div class="modal-content" id="contract-preview-modal-part">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" name="_id">
+                    <a class="contract-url btn btn-success form-button" role="button" target="_blank">
+                        Náhled vygenerované smlouvy
+                    </a>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="finalizeContract()">Potvrdit
                 </button>
             </div>
         </div>
@@ -633,7 +656,7 @@
                     </tr>
                     </tbody>
                 </table>
-            </div>
+            </div> <!-- TODO lépe řadit smlouvy (platná smlouva vždy první) -->
 
             <div id="documents">
             </div>
@@ -1030,6 +1053,9 @@
     function showContractEditor() {
         hideUserParamsInContractModal();
 
+        $("#contract-form-modal-part").show();
+        $("#contract-preview-modal-part").hide();
+
         $("#contract-name-input").val("{{name}}");
         $("#contract-address-input").val("{{residence_address}}");
         $("#contract-birthdate-input").val("{{birthdate_iso}}");
@@ -1065,14 +1091,29 @@
         data["account_number"] = $("#contract-account-number-input").val();
         data["assignment"] = $("#contract-assignment-input").val();
 
-        sendContractDataAjax(data);
-    }
-
-    function sendContractDataAjax(data) {
         $.ajax({
             url: "/users/api/u/{{_id}}/contracts",
             type: "post",
             data: JSON.stringify(data),
+            success: function (responseJson) {
+                $("#contract-form-modal-part").hide();
+                $("#contract-preview-modal-part").show();
+
+                response = JSON.parse(responseJson);
+                $("#contract-preview-modal-part input[name='_id']").val(response["_id"]);
+                $("#contract-preview-modal-part a.contract-url").attr("href", response["url"])
+            },
+            error: ajaxError,
+        });
+    }
+
+    function finalizeContract() {
+        let contractId = $("#contract-preview-modal-part input[name='_id']").val();
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/contracts/finalize",
+            type: "post",
+            data: contractId,
             success: function (response) {
                 alert("Podařilo se!");
                 location.reload();
