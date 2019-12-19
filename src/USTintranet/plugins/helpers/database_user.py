@@ -124,8 +124,11 @@ def add_users(coll: pymongo.collection.Collection, ids: list):
     přidat pomocí update_user.
     """
     users = [{"_id": _id,
+              "user": _id,
+              "role": [],
               "created": datetime.now().replace(microsecond=0),
               "type": "user",
+              "email_validated": "no",
               } for _id in ids]
     coll.insert_many(users)
 

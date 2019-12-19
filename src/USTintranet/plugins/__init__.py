@@ -620,13 +620,26 @@ class BaseHandlerOwnCloud(BaseHandler):
                            oc_directory,
                            oc_filename,
                            local_path,
-                           uploaded_by_id,
                            delete_local=True):
+        """
+        Nahraje lokální soubor na owncloud.
+        :param oc_directory: Složka na owncloudu, do které se soubor uloží. Je relativní vůči owncloud_root
+        :param oc_filename: Jméno souboru BEZ přípony (z tohoto jména se vytváří skutečná jména jednotlivých verzí
+            souboru). Bez přípony, protože toto jméno je sdílené mezi verzemi, které mohou mít odlišnou příponu.
+            Soubor na owncloudu není uložen přímo pod tímto jménem, k tomuto jménu jsou připojeny metadata (id souboru,
+            verze).
+        :param local_path: Cesta k lokálnímu souboru.
+        :param delete_local: Pokud je True, lokální soubor se po odeslání na owncloud automaticky smaže
+        :return: Id souboru (přesněji _id záznamu o souboru v databázi v kolekci owncloud). Toto Id je vhodné uchovat,
+            přes něj se poté přistupuje k nahranému souboru.
+        """
         file_id = ObjectId()
 
+        file_extension = os.path.splitext(local_path)[1]
         oc_path = generate_actual_owncloud_path(str(file_id),
                                                 oc_directory,
                                                 oc_filename,
+                                                file_extension,
                                                 0,
                                                 tornado.options.options.owncloud_root)
 
@@ -640,7 +653,7 @@ class BaseHandlerOwnCloud(BaseHandler):
             "filename": oc_filename,
             "versions": {
                 "0": {
-                    "by": uploaded_by_id,
+                    "by": self.actual_user["_id"],
                     "when": datetime.datetime.now(),
                     "path": oc_path,
                     "url": shared_url,
@@ -654,6 +667,9 @@ class BaseHandlerOwnCloud(BaseHandler):
         return file_id
 
     def put_file(self, oc_path, local_path):
+        """
+        Obaluje owncloud Client.put_file(), přidává logování
+        """
         start_time = time.time()
         print("-> nahrávám soubor na owncloud")
         self.oc.put_file(oc_path, local_path)
@@ -662,15 +678,22 @@ class BaseHandlerOwnCloud(BaseHandler):
     def update_owncloud_file(self,
                              file_id: ObjectId,
                              local_path: str,
-                             uploaded_by_id: str,
                              delete_local=True):
+        """
+        Nahraje novou verzi souboru na owncloud.
+        :param file_id: Id mdokumentu souboru v kolekci owncloud (vráceno metodou upload_to_owncloud).
+        :param local_path: Cesta k lokálnímu souboru.
+        :param delete_local: Pokud je True, lokální soubor se po odeslání na owncloud automaticky smaže
+        """
         coll: pymongo.collection.Collection = self.mdb.owncloud
         file_mdoc = coll.find_one({"_id": file_id})
 
+        file_extension = os.path.splitext(local_path)[1]
         version_number = get_file_last_version_number(file_mdoc) + 1
         oc_path = generate_actual_owncloud_path(str(file_id),
                                                 file_mdoc['directory'],
                                                 file_mdoc['filename'],
+                                                file_extension,
                                                 version_number,
                                                 tornado.options.options.owncloud_root)
 
@@ -680,7 +703,7 @@ class BaseHandlerOwnCloud(BaseHandler):
         coll.update_one({"_id": file_id},
                         {"$set": {
                             f"versions.{version_number}": {
-                                "by": uploaded_by_id,
+                                "by": self.actual_user["_id"],
                                 "when": datetime.datetime.now(),
                                 "path": oc_path,
                                 "url": shared_url,
@@ -691,6 +714,13 @@ class BaseHandlerOwnCloud(BaseHandler):
             os.remove(local_path)
 
     def save_uploaded_files(self, input_name, directory="static/tmp"):
+        """
+        Uloží soubory nahrané z frontendu pomocí formuláře do lokální složky. Uložené soubory zachovávají svá jména.
+        :param input_name: Jméno souborového inputu (<input type="file" name="jméno">), ze kterého se mají
+            uložit soubory.
+        :param directory: Cesta k lokální složce, do které se soubory uloží
+        :return: Cesty k uloženým souborům.
+        """
         if not self.request.files or not self.request.files[input_name]:
             return None
 
@@ -749,9 +779,10 @@ class LogoutHandler(BaseHandler):
 
 class RegistrationHandler(BaseHandler):
     def get(self):
-        self.render('_registration.hbs', msg=None)
+        self.render('_registration.hbs', msg=None, token=None, user_id=None)
 
     def post(self):
+        token = self.get_argument('token')
         email = self.get_argument('email')
         user_id = self.get_argument('user_id')
         password = self.get_argument('password')
@@ -759,17 +790,23 @@ class RegistrationHandler(BaseHandler):
         agree = self.get_argument('agree')
 
         if agree != 'agree':
-            self.render('_registration.hbs', msg='Musíte souhlasit s ...')
+            self.render('_registration.hbs', msg='Musíte souhlasit s ...', token=token, user_id=user_id)
             return
 
         if password != password_check:
-            self.render('_registration.hbs', msg='Hesla se neshodují')
+            self.render('_registration.hbs', msg='Hesla se neshodují', token=token, user_id=user_id)
+            return
+
+        if token:
+            self.validate_user_email_and_set_password(user_id, token, password)
             return
 
         matching_users_in_db = list(self.mdb.users.find({'$or': [{'_id': user_id}, {'email': email}]}))
+
         if matching_users_in_db:
             self.render('_registration.hbs',
-                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.')
+                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.',
+                        token=token, user_id=user_id)
             return
 
         new_password_hash = password_hash(user_id, password)
@@ -788,6 +825,23 @@ class RegistrationHandler(BaseHandler):
 
         print("Registrován email", email)
         self.redirect('/')
+
+    def validate_user_email_and_set_password(self, user_id, token, password):
+        from plugins.helpers import database_user as udb
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if "pass" not in user_mdoc and user_mdoc["email_validated"] == "pending" \
+                and user_mdoc["email_validation_token"] == token:
+            new_password_hash = password_hash(user_id, password)
+
+            self.mdb.users.update_one({"_id": user_id},
+                                      {"$set": {
+                                          "pass": new_password_hash,
+                                      }})
+            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+
+            self.redirect('/')
 
 
 class doBackup(BaseHandlerOwnCloud):

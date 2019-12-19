@@ -21,7 +21,8 @@ from plugins import BaseHandlerOwnCloud
 from plugins import BaseHandler, save_file, upload_file
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.owncloud_utils import get_file_url
+from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
+    generate_documents_directory_path
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -380,7 +381,10 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
                                        self.company_info["address"],
                                        self.company_info["crn"])
 
-        file_id = self.upload_to_owncloud("contracts", os.path.basename(local_path), local_path, user_id)
+        owncloud_directory = generate_contracts_directory_path(user_id, contract["valid_from"])
+        owncloud_filename = f"contract_{contract['type']}"
+
+        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
 
         contract["file"] = file_id
 
@@ -455,13 +459,14 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
             self.redirect(f"/users/u/{user_id}", permanent=True)
             return
 
-        file_name = os.path.basename(local_path)
-
         contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
         if "scan_file" in contract_mdoc:
-            self.update_owncloud_file(contract_mdoc["scan_file"], local_path, self.actual_user["_id"])
+            self.update_owncloud_file(contract_mdoc["scan_file"], local_path)
         else:
-            file_id = self.upload_to_owncloud("contracts", file_name, local_path, self.actual_user["_id"])
+            owncloud_directory = generate_contracts_directory_path(user_id, contract_mdoc["valid_from"])
+            owncloud_filename = f"contract_scan_{contract_mdoc['type']}"
+
+            file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
             udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, file_id)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
@@ -469,7 +474,7 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
+    def post(self, user_id):
         document = {
             "_id": self.get_argument("_id"),
             "type": self.get_argument("type"),
@@ -488,13 +493,14 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         if not local_path:
             raise BadInputError("Problém se souborem")
 
-        file_name = os.path.basename(local_path)
-        file_id = self.upload_to_owncloud("documents", file_name, local_path, self.actual_user["_id"])
+        owncloud_directory = generate_documents_directory_path(user_id, document["valid_from"])
+        owncloud_filename = f"contract_{document['type']}"
+        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
 
         document["file"] = file_id
-        udb.add_user_document(self.mdb.users, _id, document)
+        udb.add_user_document(self.mdb.users, user_id, document)
 
-        self.redirect(f"/users/u/{_id}", permanent=True)
+        self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
@@ -505,7 +511,7 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
         local_path, = self.save_uploaded_files("file")
 
         owncloud_id = udb.get_user_document_owncloud_id(self.mdb.users, user_id, document_id)
-        self.update_owncloud_file(owncloud_id, local_path, str(self.actual_user["_id"]))
+        self.update_owncloud_file(owncloud_id, local_path)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
@@ -538,8 +544,11 @@ class ApiUserValidateEmail(BaseHandler):
 
         token_in_db = user_mdoc["email_validation_token"]
         if token == token_in_db:
-            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
-            self.render("users.email_validation.hbs", success=True)
+            if "pass" in user_mdoc:
+                udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+                self.render("users.email_validation.hbs", success=True)
+            else:
+                self.render("_registration.hbs", msg=None, token=token, user_id=user_id)
         else:
             self.render("users.email_validation.hbs", success=False)
 
@@ -547,6 +556,9 @@ class ApiUserValidateEmail(BaseHandler):
         print(f"validate_email pro {user_id}")
 
         user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if not "email" in user_mdoc:
+            raise BadInputError("Uživatel nemá emailovou adresu.")
 
         token = generate_validation_token()
         message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)
