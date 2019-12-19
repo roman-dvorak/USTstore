@@ -46,14 +46,14 @@ CONTRACT_DOC_KEYS = [
     "hour_rate",
     "file",
     "scan_file",
-    "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
+    "invalidation_date",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
 ]
 DOCUMENT_DOC_KEYS = [
     "type",
     "valid_from",
     "valid_until",
     "file",
-    "invalidated",  # datetime zrušení, key existuje jen pokud dokument byl předčasně zrušen
+    "invalidation_date",  # datetime zrušení, key existuje jen pokud dokument byl předčasně zrušen
 ]
 VACATION_DOC_KEYS = [
     "from",

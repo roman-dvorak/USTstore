@@ -175,12 +175,12 @@ def invalidate_user_contract(coll: pymongo.collection.Collection,
                              contract_id: str,
                              invalidation_date: datetime):
     """
-    Přidá do mdocumentu smlouvy key "invalidated" obsahující aktuální datum. Toto značí zneplatnění smlouvy,
+    Přidá do mdocumentu smlouvy key "invalidation_date". Toto značí zneplatnění smlouvy,
     nelze vzít zpět.
     """
     coll.update_one({"_id": user_id, "contracts._id": contract_id},
                     {"$set": {
-                        "contracts.$.invalidated": invalidation_date,
+                        "contracts.$.invalidation_date": invalidation_date,
                     }})
 
 
@@ -218,7 +218,7 @@ def invalidate_user_document(coll: pymongo.collection.Collection,
                              invalidation_date: datetime):
     coll.update_one({"_id": user_id, "documents._id": document_id},
                     {"$set": {
-                        "documents.$.invalidated": invalidation_date
+                        "documents.$.invalidation_date": invalidation_date
                     }})
 
 
@@ -261,8 +261,8 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
                 "valid_from": {"$lte": date},
                 "valid_until": {"$gte": date},
                 "$or": [
-                    {"invalidated": {"$exists": False}},
-                    {"invalidated": {"$gt": date}},
+                    {"invalidation_date": {"$exists": False}},
+                    {"invalidation_date": {"$gt": date}},
                 ],
                 "type": "dpp"  # TODO udělat obecně
             }
@@ -287,8 +287,8 @@ def get_user_active_contracts(database, user_id: str, from_date: datetime, to_da
                 {"contracts.valid_until": {"$lt": from_date}},
             ],
             "$or": [
-                {"contracts.invalidated": {"$exists": False}},
-                {"contracts.invalidated": {"$gt": to_date}},
+                {"contracts.invalidation_date": {"$exists": False}},
+                {"contracts.invalidation_date": {"$gt": to_date}},
             ],
             "contracts.type": "dpp",  # TODO udělat obecně
         }},
@@ -310,8 +310,8 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
                 "valid_until": {"$gte": date},
                 "type": document_type,
                 "$or": [
-                    {"invalidated": {"$exists": False}},
-                    {"invalidated": {"$gt": date}},
+                    {"invalidation_date": {"$exists": False}},
+                    {"invalidation_date": {"$gt": date}},
                 ],
             }
         }
@@ -341,8 +341,8 @@ def get_user_active_documents(database,
                 {"documents.valid_until": {"$lt": from_date}},
             ],
             "$or": [
-                {"documents.invalidated": {"$exists": False}},
-                {"documents.invalidated": {"$gt": to_date}},
+                {"documents.invalidation_date": {"$exists": False}},
+                {"documents.invalidation_date": {"$gt": to_date}},
             ],
         }},
         {"$sort": {f"documents.{sort_by}": -1}},

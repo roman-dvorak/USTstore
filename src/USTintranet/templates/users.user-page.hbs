@@ -581,7 +581,7 @@
                             </button>
                             {% end %}
                             <div class="
-{{'invalidated-contract' if 'invalidated' in contract and contract['invalidated'] < today else ''}}
+{{'invalidated-contract' if 'invalidation_date' in contract and contract['invalidation_date'] < today else ''}}
                                 ">
                                 {{contract["title"]}}
                             </div>
@@ -628,10 +628,10 @@
                                         {% end %}
                                     </td>
                                 </tr>
-                                {% if contract.get("invalidated", False) %}
+                                {% if contract.get("invalidation_date", False) %}
                                 <tr>
                                     <td>Zneplatněna ke dni</td>
-                                    <td>{{contract["invalidated"]}}</td>
+                                    <td>{{contract["invalidation_date"]}}</td>
                                 </tr>
                                 {% end %}
                                 <tr>
@@ -903,10 +903,10 @@
             documentRows.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
         if (docData.hasOwnProperty("valid_until_text"))
             documentRows.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
-        if (docData.hasOwnProperty("invalidated_text")) {
-            documentRows.appendChild(buildDocumentRow("Zneplatněn ke dni", docData["invalidated_text"]));
-            console.log("invalidated", docData["invalidated"]);
-            if (docData["invalidated"] <= moment().format("YYYY-MM-DD"))
+        if (docData.hasOwnProperty("invalidation_date_text")) {
+            documentRows.appendChild(buildDocumentRow("Zneplatněn ke dni", docData["invalidation_date_text"]));
+            console.log("invalidation_date", docData["invalidation_date"]);
+            if (docData["invalidation_date"] <= moment().format("YYYY-MM-DD"))
                 documentTitle.style.textDecoration = "line-through";
         }
         if (docData.hasOwnProperty("notes"))
@@ -920,7 +920,7 @@
             documentContentRow.style.color = "grey";
         }
 
-        if ((docData.hasOwnProperty("invalidated") && moment(docData["invalidated"]).isBefore(moment())) ||
+        if ((docData.hasOwnProperty("invalidation_date") && moment(docData["invalidation_date"]).isBefore(moment())) ||
                 moment(docData["valid_until"]).isBefore(moment())) {
             const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
             $(buttons).hide();

@@ -289,15 +289,15 @@ class UserPageHandler(BaseHandler):
             new["is_valid"] = False
 
             effective_valid_until = valid_until
-            if "invalidated" in contract:
-                effective_valid_until = min(valid_until, contract["invalidated"] - timedelta(days=1))
+            if "invalidation_date" in contract:
+                effective_valid_until = min(valid_until, contract["invalidation_date"] - timedelta(days=1))
 
             if contract["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
                 new["is_valid"] = True
 
-            if contract.get("invalidated", False):
-                new["invalidated_iso"] = str_ops.date_to_iso_str(contract["invalidated"])
-                new["invalidated"] = str_ops.date_to_str(contract["invalidated"])
+            if contract.get("invalidation_date", False):
+                new["invalidation_date_iso"] = str_ops.date_to_iso_str(contract["invalidation_date"])
+                new["invalidation_date"] = str_ops.date_to_str(contract["invalidation_date"])
 
             if new["is_valid"]:
                 result.insert(0, new)
@@ -321,17 +321,17 @@ class UserPageHandler(BaseHandler):
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
             effective_valid_until = document["valid_until"]
-            if "invalidated" in document:
-                effective_valid_until = min(document["valid_until"], document["invalidated"] - timedelta(days=1))
+            if "invalidation_date" in document:
+                effective_valid_until = min(document["valid_until"], document["invalidation_date"] - timedelta(days=1))
 
             if document["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
                 document["is_valid"] = True
             else:
                 document["is_valid"] = False
 
-            if "invalidated" in document:
-                document["invalidated_text"] = str_ops.date_to_str(document["invalidated"])
-                document["invalidated"] = str_ops.date_to_iso_str(document["invalidated"])
+            if "invalidation_date" in document:
+                document["invalidation_date_text"] = str_ops.date_to_str(document["invalidation_date"])
+                document["invalidation_date"] = str_ops.date_to_iso_str(document["invalidation_date"])
 
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
