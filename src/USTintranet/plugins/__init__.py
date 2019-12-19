@@ -726,12 +726,12 @@ class LoginHandler(BaseHandler):
             self.render("_login.hbs", msg="No such user")
             return
 
-        user_name = user_mdoc["user"]
+        user_id = user_mdoc["_id"]
         real_password_hash = user_mdoc["pass"]
-        this_password_hash = password_hash(user_name, password)
+        this_password_hash = password_hash(user_id, password)
 
         if real_password_hash == this_password_hash:
-            self.set_secure_cookie('user', user_name)
+            self.set_secure_cookie('user', user_id)
             self.redirect('/')
             return
 
@@ -753,6 +753,7 @@ class RegistrationHandler(BaseHandler):
 
     def post(self):
         email = self.get_argument('email')
+        user_id = self.get_argument('user_id')
         password = self.get_argument('password')
         password_check = self.get_argument('password_check')
         agree = self.get_argument('agree')
@@ -765,23 +766,24 @@ class RegistrationHandler(BaseHandler):
             self.render('_registration.hbs', msg='Hesla se neshodují')
             return
 
-        user_name = email
-        matching_users_in_db = list(self.mdb.users.find({'$or': [{'user': user_name}, {'email': email}]}))
+        matching_users_in_db = list(self.mdb.users.find({'$or': [{'_id': user_id}, {'email': email}]}))
         if matching_users_in_db:
             self.render('_registration.hbs',
-                        msg='Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
+                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.')
             return
 
-        new_password_hash = password_hash(user_name, password)
+        new_password_hash = password_hash(user_id, password)
 
         self.mdb.users.insert({
-            'user': user_name,
+            '_id': user_id,
+            'user': user_id,
             'pass': new_password_hash,
             'email': email,
             'email_validated': "no",
             'created': datetime.datetime.now(),
             'type': 'user',
-            'role': [],
+            'role': ["sudo", "sudo-store", "sudo-users", "sudo-import", "invoice-access", "invoice-create",
+                     "invoice-sudo", "invoice-validator", "invoice-reciever"],
         })
 
         print("Registrován email", email)

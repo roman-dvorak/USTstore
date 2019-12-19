@@ -24,7 +24,7 @@ def add_user_vacation(database, user_id, vacation):
 
 def get_user_workspans(database, user_id, from_date: datetime, to_date: datetime):
     cursor = database.users.aggregate([
-        {"$match": {"_id": ObjectId(user_id)}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$workspans"},
         {"$match": {
             "workspans.from": {
@@ -50,7 +50,7 @@ def get_user_vacations(database,
         earliest_latest_dict["$lt"] = latest_end
 
     cursor = database.users.aggregate([
-        {"$match": {"_id": ObjectId(user_id)}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$vacations"},
         {"$match": {
             "vacations.to": earliest_latest_dict
@@ -67,14 +67,14 @@ def get_user_vacation_by_id(database, user_id: str, vacation_id: str):
 
 
 def interrupt_user_vacation(database, user_id, vacation_id, new_end_date):
-    database.users.update_one({"_id": ObjectId(user_id), "vacations._id": vacation_id},
+    database.users.update_one({"_id": user_id, "vacations._id": vacation_id},
                               {"$set": {
                                   "vacations.$.to": new_end_date,
                               }})
 
 
 def delete_user_workspan(database, user_id, workspan_id):
-    database.users.update_one({"_id": ObjectId(user_id)},
+    database.users.update_one({"_id": user_id},
                               {"$pull": {
                                   "workspans": {
                                       "_id": workspan_id

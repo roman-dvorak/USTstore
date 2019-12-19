@@ -2,8 +2,6 @@ from datetime import datetime
 
 import pymongo
 from bson import ObjectId
-import warnings
-
 from pymongo.collection import ReturnDocument
 
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_mdocument_set_unset_dicts, \
@@ -16,6 +14,7 @@ from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_
 def get_users(coll: pymongo.collection.Collection, **by):
     """
     Vrátí list uživatelů z databáze. Každý uživatel má field "_id" s textovou verzí ObjectID jeho mdokumentu.
+    # TODO upravit docstring
     """
     by_copy = dict(by)
     by_copy["type"] = "user"
@@ -25,23 +24,22 @@ def get_users(coll: pymongo.collection.Collection, **by):
     return users
 
 
-def get_user(coll: pymongo.collection.Collection, _id: str):
+def get_user(coll: pymongo.collection.Collection, user_id: str):
     """
     Vrátí mdokument daného uživatele. Uživatel má field "_id" s textovou verzí ObjectID jeho mdokumentu.
     """
-    user = coll.find_one({'_id': ObjectId(_id)})
+    user = coll.find_one({'_id': user_id})
     if not user:
         return None
-    user["_id"] = str(user["_id"])
     return user
 
 
-def get_user_contracts(coll: pymongo.collection.Collection, _id: str, sort_by="signing_date"):
+def get_user_contracts(coll: pymongo.collection.Collection, user_id: str, sort_by="signing_date"):
     """
     Vrátí list smluv uživatele seřazených sestupně podle fieldu daného parametrem sort_by.
     """
     cursor = coll.aggregate([
-        {"$match": {"_id": ObjectId(_id)}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$contracts"},
         {"$match": {"contracts.type": "dpp"}},  # TODO udělat to obecně ne jen pro dpp
         {"$sort": {f"contracts.{sort_by}": -1}},
@@ -50,7 +48,7 @@ def get_user_contracts(coll: pymongo.collection.Collection, _id: str, sort_by="s
     return next(cursor, {}).get("contracts", [])
 
 
-def update_user(coll: pymongo.collection.Collection, _id: str, data: dict, embedded_1to1_docs=("name",)):
+def update_user(coll: pymongo.collection.Collection, user_id: str, data: dict, embedded_1to1_docs=("name",)):
     """
     Updatuje data existujícího uživatele v databázi. Data by měla být first level fieldy a fieldy jednotlivě embedded
     mdokumentů v dot notation. Pro updatování polí embedded mdokumentů jsou speciální funkce.
@@ -67,14 +65,14 @@ def update_user(coll: pymongo.collection.Collection, _id: str, data: dict, embed
     if to_unset:
         operation_dict["$unset"] = to_unset
 
-    updated = coll.find_one_and_update({"_id": ObjectId(_id)}, operation_dict, return_document=ReturnDocument.AFTER)
+    updated = coll.find_one_and_update({"_id": user_id}, operation_dict, return_document=ReturnDocument.AFTER)
 
     for key in embedded_1to1_docs:
         if key in updated and not updated[key]:
-            coll.update_one({"_id": ObjectId(_id)}, {"$unset": {"name": ""}})
+            coll.update_one({"_id": user_id}, {"$unset": {"name": ""}})
 
 
-def update_user_address(coll: pymongo.collection.Collection, _id: str, address: dict):
+def update_user_address(coll: pymongo.collection.Collection, user_id: str, address: dict):
     """
     Nastaví pro daného uživatele adresu. Dict address musí obsahovat field "type". Uživatel může mít jen jednu adresu
     daného typu.
@@ -87,7 +85,7 @@ def update_user_address(coll: pymongo.collection.Collection, _id: str, address: 
     to_set, to_unset = get_mdocument_set_unset_dicts(address)
 
     # pokud už je tento typ adresy v databázi
-    if coll.find_one({"_id": ObjectId(_id), "addresses.type": address_type}):
+    if coll.find_one({"_id": user_id, "addresses.type": address_type}):
 
         operation_dict = {}
         if len(to_set) > 1:  # je tam něco kromě "type"
@@ -95,24 +93,24 @@ def update_user_address(coll: pymongo.collection.Collection, _id: str, address: 
         if to_unset:
             operation_dict["$unset"] = {f"addresses.$.{key}": value for key, value in to_unset.items()}
 
-        updated = coll.find_one_and_update({"_id": ObjectId(_id), "addresses.type": address_type}, operation_dict,
+        updated = coll.find_one_and_update({"_id": user_id, "addresses.type": address_type}, operation_dict,
                                            return_document=ReturnDocument.AFTER)
 
         # smaž adresu z "addresses", pokud po updatu obsahuje pouze "type"
         for address in updated["addresses"]:
             if address["type"] == address_type and len(address) <= 1:
-                delete_user_address(coll, _id, address_type)
+                delete_user_address(coll, user_id, address_type)
 
     # jinak přidej adresu do databáze, pokud obsahuje víc než jen "type"
     elif len(address) > 1:
-        add_embedded_mdoc_to_mdoc_array(coll, _id, "addresses", address, filter_values=None)
+        add_embedded_mdoc_to_mdoc_array(coll, user_id, "addresses", address, filter_values=None)
 
 
-def delete_user_address(coll: pymongo.collection.Collection, _id: str, address_type: str):
+def delete_user_address(coll: pymongo.collection.Collection, user_id: str, address_type: str):
     """
     Smaže daný typ adresy z databáze.
     """
-    coll.update_one({"_id": ObjectId(_id)},
+    coll.update_one({"_id": user_id},
                     {"$pull": {
                         "addresses": {
                             "type": address_type
@@ -120,27 +118,18 @@ def delete_user_address(coll: pymongo.collection.Collection, _id: str, address_t
                     }})
 
 
-def add_users(coll: pymongo.collection.Collection, ids: list = None, n: int = None):
+def add_users(coll: pymongo.collection.Collection, ids: list):
     """
     Přidá nové uživatele do databáze. Do databáze se zapíše jen id a čas vytvoření, ostatní data uživatele je nutno
     přidat pomocí update_user.
     Je možné buď zadat přesná id, která budou přidána do databáze, nebo specifikovat kolik uživatelů přidat, id budou
     vygenerovány automaticky.
-    Vrací id přidaných uživatelů.
+    Vrací id přidaných uživatelů. TODO najít a opravit kde se toto používá
     """
-    if ids:
-        oids = [ObjectId(_id) for _id in ids]
-    elif n:
-        oids = [ObjectId() for _ in range(n)]
-        ids = [str(_id) for _id in oids]
-    else:
-        warnings.warn("Nebyla specifikována žádná id ani počet nových uživatelů. Nic se nestalo.")
-        return
-
     users = [{"_id": _id,
               "created": datetime.now().replace(microsecond=0),
               "type": "user",
-              } for _id in oids]
+              } for _id in ids]
     coll.insert_many(users)
 
     return ids
@@ -150,7 +139,7 @@ def delete_user(coll: pymongo.collection.Collection, _id: str):
     """
     Smaže uživatele z databáze.
     """
-    coll.delete_one({"_id": ObjectId(_id)})
+    coll.delete_one({"_id": _id})
 
 
 def add_user_contract(coll: pymongo.collection.Collection, user_id: str, contract: dict):
@@ -175,7 +164,7 @@ def unmark_user_contract_as_preview(database, user_id: str, contract_id: str):
 
     new_type = contract_mdoc["type"].replace("_preview", "")
 
-    database.users.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+    database.users.update_one({"_id": user_id, "contracts._id": contract_id},
                               {"$set": {
                                   "contracts.$.type": new_type,
                               }})
@@ -189,14 +178,14 @@ def invalidate_user_contract(coll: pymongo.collection.Collection,
     Přidá do mdocumentu smlouvy key "invalidated" obsahující aktuální datum. Toto značí zneplatnění smlouvy,
     nelze vzít zpět.
     """
-    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+    coll.update_one({"_id": user_id, "contracts._id": contract_id},
                     {"$set": {
                         "contracts.$.invalidated": invalidation_date,
                     }})
 
 
 def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: str, contract_id: str, file_id):
-    coll.update_one({"_id": ObjectId(user_id), "contracts._id": contract_id},
+    coll.update_one({"_id": user_id, "contracts._id": contract_id},
                     {"$set": {
                         "contracts.$.scan_file": file_id,
                     }})
@@ -215,7 +204,7 @@ def delete_user_document(coll: pymongo.collection.Collection, user_id: str, docu
     """
     Smaže daný dokument uživatele z databáze.
     """
-    coll.update_one({"_id": ObjectId(user_id)},
+    coll.update_one({"_id": user_id},
                     {"$pull": {
                         "documents": {
                             "_id": document_id
@@ -227,14 +216,14 @@ def invalidate_user_document(coll: pymongo.collection.Collection,
                              user_id: str,
                              document_id: str,
                              invalidation_date: datetime):
-    coll.update_one({"_id": ObjectId(user_id), "documents._id": document_id},
+    coll.update_one({"_id": user_id, "documents._id": document_id},
                     {"$set": {
                         "documents.$.invalidated": invalidation_date
                     }})
 
 
 def get_user_document_owncloud_id(coll: pymongo.collection.Collection, user_id: str, document_id: str):
-    document_mdoc = coll.find_one({"_id": ObjectId(user_id), "documents._id": document_id}, {"documents.$": 1})
+    document_mdoc = coll.find_one({"_id": user_id, "documents._id": document_id}, {"documents.$": 1})
     return document_mdoc["documents"][0]["file"]
 
 
@@ -255,7 +244,7 @@ def update_user_document(coll: pymongo.collection.Collection, user_id: str, docu
     print("to_set", to_set)
     print("to_unset", to_unset)
 
-    updated = coll.find_one_and_update({"_id": ObjectId(user_id), "documents._id": document_id}, operation_dict,
+    updated = coll.find_one_and_update({"_id": user_id, "documents._id": document_id}, operation_dict,
                                        return_document=ReturnDocument.AFTER)
     if not list(updated):
         raise ValueError("Uživatel nemá dokument s tímto _id")
@@ -266,7 +255,7 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
         date = datetime.now()
 
     mdoc = coll.find_one({
-        "_id": ObjectId(user_id),
+        "_id": user_id,
         "contracts": {
             "$elemMatch": {
                 "valid_from": {"$lte": date},
@@ -287,7 +276,7 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
 
 def get_user_active_contracts(database, user_id: str, from_date: datetime, to_date: datetime, sort_by="valid_from"):
     cursor = database.users.aggregate([
-        {"$match": {"_id": ObjectId(user_id)}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$contracts"},
         {"$match": {
             "$nor": [
@@ -308,7 +297,7 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
         date = datetime.now()
 
     mdoc = coll.find_one({
-        "_id": ObjectId(user_id),
+        "_id": user_id,
         "documents": {
             "$elemMatch": {
                 "valid_from": {"$lte": date},
@@ -334,7 +323,7 @@ def get_user_active_documents(db,
                               to_date: datetime,
                               sort_by="valid_from"):
     cursor = db.users.aggregate([
-        {"$match": {"_id": ObjectId(user_id)}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$documents"},
         {"$match": {"documents.type": document_type}},
         {"$match": {
@@ -363,13 +352,13 @@ def update_email_is_validated_status(coll: pymongo.collection.Collection,
                                      no=False,
                                      token=""):
     if token:
-        res = coll.update_one({"_id": ObjectId(user_id)},
+        res = coll.update_one({"_id": user_id},
                               {"$set": {
                                   "email_validated": "pending",
                                   "email_validation_token": token,
                               }})
     elif yes:
-        coll.update_one({"_id": ObjectId(user_id)},
+        coll.update_one({"_id": user_id},
                         {
                             "$set": {
                                 "email_validated": "yes",
@@ -379,7 +368,7 @@ def update_email_is_validated_status(coll: pymongo.collection.Collection,
                             },
                         })
     elif no:
-        coll.update_one({"_id": ObjectId(user_id)},
+        coll.update_one({"_id": user_id},
                         {
                             "$set": {
                                 "email_validated": "no",
