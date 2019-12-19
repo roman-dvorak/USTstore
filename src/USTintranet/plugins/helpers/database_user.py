@@ -34,7 +34,7 @@ def get_user(coll: pymongo.collection.Collection, user_id: str):
     return user
 
 
-def get_user_contracts(coll: pymongo.collection.Collection, user_id: str, sort_by="signing_date"):
+def get_user_contracts(coll: pymongo.collection.Collection, user_id: str, sort_by="valid_from"):
     """
     Vrátí list smluv uživatele seřazených sestupně podle fieldu daného parametrem sort_by.
     """
@@ -122,9 +122,6 @@ def add_users(coll: pymongo.collection.Collection, ids: list):
     """
     Přidá nové uživatele do databáze. Do databáze se zapíše jen id a čas vytvoření, ostatní data uživatele je nutno
     přidat pomocí update_user.
-    Je možné buď zadat přesná id, která budou přidána do databáze, nebo specifikovat kolik uživatelů přidat, id budou
-    vygenerovány automaticky.
-    Vrací id přidaných uživatelů. TODO najít a opravit kde se toto používá
     """
     users = [{"_id": _id,
               "created": datetime.now().replace(microsecond=0),
@@ -260,7 +257,10 @@ def get_user_active_contract(coll: pymongo.collection.Collection, user_id: str, 
             "$elemMatch": {
                 "valid_from": {"$lte": date},
                 "valid_until": {"$gte": date},
-                "invalidated": {"$exists": False},
+                "$or": [
+                    {"invalidated": {"$exists": False}},
+                    {"invalidated": {"$gt": date}},
+                ],
                 "type": "dpp"  # TODO udělat obecně
             }
         }
@@ -282,7 +282,10 @@ def get_user_active_contracts(database, user_id: str, from_date: datetime, to_da
             "$nor": [
                 {"contracts.valid_from": {"$gt": to_date}},
                 {"contracts.valid_until": {"$lt": from_date}},
-                {"contracts.invalidated": {"$exists": True}},
+            ],
+            "$or": [
+                {"contracts.invalidated": {"$exists": False}},
+                {"contracts.invalidated": {"$gt": to_date}},
             ],
             "contracts.type": "dpp",  # TODO udělat obecně
         }},
@@ -303,7 +306,10 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
                 "valid_from": {"$lte": date},
                 "valid_until": {"$gte": date},
                 "type": document_type,
-                "invalidated": {"$exists": False},
+                "$or": [
+                    {"invalidated": {"$exists": False}},
+                    {"invalidated": {"$gt": date}},
+                ],
             }
         }
     }, {"documents.$": 1})
@@ -316,13 +322,13 @@ def get_user_active_document(coll: pymongo.collection.Collection, user_id, docum
     return documents[0] if documents else None
 
 
-def get_user_active_documents(db,
+def get_user_active_documents(database,
                               user_id: str,
                               document_type: str,
                               from_date: datetime,
                               to_date: datetime,
                               sort_by="valid_from"):
-    cursor = db.users.aggregate([
+    cursor = database.users.aggregate([
         {"$match": {"_id": user_id}},
         {"$unwind": "$documents"},
         {"$match": {"documents.type": document_type}},
@@ -330,10 +336,14 @@ def get_user_active_documents(db,
             "$nor": [
                 {"documents.valid_from": {"$gte": to_date}},
                 {"documents.valid_until": {"$lt": from_date}},
-            ]
+            ],
+            "$or": [
+                {"documents.invalidated": {"$exists": False}},
+                {"documents.invalidated": {"$gt": to_date}},
+            ],
         }},
         {"$sort": {f"documents.{sort_by}": -1}},
-        {"$group": {"_id": "$_id", "documents": {"$push": "documents"}}}
+        {"$group": {"_id": "$_id", "documents": {"$push": "$documents"}}}
     ])
     return next(cursor, {}).get("documents", [])
 

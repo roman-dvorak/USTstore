@@ -88,6 +88,10 @@
         text-align: center;
     }
 
+    .invalidated-contract {
+        text-decoration: line-through;
+    }
+
 </style>
 
 <div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
@@ -569,7 +573,6 @@
                     <tbody>
                     {% for contract in contracts %}
                     <tr class="contract-header" data-id="{{contract["_id"]}}">
-                        <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
                         <th class="item-{{"black" if contract["is_valid"] else "grey"}}">
                             {% if contract["is_valid"] %}
                             <button type="button" class="btn btn-sm btn-secondary"
@@ -577,7 +580,11 @@
                                 <i class="material-icons" style="font-size: 17px">close</i>
                             </button>
                             {% end %}
-                            {{contract["title"]}}
+                            <div class="
+{{'invalidated-contract' if 'invalidated' in contract and contract['invalidated'] < today else ''}}
+                                ">
+                                {{contract["title"]}}
+                            </div>
                         </th>
                     </tr>
                     <tr class="contract-info item-{{"black" if contract["is_valid"] else "grey"}}">
@@ -623,7 +630,7 @@
                                 </tr>
                                 {% if contract.get("invalidated", False) %}
                                 <tr>
-                                    <td>Zneplatněna dne</td>
+                                    <td>Zneplatněna ke dni</td>
                                     <td>{{contract["invalidated"]}}</td>
                                 </tr>
                                 {% end %}
@@ -644,7 +651,7 @@
                     </tr>
                     </tbody>
                 </table>
-            </div> <!-- TODO lépe řadit smlouvy (platná smlouva vždy první) -->
+            </div>
 
             <div id="documents">
             </div>
@@ -897,8 +904,10 @@
         if (docData.hasOwnProperty("valid_until_text"))
             documentRows.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
         if (docData.hasOwnProperty("invalidated_text")) {
-            documentRows.appendChild(buildDocumentRow("Zneplatněn dne", docData["invalidated_text"]));
-            documentTitle.style.textDecoration = "line-through";
+            documentRows.appendChild(buildDocumentRow("Zneplatněn ke dni", docData["invalidated_text"]));
+            console.log("invalidated", docData["invalidated"]);
+            if (docData["invalidated"] <= moment().format("YYYY-MM-DD"))
+                documentTitle.style.textDecoration = "line-through";
         }
         if (docData.hasOwnProperty("notes"))
             documentRows.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
@@ -911,7 +920,7 @@
             documentContentRow.style.color = "grey";
         }
 
-        if (docData.hasOwnProperty("invalidated") ||
+        if ((docData.hasOwnProperty("invalidated") && moment(docData["invalidated"]).isBefore(moment())) ||
                 moment(docData["valid_until"]).isBefore(moment())) {
             const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
             $(buttons).hide();

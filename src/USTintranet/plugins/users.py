@@ -230,16 +230,19 @@ class UserPageHandler(BaseHandler):
             "assignment": user_document.get("assignment", ""),
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
+
+            "today": str_ops.date_to_iso_str(datetime.now())
         }
-        template_params.update(compile_user_month_info(self.mdb, _id, datetime.now(),
-                                                       self.dpp_params["year_max_hours"],
-                                                       self.dpp_params["month_max_gross_wage"]))
+        # template_params.update(compile_user_month_info(self.mdb, _id, datetime.now(),
+        #                                                self.dpp_params["year_max_hours"],
+        #                                                self.dpp_params["month_max_gross_wage"]))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
         template_params["documents_json"] = self.prepare_documents(documents)
 
+        print("template_params", template_params)
         self.render("users.user-page.hbs", **template_params)
 
     def prepare_contracts(self, contracts):
@@ -260,6 +263,8 @@ class UserPageHandler(BaseHandler):
             new["_id"] = contract["_id"]
             new["type"] = possible_type[contract["type"]]
             new["signing_date"] = str_ops.date_to_str(contract["signing_date"])
+            new["valid_from_iso"] = str_ops.date_to_iso_str(valid_from)
+            new["valid_until_iso"] = str_ops.date_to_iso_str(valid_until)
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
@@ -272,14 +277,22 @@ class UserPageHandler(BaseHandler):
                 new["scan_signed_url"] = None
 
             new["is_valid"] = False
-            if not contract.get("invalidated", False):
-                if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
-                    new["is_valid"] = True
+
+            effective_valid_until = valid_until
+            if "invalidated" in contract:
+                effective_valid_until = min(valid_until, contract["invalidated"] - timedelta(days=1))
+
+            if contract["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
+                new["is_valid"] = True
 
             if contract.get("invalidated", False):
+                new["invalidated_iso"] = str_ops.date_to_iso_str(contract["invalidated"])
                 new["invalidated"] = str_ops.date_to_str(contract["invalidated"])
 
-            result.append(new)
+            if new["is_valid"]:
+                result.insert(0, new)
+            else:
+                result.append(new)
 
         return result
 
@@ -297,13 +310,16 @@ class UserPageHandler(BaseHandler):
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
-            if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
+            effective_valid_until = document["valid_until"]
+            if "invalidated" in document:
+                effective_valid_until = min(document["valid_until"], document["invalidated"] - timedelta(days=1))
+
+            if document["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
                 document["is_valid"] = True
             else:
                 document["is_valid"] = False
 
             if "invalidated" in document:
-                document["is_valid"] = False
                 document["invalidated_text"] = str_ops.date_to_str(document["invalidated"])
                 document["invalidated"] = str_ops.date_to_iso_str(document["invalidated"])
 
@@ -320,9 +336,15 @@ class UserPageHandler(BaseHandler):
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
 
             if document["type"] == "study_certificate":
-                study_certificates.append(document)
+                if document["is_valid"]:
+                    study_certificates.insert(0, document)
+                else:
+                    study_certificates.append(document)
             elif document["type"] == "tax_declaration":
-                tax_declarations.append(document)
+                if document["is_valid"]:
+                    tax_declarations.insert(0, document)
+                else:
+                    tax_declarations.append(document)
 
         final_structure = {
             "study_certificate": study_certificates,

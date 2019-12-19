@@ -465,7 +465,6 @@ class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
         # TODO hlídat aby nové dovolené byly v budoucnosti, nelze přidat dovolenou zpětně
-        # TODO dovolené by měly jít v půlce přerušit aniž by musely být smazané
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
 
