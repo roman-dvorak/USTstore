@@ -141,6 +141,9 @@ class ApiAdminTableHandler(BaseHandler):
         if "role" in data:
             data["role"] = data["role"].replace(" ", "").split(",")
 
+        if "email" in data:
+            data["email_validated"] = "no"
+
         if data:
             udb.update_user(self.mdb.users, _id, data)
 
@@ -173,6 +176,12 @@ class ApiEditUserHandler(BaseHandler):
 
         if "role" in changes:
             changes["role"] = changes["role"].replace(" ", "").split(",")
+
+        if "email" in changes:
+            matching_users_in_db = udb.get_users(self.mdb.users, email=changes["email"])
+            if matching_users_in_db:
+                raise BadInputError("Uživatel s touto emailovou adresou již existuje.")
+            changes["email_validated"] = "no"  # TODO je potřeba tuto kontrolu dát na jedno místo
 
         if changes:
             udb.update_user(self.mdb.users, _id, changes)
