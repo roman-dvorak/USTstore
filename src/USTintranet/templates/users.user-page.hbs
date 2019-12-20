@@ -4,7 +4,7 @@
 
 <script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
 <script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
-
+<script src="/static/validation.js"></script>
 
 <style>
     body {
@@ -16,6 +16,20 @@
         width: 100%;
         height: 100%;
         overflow: auto;
+    }
+
+    .page-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-outline-dark {
+        border-color: #212529;
+    }
+
+    .btn-outline-dark:hover {
+        background-color: #212529;
     }
 
     .address-form-part {
@@ -40,15 +54,21 @@
         cursor: pointer;
     }
 
+    .document-show-more {
+        display: none;
+        text-align: center;
+        cursor: pointer;
+    }
+
     .document-edit-btn {
         float: right;
     }
 
-    .document-header, .document-type-header {
+    .document-header {
         cursor: pointer;
     }
 
-    .document-info, .document-type {
+    .document-info {
         display: none;
     }
 
@@ -68,9 +88,10 @@
         text-align: center;
     }
 
-    #documents table table tr:first-child th {
-        border-top: 0;
+    .invalidated-contract {
+        text-decoration: line-through;
     }
+
 </style>
 
 <div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
@@ -215,9 +236,10 @@
     </div>
 </div>
 
-<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog">
+<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog"
+     data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" id="contract-form-modal-part">
             <div class="modal-header">
                 <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
                 <button type="button" class="close" data-dismiss="modal">
@@ -314,6 +336,28 @@
                 </button>
             </div>
         </div>
+        <div class="modal-content" id="contract-preview-modal-part">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" name="_id">
+                    <a class="contract-url btn btn-success form-button" role="button" target="_blank">
+                        Náhled vygenerované smlouvy
+                    </a>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="finalizeContract()">Potvrdit
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -342,6 +386,37 @@
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
                 <button type="button" class="btn btn-primary" id="user-save-btn"
                         onclick="saveUploadContractScanModal()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="reupload-document-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát jinou verzi dokumentu</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="reupload-document-form" action="/users/api/u/{{_id}}/documents/reupload"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="reupload-document-id-input" name="_id">
+
+                    <div class="form-group">
+                        <label for="reupload-document-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="reupload-document-file-input" name="file" required>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveReuploadDocumentModal()">Uložit
                 </button>
             </div>
         </div>
@@ -411,8 +486,10 @@
 </div>
 
 <div class="container">
-    <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
-
+    <div class="page-title">
+        <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
+        <a href="/attendance/u/{{_id}}" role="button" class="btn btn-outline-dark">Docházková karta</a>
+    </div>
     <div class="row">
         <div class="col col-12 col-lg-6">
             <div id="basic-info">
@@ -427,8 +504,8 @@
                     </thead>
                     <tbody>
                     <tr>
-                        <td>Uživatelské jméno</td>
-                        <td>{{user}}</td>
+                        <td>Přezdívka</td>
+                        <td>{{_id}}</td>
                     </tr>
                     <tr>
                         <td>Jméno</td>
@@ -467,18 +544,6 @@
                         <td>{{assignment}}</td>
                     </tr>
                     <tr>
-                        <td>Platné prohlášení o dani</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Potvrzení o studiu</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Hodinová sazba</td>
-                        <td></td>
-                    </tr>
-                    <tr>
                         <td>Dovednosti</td>
                         <td>{{skills}}</td>
                     </tr>
@@ -492,35 +557,6 @@
         </div>
 
         <div class="col col-12 col-lg-6">
-            <div id="work-info">
-                <table class="table">
-                    <thead class="thead-dark">
-                    <tr>
-                        <th>Docházka a ohodnocení</th>
-                        <th class="text-right">
-                            <a href="/attendance/u/{{_id}}" role="button" class="btn btn-light">
-                                Docházková karta
-                            </a>
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Odpracované hodiny v tomto měsíci</td>
-                        <td>{{month_hours_worked}}</td>
-                    </tr>
-                    <tr>
-                        <td>Aktuální hrubá mzda za tento měsíc</td>
-                        <td>{{month_money_made or '-'}}</td>
-                    </tr>
-                    <tr>
-                        <td>Finanční ohodnocení za minulý měsíc</td>
-                        <td>-</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-
             <div id="contracts">
                 <table class="table">
                     <thead class="thead-dark">
@@ -537,7 +573,6 @@
                     <tbody>
                     {% for contract in contracts %}
                     <tr class="contract-header" data-id="{{contract["_id"]}}">
-                        <!--                        <th>Dohoda o provedení práce 2018 - 2020</th>-->
                         <th class="item-{{"black" if contract["is_valid"] else "grey"}}">
                             {% if contract["is_valid"] %}
                             <button type="button" class="btn btn-sm btn-secondary"
@@ -545,7 +580,11 @@
                                 <i class="material-icons" style="font-size: 17px">close</i>
                             </button>
                             {% end %}
-                            {{contract["title"]}}
+                            <div class="
+{{'invalidated-contract' if 'invalidation_date' in contract and contract['invalidation_date'] < today else ''}}
+                                ">
+                                {{contract["title"]}}
+                            </div>
                         </th>
                     </tr>
                     <tr class="contract-info item-{{"black" if contract["is_valid"] else "grey"}}">
@@ -589,10 +628,10 @@
                                         {% end %}
                                     </td>
                                 </tr>
-                                {% if contract.get("invalidated", False) %}
+                                {% if contract.get("invalidation_date", False) %}
                                 <tr>
-                                    <td>Zneplatněna dne</td>
-                                    <td>{{contract["invalidated"]}}</td>
+                                    <td>Zneplatněna ke dni</td>
+                                    <td>{{contract["invalidation_date"]}}</td>
                                 </tr>
                                 {% end %}
                                 <tr>
@@ -615,102 +654,145 @@
             </div>
 
             <div id="documents">
-                <table class="table">
-                    <thead class="thead-dark">
-                    <tr>
-                        <th>
-                            <button type="button" class="btn btn-light" style="float: right;"
-                                    onclick="showDocumentEditor(this, true)">
-                                Přidat
-                            </button>
-                            Dokumenty
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for doc_type in documents.keys() %}
-                    {% if len(documents[doc_type]) > 0 %}
-                    <tr class="document-type-header">
-                        <th>{{documents[doc_type][0]["type_text"]}}</th>
-                    </tr>
-                    <tr class="document-type">
-                        <td>
-                            <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
-                                <tbody>
-                                {% for document in documents[doc_type] %}
-                                <tr class="document-header item-{{'black' if document['is_valid'] else 'grey'}}">
-                                    <th>
-                                        <button class="btn btn-dark btn-sm document-edit-btn"
-                                                onclick="showDocumentEditor(this)">
-                                            Upravit
-                                        </button>
-                                        {{document["title"]}}
-                                    </th>
-                                </tr>
-                                <tr class="document-info item-{{'black' if document['is_valid'] else 'grey'}}"
-                                    data-id="{{document["_id"]}}">
-                                    <td>
-                                        <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
-                                            <tbody>
-                                            <tr>
-                                                <td style="border-top: 0px">Druh dokumentu</td>
-                                                <td style="border-top: 0px" class="document-type-cell"
-                                                    data-raw="{{document["type"]}}">
-                                                    {{document["type_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% if document.get("valid_from_text", None) %}
-                                            <tr>
-                                                <td>Začátek platnosti</td>
-                                                <td class="document-valid-from-cell"
-                                                    data-raw="{{document["valid_from"]}}">
-                                                    {{document["valid_from_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            {% if document.get("valid_until_text", None) %}
-                                            <tr>
-                                                <td>Konec platnosti</td>
-                                                <td class="document-valid-until-cell"
-                                                    data-raw="{{document["valid_until"]}}">
-                                                    {{document["valid_until_text"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            {% if document.get("notes", None) %}
-                                            <tr>
-                                                <td>Poznámka</td>
-                                                <td class="document-notes-cell" data-raw="{{document["notes"]}}">
-                                                    {{document["notes"]}}
-                                                </td>
-                                            </tr>
-                                            {% end %}
-                                            <tr>
-                                                <td colspan="2" class="link-show-file">
-                                                    <a href="{{document.get('url', '#')}}" target="_blank">
-                                                        Zobrazit soubor
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                </tr>
-                                {% end %}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    {% end %}
-                    {% end %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    table.table tbody + tbody {
+        border-top-width: 1px;
+    }
+
+    td.wrapper {
+        padding-top: 0;
+    }
+
+    table.inner {
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0;
+    }
+
+    table.table.inner tr:first-child td, table.table.inner tr:first-child th {
+        border-top: 0;
+    }
+
+    tr.show-file-link {
+        text-align: center;
+    }
+
+    tr.document-title {
+        cursor: pointer;
+    }
+
+    tr.document-content {
+        display: none;
+    }
+
+    tbody.document {
+        display: none;
+    }
+
+    tbody.document:first-child {
+        display: table-row-group;
+    }
+
+    tbody.show-older {
+        text-align: center;
+        cursor: pointer;
+    }
+</style>
+
+<template id="template-documents-table">
+    <table class="table">
+        <thead class="thead-dark">
+        <tr>
+            <th>
+                <button type="button" class="btn btn-light" style="float: right;"
+                        onclick="showDocumentEditor(this, true)">
+                    Přidat
+                </button>
+                Dokumenty
+            </th>
+        </tr>
+        </thead>
+
+    </table>
+</template>
+
+<template id="template-documents-subtable">
+    <tbody class="subtable">
+    <tr class="document-type-row">
+        <th class="document-type">Typ dokumentu</th>
+    </tr>
+    <tr>
+        <td class="wrapper">
+            <table class="table inner">
+
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</template>
+
+<template id="template-document">
+    <tbody class="document">
+    <tr class="document-title">
+        <th>
+            <div class="btn-group edit-invalidate-buttons" role="group" style="float: right">
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="reuploadDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">edit</i>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="invalidateDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">close</i>
+                </button>
+            </div>
+            <span></span>
+        </th>
+    </tr>
+    <tr class="document-content">
+        <td class="wrapper">
+            <table class="table inner">
+                <tbody class="rows">
+
+                </tbody>
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</template>
+
+<template id="template-document-row">
+    <tr>
+        <td></td>
+        <td></td>
+    </tr>
+</template>
+
+<template id="template-show-file-row">
+    <tr class="show-file-link">
+        <td colspan="2">
+            <a target="_blank">Zobrazit soubor</a>
+        </td>
+    </tr>
+</template>
+
+<template id="template-show-older-row">
+    <tbody class="show-older">
+    <tr>
+        <th>
+            Zobrazit starší
+        </th>
+    </tr>
+    </tbody>
+</template>
+{% autoescape None %}
 <script>
+
+    const DOCUMENTS_JSON = `{{documents_json}}`;
 
     $(document).ready(() => {
         initBasicInfo();
@@ -760,21 +842,133 @@
     }
 
     function initDocuments() {
-        let documentInfos = $(".document-info");
-        let documentHeaders = $(".document-header");
-        documentHeaders.on("click", event => {
-            documentInfos.hide();
-            $(event.target).closest("tr").next().show();
-        });
-
-        let documentTypes = $(".document-type");
-        let documentTypeHeaders = $(".document-type-header");
-        documentTypeHeaders.on("click", event => {
-            documentTypes.hide();
-            $(event.target).closest("tr").next().show();
-        });
+        buildDocumentsTable(JSON.parse(DOCUMENTS_JSON));
 
         $("#document-type-select").on("change", handleDocumentTypeChange);
+    }
+
+    function buildDocumentsTable(documentsData) {
+        console.log("documentsData", documentsData);
+
+        const tableTemplate = document.getElementById("template-documents-table");
+        const documentsDiv = document.getElementById("documents");
+
+        const table = document.importNode(tableTemplate.content, true);
+        const tableTag = table.querySelector("table");
+
+        for (let documentType in documentsData)
+            if (documentsData.hasOwnProperty(documentType)) {
+                const subtable = buildDocumentsSubtable(documentsData[documentType]);
+                if (subtable) tableTag.appendChild(subtable);
+            }
+
+        documentsDiv.appendChild(table);
+    }
+
+    function buildDocumentsSubtable(subtableData) {
+        console.log("subtableData", subtableData);
+        if (subtableData.length === 0) return false;
+
+        const subtableTemplate = document.getElementById("template-documents-subtable");
+        const subtable = document.importNode(subtableTemplate.content, true);
+        const subtableDocumentType = subtable.querySelector("th.document-type");
+        const subtableTableTag = subtable.querySelector("table");
+
+        subtableDocumentType.textContent = subtableData[0]["type_text"];
+
+        for (let docData of subtableData) {
+            const doc = buildDocument(docData);
+            subtableTableTag.appendChild(doc);
+        }
+
+        subtableTableTag.appendChild(buildShowOlderRow());
+
+        return subtable;
+    }
+
+    function buildDocument(docData) {
+        const documentTemplate = document.getElementById("template-document");
+        const doc = document.importNode(documentTemplate.content, true);
+        const documentBody = doc.querySelector("tbody.document");
+        const documentTitleRow = doc.querySelector("tr.document-title");
+        const documentContentRow = doc.querySelector("tr.document-content");
+        const documentTitle = doc.querySelector("tr.document-title th span");
+        const documentRows = doc.querySelector("tbody.rows");
+
+        documentBody.setAttribute("data-id", docData["_id"]);
+
+        documentTitle.textContent = docData["title"];
+
+        if (docData.hasOwnProperty("valid_from_text"))
+            documentRows.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
+        if (docData.hasOwnProperty("valid_until_text"))
+            documentRows.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
+        if (docData.hasOwnProperty("invalidation_date_text")) {
+            documentRows.appendChild(buildDocumentRow("Zneplatněn ke dni", docData["invalidation_date_text"]));
+            console.log("invalidation_date", docData["invalidation_date"]);
+            if (docData["invalidation_date"] <= moment().format("YYYY-MM-DD"))
+                documentTitle.style.textDecoration = "line-through";
+        }
+        if (docData.hasOwnProperty("notes"))
+            documentRows.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
+
+        if (docData.hasOwnProperty("url"))
+            documentRows.appendChild(buildShowFileRow(docData["url"]));
+
+        if (!docData["is_valid"]) {
+            documentTitleRow.style.color = "grey";
+            documentContentRow.style.color = "grey";
+        }
+
+        if ((docData.hasOwnProperty("invalidation_date") && moment(docData["invalidation_date"]).isBefore(moment())) ||
+                moment(docData["valid_until"]).isBefore(moment())) {
+            const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
+            $(buttons).hide();
+        }
+
+        documentTitleRow.addEventListener("click", () => {
+            const next = $(documentTitleRow).next();
+            console.log(next);
+            if (next.is(":hidden")) next.show();
+            else next.hide();
+        });
+
+        return doc;
+    }
+
+    function buildDocumentRow(title, value) {
+        const documentRowTemplate = document.getElementById("template-document-row");
+        const documentRow = document.importNode(documentRowTemplate.content, true);
+
+        const tds = documentRow.querySelectorAll("td");
+        tds[0].textContent = title;
+        tds[1].textContent = value;
+
+        return documentRow;
+    }
+
+    function buildShowFileRow(url) {
+        const showFileRowTemplate = document.getElementById("template-show-file-row");
+        const showFileRow = document.importNode(showFileRowTemplate.content, true);
+
+        const link = showFileRow.querySelector("a");
+        link.href = url;
+
+        return showFileRow;
+    }
+
+    function buildShowOlderRow() {
+        const showOlderRowTemplate = document.getElementById("template-show-older-row");
+        const showOlderRow = document.importNode(showOlderRowTemplate.content, true);
+
+        const tbody = showOlderRow.querySelector("tbody.show-older");
+        tbody.addEventListener("click", () => {
+            const tbody_jquery = $(tbody);
+            tbody_jquery.siblings().show();
+            tbody_jquery.hide();
+        });
+
+        return showOlderRow;
     }
 
     function showUserEditor() {
@@ -856,6 +1050,9 @@
     function showContractEditor() {
         hideUserParamsInContractModal();
 
+        $("#contract-form-modal-part").show();
+        $("#contract-preview-modal-part").hide();
+
         $("#contract-name-input").val("{{name}}");
         $("#contract-address-input").val("{{residence_address}}");
         $("#contract-birthdate-input").val("{{birthdate_iso}}");
@@ -868,7 +1065,7 @@
     function saveContractEditor() {
         let form = document.forms["contract-editor-form"];
         console.log(form);
-        if (!validateContractEditor()) {
+        if (!validateContractEditorForm()) {
             return;
         }
 
@@ -891,14 +1088,29 @@
         data["account_number"] = $("#contract-account-number-input").val();
         data["assignment"] = $("#contract-assignment-input").val();
 
-        sendContractDataAjax(data);
-    }
-
-    function sendContractDataAjax(data) {
         $.ajax({
             url: "/users/api/u/{{_id}}/contracts",
             type: "post",
             data: JSON.stringify(data),
+            success: function (responseJson) {
+                $("#contract-form-modal-part").hide();
+                $("#contract-preview-modal-part").show();
+
+                response = JSON.parse(responseJson);
+                $("#contract-preview-modal-part input[name='_id']").val(response["_id"]);
+                $("#contract-preview-modal-part a.contract-url").attr("href", response["url"])
+            },
+            error: ajaxError,
+        });
+    }
+
+    function finalizeContract() {
+        let contractId = $("#contract-preview-modal-part input[name='_id']").val();
+
+        $.ajax({
+            url: "/users/api/u/{{_id}}/contracts/finalize",
+            type: "post",
+            data: contractId,
             success: function (response) {
                 alert("Podařilo se!");
                 location.reload();
@@ -944,7 +1156,7 @@
     function saveDocumentEditor() {
         let form = document.forms["document-editor-form"];
         console.log(form);
-        if (validateDocumentEditor()) {
+        if (validateDocumentEditorForm()) {
             form.submit();
             // console.log("OK")
         }
@@ -966,7 +1178,7 @@
 
     }
 
-    function validateContractEditor() {
+    function validateContractEditorForm() {
         let isValid = validateRequired(document.forms["contract-editor-form"]);
 
         let signing_date = $("#contract-signing-date-input");
@@ -983,7 +1195,7 @@
         return validateRequired(document.forms["contract-user-params-form"], true);
     }
 
-    function validateDocumentEditor() {
+    function validateDocumentEditorForm() {
         let isValid = validateRequired(document.forms["document-editor-form"]);
 
         let type = $("#document-type-select").val();
@@ -998,55 +1210,6 @@
         return isValid;
     }
 
-    function validateOneDateBeforeOther(soonerInput, laterInput) {
-        let soonerVal = $(soonerInput).val();
-        let laterVal = $(laterInput).val();
-        console.log(soonerVal);
-
-        if (soonerVal === "" || laterVal === "") return false;
-
-        if (moment(soonerVal).isAfter(moment(laterVal))) {
-            markInvalid(laterInput);
-            markInvalid(soonerInput);
-            return false;
-        }
-        return true;
-
-    }
-
-    function validateRequired(form, validateHidden = false) {
-        console.log(form, validateHidden);
-        let isValid = true;
-        let inputs = $(form).find("input, textarea, select");
-
-        inputs.each((index, element) => {
-            element = $(element);
-            console.log(element, element.val())
-
-            if ((element.is(":visible") || validateHidden) && element.is(":required") && element.val() === "") {
-                markInvalid(element);
-                isValid = false;
-            } else {
-                markValid(element);
-            }
-
-        });
-        console.log("vysledek validateRequired");
-        console.log(isValid);
-        return isValid;
-
-    }
-
-    function markValid(input) {
-        input.addClass("is-valid");
-        setTimeout(() => input.removeClass("is-valid"), 2000)
-    }
-
-    function markInvalid(input) {
-        input.addClass("is-invalid");
-        setTimeout(() => input.removeClass("is-invalid"), 2000)
-    }
-
     function handleDocumentTypeChange() {
         let selectedType = $("#document-type-select").val();
         if (selectedType === "cv") {
@@ -1057,14 +1220,87 @@
     }
 
     function invalidateContract(button) {
+        event.stopPropagation();
+
         let contractHeaderRow = $(button).closest("tr");
         let contractId = contractHeaderRow.data("id");
 
-        let data = {};
-        data["contract_id"] = contractId;
-        data["invalidated"] = true;
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění smlouvy",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
+            },
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = contractId;
+                    data["date"] = lb.getValue();
 
-        sendContractDataAjax(data);
+                    $.ajax({
+                        url: "/users/api/u/{{_id}}/contracts/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
+
+    function invalidateDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
+
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění dokumentu",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
+            },
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = documentId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/users/api/u/{{_id}}/documents/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
+
+    function reuploadDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
+        document.getElementById("reupload-document-id-input").value = documentId;
+
+        $("#reupload-document-modal").modal("show");
     }
 
     function showUploadContractScanModal(link) {
@@ -1077,9 +1313,16 @@
         $("#upload-contract-scan-modal").modal("show");
     }
 
-
     function saveUploadContractScanModal() {
         let form = document.forms["upload-contract-scan-form"];
+
+        if (!validateRequired(form)) return;
+
+        form.submit();
+    }
+
+    function saveReuploadDocumentModal() {
+        let form = document.forms["reupload-document-form"];
 
         if (!validateRequired(form)) return;
 

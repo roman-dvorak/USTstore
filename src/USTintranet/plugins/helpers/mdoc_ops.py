@@ -15,7 +15,7 @@ def find_type_in_addresses(addresses: list, addr_type: str):
     return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
 
 
-def compile_user_month_info(coll: pymongo.collection.Collection,
+def compile_user_month_info(database,
                             user_id: str,
                             date: datetime,
                             year_max_hours,  # TODO tohle je hack, vyřešit přeuspořádáním BaseHandleru
@@ -27,9 +27,9 @@ def compile_user_month_info(coll: pymongo.collection.Collection,
     start_of_year = start_of_month.replace(month=1)
     end_of_year = start_of_year + relativedelta(years=1)
 
-    month_workspans = adb.get_user_workspans(coll, user_id, start_of_month, end_of_month)
-    year_workspans = adb.get_user_workspans(coll, user_id, start_of_year, end_of_year)
-    active_contract = udb.get_user_active_contract(coll, user_id)
+    month_workspans = adb.get_user_workspans(database, user_id, start_of_month, end_of_month)
+    year_workspans = adb.get_user_workspans(database, user_id, start_of_year, end_of_year)
+    active_contract = udb.get_user_active_contract(database.users, user_id)
 
     result["month_hours_worked"] = sum(ws["hours"] for ws in month_workspans)
     result["year_hours_worked"] = sum(ws["hours"] for ws in year_workspans)
@@ -53,10 +53,10 @@ def compile_user_month_info(coll: pymongo.collection.Collection,
     return result
 
 
-def get_user_days_of_vacation_in_year(coll: pymongo.collection.Collection, user_id: str, date: datetime):
+def get_user_days_of_vacation_in_year(database, user_id: str, date: datetime):
     start_of_year = date.replace(day=1, month=1)
     end_of_year = start_of_year + relativedelta(years=1) - relativedelta(days=1)
-    vacations = adb.get_user_vacations(coll, user_id, start_of_year)
+    vacations = adb.get_user_vacations(database, user_id, start_of_year)
 
     days = 0
     for vacation in vacations:

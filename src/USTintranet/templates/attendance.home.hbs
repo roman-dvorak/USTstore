@@ -12,11 +12,6 @@
         border-color: #aaaaaa;
     }
 
-    .row-delete-btn {
-        padding-bottom: 0;
-        padding-top: 0;
-    }
-
     #vacations table td:nth-child(3) {
         text-align: center;
     }
@@ -86,6 +81,7 @@
 
 </style>
 
+
 <div class="container">
     <h1>Docházková karta: <a href="/users/u/{{_id}}">{{name}}</a></h1>
 
@@ -115,8 +111,8 @@
                         <td>{{vacation["to"]}}</td>
                         <td>
                             <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{vacation['_id']}}"
-                                    onclick="deleteVacation(this)">
-                                &times;
+                                    onclick="interruptVacation(this)" style="padding-bottom: 0">
+                                <i class="material-icons" style="font-size: 17px">close</i>
                             </button>
                         </td>
                     </tr>
@@ -158,19 +154,19 @@
                     </tr>
                     <tr>
                         <td>Za měsíc hrubého</td>
-                        <td id="month-info-money-made-td"></td>
+                        <td id="month-info-gross-wage-td"></td>
                     </tr>
                     <tr>
-                        <td>Za měsíc vyplacená částka</td>
-                        <td id="month-info-last-month-wage-td">-</td>
+                        <td>Za měsíc daň</td>
+                        <td id="month-info-tax-amount-td">-</td>
+                    </tr>
+                    <tr>
+                        <td>Za měsíc čistého</td>
+                        <td id="month-info-net-wage-td">-</td>
                     </tr>
                     <tr>
                         <td>Hodinová mzda</td>
                         <td id="month-info-hour-rate-td"></td>
-                    </tr>
-                    <tr>
-                        <td>Platba daně</td>
-                        <td id="month-info-tax-paid-td">-</td>
                     </tr>
                     <tr>
                         <td>Vyčerpáno hodin v roce</td>
@@ -202,7 +198,13 @@
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
-                        <th colspan="5">{{date_pretty if date_pretty else "nic"}}</th>
+                        <th colspan="5">
+                            <button type="button" class="btn btn-light" style="float: right"
+                                    onclick="showMonthModal()">
+                                Zobrazit měsíc
+                            </button>
+                            {{date_pretty if date_pretty else "nic"}}
+                        </th>
                     </tr>
                     </thead>
                     <tbody>
@@ -235,7 +237,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td><input class="workspan-from" type="time" step="1800"></td>
+                        <td><input class="workspan-from" type="time" step="1800" value="09:00"></td>
                         <td><input class="workspan-to" type="time" step="1800"></td>
                         <td><input class="workspan-hours" type="number" style="width: 50px"
                                    min="0" max="12" step="0.5"></td>
@@ -272,11 +274,16 @@
             this._monthShown = monthShown;
             this.table = tableElement;
 
+            this.workdays = null;
+            this.vacations = null;
+
             this._buildCalendar();
             this._connectButtonsEvents();
 
             this.table.addEventListener("monthShownChange", () => {
                 console.log("event monthShownChange");
+                this.workdays = null;
+                this.vacations = null;
                 this._updateMonthTitle();
                 this.populateCalendar();
             });
@@ -372,29 +379,41 @@
         }
 
         _ajaxMonthData() {
+            // TODO je potřeba v kalendáři mít přístup i k assignmentům
             $.ajax({
                 context: this,
                 url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
                 type: "post",
                 success: function (response) {
-                    this.populateCalendar(JSON.parse(response));
+                    let parsedResponse = JSON.parse(response);
+                    this.workdays = parsedResponse["workdays"];
+                    this.vacations = parsedResponse["vacations"];
+                    this.populateCalendar(parsedResponse);
                 },
                 error: ajaxError
             });
         }
 
         populateCalendar(ajaxData) {
-            console.log(ajaxData);
+            console.log("ajaxData", ajaxData);
             if (typeof ajaxData === "undefined") this._ajaxMonthData();
 
+            console.log("monthShown", this.monthShown.toString());
             let lastMonth = this.monthShown.subtract(1, "months");
+            console.log("lastMonth", lastMonth.toLocaleString());
             let nextMonth = this.monthShown.add(1, "months");
+            console.log("nextMonth", nextMonth.toLocaleString());
 
             let firstDay = this.monthShown.day();
+            console.log("firstDay", firstDay);
             let daysInMonth = this.monthShown.daysInMonth();
+            console.log("daysInMonth", daysInMonth);
             let daysInLastMonth = lastMonth.daysInMonth();
+            console.log("daysInLastMonth", daysInLastMonth);
 
-            let lastMonthDaysCounter = daysInLastMonth - (firstDay - 1) + 1;
+            // firstDay == 0 znamená neděli, ((firstDay - 1 + 7) % 7) je fix na to
+            let lastMonthDaysCounter = daysInLastMonth - ((firstDay - 1 + 7) % 7) + 1;
+            console.log("lastMonthDaysCounter", lastMonthDaysCounter);
             let thisMonthDaysCounter = 1;
             let nextMonthDaysCounter = 1;
 
@@ -563,19 +582,23 @@
             console.log("updating month table");
             console.log(data);
 
-            document.getElementById("month-info-hours-worked-td").innerText = data["month_hours_worked"];
-            document.getElementById("month-info-max-hours-td").innerText =
+            document.getElementById("month-info-hours-worked-td").textContent = data["month_hours_worked"];
+            document.getElementById("month-info-max-hours-td").textContent =
                     data["month_max_hours"] ? data["month_max_hours"] : "-";
-            document.getElementById("month-info-available-hours-td").innerText =
+            document.getElementById("month-info-available-hours-td").textContent =
                     data["month_available_hours"] ? data["month_available_hours"] : "-";
-            document.getElementById("month-info-money-made-td").innerText =
-                    data["month_money_made"] ? data["month_money_made"] : "-";
-            document.getElementById("month-info-hour-rate-td").innerText =
+            document.getElementById("month-info-gross-wage-td").textContent =
+                    data["month_gross_wage"] ? data["month_gross_wage"] : "-";
+            document.getElementById("month-info-tax-amount-td").textContent =
+                    data["month_tax_amount"] ? data["month_tax_amount"] : "-";
+            document.getElementById("month-info-net-wage-td").textContent =
+                    data["month_net_wage"] ? data["month_net_wage"] : "-";
+            document.getElementById("month-info-hour-rate-td").textContent =
                     data["hour_rate"] ? data["hour_rate"] : "-";
-            document.getElementById("month-info-year-hours-worked-td").innerText = data["year_hours_worked"];
-            document.getElementById("month-info-year-available-hours-td").innerText =
+            document.getElementById("month-info-year-hours-worked-td").textContent = data["year_hours_worked"];
+            document.getElementById("month-info-year-available-hours-td").textContent =
                     data["year_available_hours"] ? data["year_available_hours"] : "-";
-            document.getElementById("month-info-year-days-of-vacation-td").innerText = data["year_days_of_vacation"];
+            document.getElementById("month-info-year-days-of-vacation-td").textContent = data["year_days_of_vacation"];
         }
     }
 
@@ -641,18 +664,38 @@
         });
     }
 
-    function deleteVacation(button) {
+    function interruptVacation(button) {
         let vacationId = $(button).data("id");
 
-        $.ajax({
-            url: "/attendance/api/u/{{_id}}/vacations/delete",
-            type: "post",
-            data: vacationId,
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
+        Lobibox.prompt("date", {
+            "title": "Datum přerušení dovolené",
+            "value": calendar.dateSelected.format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
             },
-            error: ajaxError,
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = vacationId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/attendance/api/u/{{_id}}/vacations/interrupt",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
         });
     }
 
@@ -675,6 +718,172 @@
         let legibleError = decodeURIComponent(escape(errorThrown));
         console.log(textStatus, legibleError);
         Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
+    }
+</script>
+
+<script>
+    const modalHtmlStr = `
+<div class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary">Uložit</button>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+    const monthFormHtmlStr = `
+<form>
+    <div class="form-row">
+        <div class="col-2"></div>
+        <div class="col-3">
+            <label>Hodiny</label>
+        </div>
+        <div class="col-7">
+            <label>Projekt</label>
+        </div>
+    </div>
+</form>
+`;
+
+    const monthFormRowHtmlStr = `
+<div class="form-row day">
+    <div class="col-1 day-number">
+        7.
+    </div>
+    <div class="col-1 day-name">
+        Čt
+    </div>
+    <div class="form-group col-3">
+        <input type="number" min="0" max="12" step="0.5" name="hours" class="form-control form-control-sm">
+    </div>
+    <div class="form-group col-7">
+        <select class="form-control form-control-sm" name="assignment">
+            <option value="hm">Pracovat</option>
+        </select>
+    </div>
+</div>
+`;
+
+    // https://stackoverflow.com/questions/494143/creating-a-new-dom-element-from-an-html-string-using-built-in-dom-methods-or-pro/35385518#35385518
+    function htmlToElement(html) {
+        const template = document.createElement('template');
+        html = html.trim();
+        template.innerHTML = html;
+        return template.content.firstChild;
+    }
+
+    function buildMonthFormRow(day, hours, isVacation) {
+        let formRow = htmlToElement(monthFormRowHtmlStr);
+
+        formRow.setAttribute("data-date", day.format("YYYY-MM-DD"));
+
+        formRow.querySelector("div.day-number").textContent = day.date();
+        formRow.querySelector("div.day-name").textContent = day.format("ddd");
+
+        let hoursInput = formRow.querySelector('input[name="hours"]');
+        let assignmentSelect = formRow.querySelector('select[name="assignment"]');
+
+        if (typeof hours != "undefined")
+            hoursInput.setAttribute("placeholder", hours);
+
+        if (isVacation) {
+            hoursInput.disabled = true;
+            assignmentSelect.disabled = true;
+        }
+
+        return formRow;
+    }
+
+    /**
+     * workdays je ve formátu [{"<iso-datum>": <odpracované hodiny>, ...}
+     * vacations je ve formátu ["<iso-datum>", ...]
+     */
+    function buildMonthForm(workdays, vacations) {
+        let form = htmlToElement(monthFormHtmlStr);
+
+        for (const day of Array(calendar.monthShown.daysInMonth()).keys()) {
+            let rowDate = calendar.monthShown.date(day + 1);
+            let rowDateIsoStr = rowDate.format("YYYY-MM-DD");
+            let hoursWorked = workdays[rowDateIsoStr];
+            let isVacation = vacations.indexOf(rowDateIsoStr) >= 0;
+            form.appendChild(buildMonthFormRow(rowDate, hoursWorked, isVacation));
+        }
+        return form;
+    }
+
+    function showMonthModal() {
+        // TODO je potřeba v kalendáři mít přístup i k assignmentům
+        if (calendar.workdays === null || calendar.vacations === null) {
+            Lobibox.alert("error", {"msg": "Ještě nebyly načteny data o tomto měsíci. Zkuste to znovu."});
+            return;
+        }
+
+        const modal = htmlToElement(modalHtmlStr);
+
+        modal.querySelector(".modal-header h5").textContent = "Editor odpracovaných hodin";
+
+        modal.querySelector(".modal-body").appendChild(buildMonthForm(calendar.workdays, calendar.vacations));
+
+        modal.querySelector("button.btn-primary").addEventListener("click", () => {
+            const form = modal.querySelector("form");
+
+            saveMonthForm(form);
+        });
+
+        document.body.appendChild(modal);
+
+        const $modal = $(modal);
+        $modal.one("hidden.bs.modal", function (e) {
+            modal.parentNode.removeChild(modal);
+        });
+
+        $modal.modal("show");
+    }
+
+    function saveMonthForm(form) {
+        const rows = form.querySelectorAll("div.day");
+        let data = [];
+
+        for (let row of rows) {
+            const hours = parseFloat(row.querySelector('input[name="hours"]').value);
+            const assignment = row.querySelector('select[name="assignment"]').value;
+
+            if (!isNaN(hours)) {
+                data.push({
+                    date: row.getAttribute("data-date"),
+                    hours: hours,
+                    assignment: assignment
+                })
+            }
+        }
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/workspans/month",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert("Podařilo se!");
+                let modal = document.querySelector("div.modal.show");
+                if (modal) {
+                    $(modal).modal("hide");
+                }
+                calendar.populateCalendar();
+                updateMonthInfoTable();
+            },
+            error: ajaxError,
+        });
     }
 </script>
 

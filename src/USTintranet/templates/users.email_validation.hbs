@@ -6,21 +6,22 @@
     body {
         background-color: #f5f5f5;
     }
+
+    div.alert:first-child {
+        margin-top: 30px;
+    }
 </style>
 <div class="container">
     {% if success %}
-    <div class="alert alert-success text-center" role="alert" style="margin-top: 30px">
+    <div class="alert alert-success text-center" role="alert">
         Podařilo se, email je ověřen
     </div>
+
     {% else %}
-    <div class="alert alert-danger text-center" role="alert" style="margin-top: 30px">
+    <div class="alert alert-danger text-center" role="alert">
         Ověření se nezdařilo
     </div>
     {% end %}
 </div>
-
-<script type="text/javascript">
-
-</script>
 
 {% end %}

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+import json
 from datetime import datetime, timedelta
 from random import randint
 
@@ -8,8 +9,10 @@ import tornado
 import tornado.options
 import os
 
+from dateutil.relativedelta import relativedelta
 from tornado.web import HTTPError
 
+from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
 from plugins.helpers.exceptions import BadInputError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, compile_user_month_info
@@ -18,6 +21,8 @@ from plugins import BaseHandlerOwnCloud
 from plugins import BaseHandler, save_file, upload_file
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
+from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
+    generate_documents_directory_path
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -25,9 +30,12 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
+        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiUserFinalizeContractHandler),
         (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
-        (r'/{}/api/u/(.*)/documents/delete'.format(plugin_name), plugin_namespace.ApiUserDeleteDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
         (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
@@ -133,6 +141,9 @@ class ApiAdminTableHandler(BaseHandler):
         if "role" in data:
             data["role"] = data["role"].replace(" ", "").split(",")
 
+        if "email" in data:
+            data["email_validated"] = "no"
+
         if data:
             udb.update_user(self.mdb.users, _id, data)
 
@@ -165,6 +176,12 @@ class ApiEditUserHandler(BaseHandler):
 
         if "role" in changes:
             changes["role"] = changes["role"].replace(" ", "").split(",")
+
+        if "email" in changes:
+            matching_users_in_db = udb.get_users(self.mdb.users, email=changes["email"])
+            if matching_users_in_db:
+                raise BadInputError("Uživatel s touto emailovou adresou již existuje.")
+            changes["email_validated"] = "no"  # TODO je potřeba tuto kontrolu dát na jedno místo
 
         if changes:
             udb.update_user(self.mdb.users, _id, changes)
@@ -223,19 +240,19 @@ class UserPageHandler(BaseHandler):
             "assignment": user_document.get("assignment", ""),
             "skills": user_document.get("skills", ""),
             "notes": user_document.get("notes", ""),
+
+            "today": str_ops.date_to_iso_str(datetime.now())
         }
-        template_params.update(compile_user_month_info(self.mdb.users, _id, datetime.now(),
-                                                       self.dpp_params["year_max_hours"],
-                                                       self.dpp_params["month_max_gross_wage"]))
+        # template_params.update(compile_user_month_info(self.mdb, _id, datetime.now(),
+        #                                                self.dpp_params["year_max_hours"],
+        #                                                self.dpp_params["month_max_gross_wage"]))
 
         contracts = udb.get_user_contracts(self.mdb.users, _id)
         template_params["contracts"] = self.prepare_contracts(contracts)
         documents = user_document.get("documents", [])
-        study_certificates, tax_declarations = self.prepare_documents(documents, contracts)
-        template_params["documents"] = {}
-        template_params["documents"]["study_certificates"] = study_certificates
-        template_params["documents"]["tax_declarations"] = tax_declarations
+        template_params["documents_json"] = self.prepare_documents(documents)
 
+        print("template_params", template_params)
         self.render("users.user-page.hbs", **template_params)
 
     def prepare_contracts(self, contracts):
@@ -256,26 +273,40 @@ class UserPageHandler(BaseHandler):
             new["_id"] = contract["_id"]
             new["type"] = possible_type[contract["type"]]
             new["signing_date"] = str_ops.date_to_str(contract["signing_date"])
+            new["valid_from_iso"] = str_ops.date_to_iso_str(valid_from)
+            new["valid_until_iso"] = str_ops.date_to_iso_str(valid_until)
             new["valid_from"] = str_ops.date_to_str(valid_from)
             new["valid_until"] = str_ops.date_to_str(valid_until)
             new["notes"] = contract.get("notes", "")
-            new["scan_signed_url"] = contract.get("scan_signed_url", None)
             new["title"] = f"{new['type']} {new['valid_from']} - {new['valid_until']}"
-            new["url"] = contract["url"]
+            new["url"] = get_file_url(self.mdb, contract["file"])
+
+            if "scan_file" in contract:
+                new["scan_signed_url"] = get_file_url(self.mdb, contract["scan_file"])
+            else:
+                new["scan_signed_url"] = None
 
             new["is_valid"] = False
-            if not contract.get("invalidated", False):
-                if contract["valid_from"] <= datetime.now() <= contract["valid_until"] + timedelta(days=1):
-                    new["is_valid"] = True
 
-            if contract.get("invalidated", False):
-                new["invalidated"] = str_ops.date_to_str(contract["invalidated"])
+            effective_valid_until = valid_until
+            if "invalidation_date" in contract:
+                effective_valid_until = min(valid_until, contract["invalidation_date"] - timedelta(days=1))
 
-            result.append(new)
+            if contract["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
+                new["is_valid"] = True
+
+            if contract.get("invalidation_date", False):
+                new["invalidation_date_iso"] = str_ops.date_to_iso_str(contract["invalidation_date"])
+                new["invalidation_date"] = str_ops.date_to_str(contract["invalidation_date"])
+
+            if new["is_valid"]:
+                result.insert(0, new)
+            else:
+                result.append(new)
 
         return result
 
-    def prepare_documents(self, documents, contracts):
+    def prepare_documents(self, documents):
         possible_type = {
             "study_certificate": "Potvrzení o studiu",
             "tax_declaration": "Prohlášení k dani"
@@ -289,10 +320,18 @@ class UserPageHandler(BaseHandler):
             valid_from_text = str_ops.date_to_str(document.get("valid_from", None))
             valid_until_text = str_ops.date_to_str(document.get("valid_until", None))
 
-            if document["valid_from"] <= datetime.now() <= document["valid_until"] + timedelta(days=1):
+            effective_valid_until = document["valid_until"]
+            if "invalidation_date" in document:
+                effective_valid_until = min(document["valid_until"], document["invalidation_date"] - timedelta(days=1))
+
+            if document["valid_from"] <= datetime.now() <= effective_valid_until + timedelta(days=1):
                 document["is_valid"] = True
             else:
                 document["is_valid"] = False
+
+            if "invalidation_date" in document:
+                document["invalidation_date_text"] = str_ops.date_to_str(document["invalidation_date"])
+                document["invalidation_date"] = str_ops.date_to_iso_str(document["invalidation_date"])
 
             document["type_text"] = possible_type[document["type"]]
             document["valid_from_text"] = valid_from_text
@@ -300,48 +339,123 @@ class UserPageHandler(BaseHandler):
             document["valid_from"] = str_ops.date_to_iso_str(document.get("valid_from", None))
             document["valid_until"] = str_ops.date_to_iso_str(document.get("valid_until", None))
 
+            document["url"] = get_file_url(self.mdb, document["file"])
+            del document["file"]
+
             date_texts = [date for date in [valid_from_text, valid_until_text] if date]
             document["title"] = f"{document['type_text']} {' - '.join(date_texts)}"
 
             if document["type"] == "study_certificate":
-                study_certificates.append(document)
+                if document["is_valid"]:
+                    study_certificates.insert(0, document)
+                else:
+                    study_certificates.append(document)
             elif document["type"] == "tax_declaration":
-                tax_declarations.append(document)
+                if document["is_valid"]:
+                    tax_declarations.insert(0, document)
+                else:
+                    tax_declarations.append(document)
 
-        return study_certificates, tax_declarations
+        final_structure = {
+            "study_certificate": study_certificates,
+            "tax_declaration": tax_declarations,
+        }
+
+        return json.dumps(final_structure)
 
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):  # TODO rozmyslet si api
+    def post(self, user_id):
         req = self.request.body.decode("utf-8")
         contract = bson.json_util.loads(req)
 
-        if "contract_id" in contract:
-            if contract.get("invalidated", False):
-                udb.invalidate_user_contract(self.mdb.users, user_id, contract["contract_id"])
-        else:
-            contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
-            contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
-            contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
-            contract["hour_rate"] = int(contract["hour_rate"])
+        if "_id" in contract:
+            raise ValueError("Nedefinovaný stav")  # pozůstatek po předchozí funkcionalitě
 
-            contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
+        contract["signing_date"] = str_ops.datetime_from_iso_str(contract["signing_date"])
+        contract["valid_from"] = str_ops.datetime_from_iso_str(contract["valid_from"])
+        contract["valid_until"] = str_ops.datetime_from_iso_str(contract["valid_until"])
+        contract["hour_rate"] = int(contract["hour_rate"])
+        contract["birthdate"] = str_ops.datetime_from_iso_str(contract["birthdate"])
 
-            local_path = generate_contract(user_id, contract,
-                                           self.company_info["name"],
-                                           self.company_info["address"],
-                                           self.company_info["crn"])
+        if not self.check_for_conflict_with_other_contracts(user_id, contract):
+            raise BadInputError("Uživatel může mít v danou chvíli jen jednu platnou smlouvu.")
 
-            owncloud_path = os.path.join(tornado.options.options.owncloud_root,
-                                         "contracts",
-                                         os.path.basename(local_path))
-            remote = save_file(self.mdb, owncloud_path)
-            res = upload_file(self.oc, local_path, remote)
+        if not self.check_for_inconsistent_hour_rate(user_id, contract):
+            raise BadInputError("Uživatel musí mít po celý měsíc stejnou hodinovou mzdu.")
 
-            contract["url"] = res.get_link()
+        local_path = generate_contract(user_id, contract,
+                                       self.company_info["name"],
+                                       self.company_info["address"],
+                                       self.company_info["crn"])
 
-            udb.add_user_contract(self.mdb.users, user_id, contract)
+        owncloud_directory = generate_contracts_directory_path(user_id, contract["valid_from"])
+        owncloud_filename = f"contract_{contract['type']}"
+
+        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
+
+        contract["file"] = file_id
+
+        for key in list(contract.keys()):
+            if key not in CONTRACT_DOC_KEYS:
+                del contract[key]
+
+        contract_id = udb.add_user_contract_preview(self.mdb.users, user_id, contract)
+
+        response = {
+            "_id": contract_id,
+            "url": get_file_url(self.mdb, file_id)
+        }
+        self.write(json.dumps(response))
+
+    def check_for_conflict_with_other_contracts(self, user_id, contract):
+        other_contracts = udb.get_user_active_contracts(self.mdb,
+                                                        user_id,
+                                                        contract["valid_from"],
+                                                        contract["valid_until"])
+        print("-> checking conflicts, other contracts:", other_contracts)
+        return not other_contracts
+
+    def check_for_inconsistent_hour_rate(self, user_id, contract):
+        month_of_start = contract["valid_from"].replace(day=1)
+        month_of_end = contract["valid_until"].replace(day=1)
+
+        for month in [month_of_start, month_of_end]:
+            other_contracts = udb.get_user_active_contracts(self.mdb,
+                                                            user_id,
+                                                            month,
+                                                            month + relativedelta(months=1))
+            print("-> checking hour rates, other contracts:", other_contracts)
+            for other_contract in other_contracts:
+                print("-> other contract:", other_contract)
+                if contract["hour_rate"] != other_contract["hour_rate"]:
+                    return False
+
+        return True
+
+
+class ApiUserFinalizeContractHandler(BaseHandler):
+
+    def post(self, user_id):
+        contract_id = self.request.body.decode("utf-8")
+
+        udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
+
+
+class ApiUserInvalidateContractHandler(BaseHandler):
+
+    def post(self, user_id):
+        req = self.request.body.decode("utf-8")
+        data = json.loads(req)
+
+        invalidation_date = str_ops.datetime_from_iso_str(data["date"])
+        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, data["_id"])
+
+        if not (contract_mdoc["valid_from"] <= invalidation_date <= contract_mdoc["valid_until"]):
+            raise BadInputError("Datum zneplatnění smlouvy musí spadat do období platnosti smlouvy.")
+
+        udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
@@ -349,37 +463,27 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
     def post(self, user_id):
         contract_id = self.get_argument("_id")
 
-        if not self.request.files:
+        local_path, = self.save_uploaded_files("file")
+        if not local_path:
             self.redirect(f"/users/u/{user_id}", permanent=True)
             return
 
-        file = self.request.files["file"][0]
-        file_name = f"{user_id}_{contract_id}_scan_{randint(1000000, 9999999)}"
-        owncloud_url = self.process_file(file, file_name)
-        udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, owncloud_url)
+        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
+        if "scan_file" in contract_mdoc:
+            self.update_owncloud_file(contract_mdoc["scan_file"], local_path)
+        else:
+            owncloud_directory = generate_contracts_directory_path(user_id, contract_mdoc["valid_from"])
+            owncloud_filename = f"contract_scan_{contract_mdoc['type']}"
+
+            file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
+            udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, file_id)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
-
-    def process_file(self, file, document_name):  # TODO zkopírované z dokumentů, chce to opravit (DRY)
-        extension = os.path.splitext(file["filename"])[1]
-
-        new_filename = f"{document_name}{extension}"
-        local_path = os.path.join("static", "tmp", new_filename)
-
-        with open(local_path, "wb") as f:
-            f.write(file["body"])
-
-        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "contracts", new_filename)
-        remote = save_file(self.mdb, owncloud_path)
-        res = upload_file(self.oc, local_path, remote)
-        print("res", res)
-
-        return res.get_link()
 
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
+    def post(self, user_id):
         document = {
             "_id": self.get_argument("_id"),
             "type": self.get_argument("type"),
@@ -388,58 +492,52 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
             "notes": self.get_argument("notes")
         }
         print("document", document)
-
-        if document["type"] == "contract_scan":
-            document["contract_id"] = self.get_argument("document_contract")
-            document.pop("valid_from", None)
-            document.pop("valid_until", None)
+        if document.get("_id", None):
+            raise ValueError("nedefinovaný stav")
 
         document["valid_from"] = str_ops.datetime_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.datetime_from_iso_str(document.get("valid_until", None))
 
-        if document.get("_id", None):
-            udb.update_user_document(self.mdb.users, _id, document.pop("_id"), document)
-        else:
-            document_id = udb.add_user_document(self.mdb.users, _id, document)
+        local_path, = self.save_uploaded_files("file")
+        if not local_path:
+            raise BadInputError("Problém se souborem")
 
-            file = None
-            if self.request.files:
-                file = self.request.files["file"][0]
+        owncloud_directory = generate_documents_directory_path(user_id, document["valid_from"])
+        owncloud_filename = f"contract_{document['type']}"
+        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
 
-            if file:
-                user_mdoc = udb.get_user(self.mdb.users, _id)
-                file_name = self.make_document_name(user_mdoc, document, document_id)
-                owncloud_url = self.process_file(file, file_name)
-                udb.update_user_document(self.mdb.users, _id, document_id, {"url": owncloud_url})
+        document["file"] = file_id
+        udb.add_user_document(self.mdb.users, user_id, document)
 
-        self.redirect(f"/users/u/{_id}", permanent=True)
-
-    def process_file(self, file, document_name):
-        extension = os.path.splitext(file["filename"])[1]
-
-        new_filename = f"{document_name}{extension}"
-        local_path = os.path.join("static", "tmp", new_filename)
-
-        with open(local_path, "wb") as f:
-            f.write(file["body"])
-
-        owncloud_path = os.path.join(tornado.options.options.owncloud_root, "documents", new_filename)
-        remote = save_file(self.mdb, owncloud_path)
-        res = upload_file(self.oc, local_path, remote)
-        print("res", res)
-
-        return res.get_link()
-
-    def make_document_name(self, user_mdoc, document, document_id):
-        surname = user_mdoc.get("name", {}).get("surname", "unknown")
-        return f"{document_id}_{surname}_{document['type']}"
+        self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-class ApiUserDeleteDocumentHandler(BaseHandler):
+class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 
-    def post(self, _id):
-        document_id = self.request.body.decode("utf-8")
-        udb.delete_user_document(self.mdb.users, _id, document_id)
+    def post(self, user_id):
+        document_id = self.get_argument("_id")
+        print(document_id)
+        local_path, = self.save_uploaded_files("file")
+
+        owncloud_id = udb.get_user_document_owncloud_id(self.mdb.users, user_id, document_id)
+        self.update_owncloud_file(owncloud_id, local_path)
+
+        self.redirect(f"/users/u/{user_id}", permanent=True)
+
+
+class ApiUserInvalidateDocumentHandler(BaseHandler):
+
+    def post(self, user_id):
+        req = self.request.body.decode("utf-8")
+        data = json.loads(req)
+
+        invalidation_date = str_ops.datetime_from_iso_str(data["date"])
+        document_mdoc = udb.get_user_document_by_id(self.mdb, user_id, data["_id"])
+
+        if not (document_mdoc["valid_from"] <= invalidation_date <= document_mdoc["valid_until"]):
+            raise BadInputError("Datum zneplatnění dokumentu musí spadat do období platnosti dokumentu.")
+
+        udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
 class ApiUserValidateEmail(BaseHandler):
@@ -455,8 +553,11 @@ class ApiUserValidateEmail(BaseHandler):
 
         token_in_db = user_mdoc["email_validation_token"]
         if token == token_in_db:
-            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
-            self.render("users.email_validation.hbs", success=True)
+            if "pass" in user_mdoc:
+                udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+                self.render("users.email_validation.hbs", success=True)
+            else:
+                self.render("_registration.hbs", msg=None, token=token, user_id=user_id)
         else:
             self.render("users.email_validation.hbs", success=False)
 
@@ -464,6 +565,9 @@ class ApiUserValidateEmail(BaseHandler):
         print(f"validate_email pro {user_id}")
 
         user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if not "email" in user_mdoc:
+            raise BadInputError("Uživatel nemá emailovou adresu.")
 
         token = generate_validation_token()
         message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)

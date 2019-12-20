@@ -615,7 +615,7 @@
             width: '100%',
             movableColumns: true,
             history: true,
-            selectable: true,
+            selectable: 1,  // TODO změna z true, uklidit pozůstatky
             selectablePersistence: false,
             tooltipsHeader: true,
             index: "_id",
@@ -649,13 +649,7 @@
                     headerTooltip: "Dočasný sloupec",
                 },
                 {
-                    title: "Přihlašovací jméno",
-                    field: "user",
-                    cellDblClick: uneditableMsg,
-                    headerTooltip: "Dočasný sloupec",
-                },
-                {
-                    title: "ID",
+                    title: "Přezdívka/ID",
                     field: "_id",
                     cellDblClick: uneditableMsg,
                 },
@@ -958,10 +952,25 @@
      * onclick handler tlačítka přidat. Přidá řádek do tabulky a jeho id do newData.
      */
     function addUser() {
-        let id = genMongoObjectID();
+        Lobibox.prompt("text", {
+            "title": "Zadejte přezdívku",
+            "buttons": {
+                ok: {
+                    "text": "OK",
+                },
+                cancel: {
+                    "text": "Zrušit",
+                }
+            },
+            callback: function (lobibox, type) {
+                if (type === "ok") {
+                    let id = lobibox.getValue();
 
-        newData.add(id);
-        table.addData([{_id: id}], true);
+                    newData.add(id);
+                    table.addData([{_id: id}], true);
+                }
+            }
+        });
     }
 
     /**
@@ -985,17 +994,6 @@
         editedData = {};
         newData = new Set();
         deletedData = new Set();
-    }
-
-    /**
-     * Vytvoří nové MongoDB ObjectID pro nového uživatele.
-     * zdroj: https://gist.github.com/solenoid/1372386
-     */
-    function genMongoObjectID() {
-        let timestamp = (new Date().getTime() / 1000 | 0).toString(16);
-        return timestamp + 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function () {
-            return (Math.random() * 16 | 0).toString(16);
-        }).toLowerCase();
     }
 
     /**
