@@ -3,6 +3,7 @@
 
 # tento soubor ma link ve slozce ./plugins
 # original je umisten ve slozce ./handlers
+import time
 
 import tornado
 import tornado.web
@@ -15,9 +16,15 @@ import datetime
 import os
 import bson
 from hashlib import blake2s
+
+from bson import ObjectId
+from owncloud import HTTPResponseError
 from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
+
+from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
+    get_file_last_version_number
 
 
 def make_handlers(module, plugin):
@@ -25,16 +32,14 @@ def make_handlers(module, plugin):
         (r'/login', plugin.LoginHandler),
         (r'/logout', plugin.LogoutHandler),
         (r'/registration', plugin.RegistrationHandler),
-        (r'/api/backup', plugin.doBackup),
-        (r'/system', plugin.system_handler),
-        (r'/system/', plugin.system_handler)]
+        (r'/api/backup', plugin.doBackup), ]
     return handlers
 
 
 def plug_info():
     return {
-        "module": "system",
-        "name": "system"
+        "module": "init",
+        "name": "init"
     }
 
 
@@ -106,8 +111,16 @@ def database_init():
         tornado.options.options.mdb_database]
 
 
-class Intranet(
-    tornado.web.RequestHandler):  # tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
+def get_company_info(database):
+    return database.intranet.find_one({"_id": "company_info"}) or {}
+
+
+def get_dpp_params(database):
+    return database.intranet.find_one({"_id": "dpp_params"}) or {}
+
+
+class Intranet(tornado.web.RequestHandler):
+    # tento handler pouzivat jen pro veci, kde je potreba vnitrni autorizace - tzn. jen sprava systemu
     def prepare(self):
         self.xsrf_token
         try:
@@ -198,8 +211,8 @@ class BaseHandler(tornado.web.RequestHandler):
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
 
-        self.company_info = self._get_company_info()
-        self.dpp_params = self._get_dpp_params()
+        self.company_info = get_company_info(self.mdb)
+        self.dpp_params = get_dpp_params(self.mdb)
 
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
@@ -220,7 +233,6 @@ class BaseHandler(tornado.web.RequestHandler):
             print("uzivatel neni korektne prihlasen")
             self.logged = False
             return None
-
 
     def base(self, num, symbols="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", b=None):
         if not b:
@@ -586,12 +598,6 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.mdb.operation_log.insert({'user': user, 'module': module, 'operation': operation, 'data': data})
 
-    def _get_company_info(self):
-        return self.mdb.intranet.find_one({"_id": "company_info"})
-
-    def _get_dpp_params(self):
-        return self.mdb.intranet.find_one({"_id": "dpp_params"})
-
 
 #
 #    def update_component(self, component):
@@ -604,10 +610,149 @@ class BaseHandlerJson(BaseHandler):
 
 
 class BaseHandlerOwnCloud(BaseHandler):
+
     def prepare(self):
         self.oc = owncloud.Client(tornado.options.options.owncloud_url)
         self.oc.login(tornado.options.options.owncloud_user, tornado.options.options.owncloud_pass)
+
         super(BaseHandlerOwnCloud, self).prepare()
+
+    def upload_to_owncloud(self,
+                           oc_directory,
+                           oc_filename,
+                           local_path,
+                           delete_local=True):
+        """
+        Nahraje lokální soubor na owncloud.
+        :param oc_directory: Složka na owncloudu, do které se soubor uloží. Je relativní vůči owncloud_root
+        :param oc_filename: Jméno souboru BEZ přípony (z tohoto jména se vytváří skutečná jména jednotlivých verzí
+            souboru). Bez přípony, protože toto jméno je sdílené mezi verzemi, které mohou mít odlišnou příponu.
+            Soubor na owncloudu není uložen přímo pod tímto jménem, k tomuto jménu jsou připojeny metadata (id souboru,
+            verze).
+        :param local_path: Cesta k lokálnímu souboru.
+        :param delete_local: Pokud je True, lokální soubor se po odeslání na owncloud automaticky smaže
+        :return: Id souboru (přesněji _id záznamu o souboru v databázi v kolekci owncloud). Toto Id je vhodné uchovat,
+            přes něj se poté přistupuje k nahranému souboru.
+        """
+        file_id = ObjectId()
+
+        file_extension = os.path.splitext(local_path)[1]
+        oc_path = generate_actual_owncloud_path(str(file_id),
+                                                oc_directory,
+                                                oc_filename,
+                                                file_extension,
+                                                0,
+                                                tornado.options.options.owncloud_root)
+
+        self.put_file(oc_path, local_path)
+        shared_url = self.oc.share_file_with_link(oc_path).get_link()
+
+        coll: pymongo.collection.Collection = self.mdb.owncloud
+        coll.insert_one({
+            "_id": file_id,
+            "directory": oc_directory,
+            "filename": oc_filename,
+            "versions": {
+                "0": {
+                    "by": self.actual_user["_id"],
+                    "when": datetime.datetime.now(),
+                    "path": oc_path,
+                    "url": shared_url,
+                }
+            }
+        })
+
+        if delete_local:
+            os.remove(local_path)
+
+        return file_id
+
+    def put_file(self, oc_path, local_path):
+        """
+        Obaluje owncloud Client.put_file(), přidává logování
+        """
+        oc_directory_path = os.path.split(oc_path)[0]
+
+        start_time = time.time()
+        print("-> zajišťuji existenci složky na owncloudu")
+        self.ensure_owncloud_directory_exists(oc_directory_path)
+        print(f"-> hotovo za {(time.time() - start_time):.2f} sekund")
+
+        start_time = time.time()
+        print("-> nahrávám soubor na owncloud")
+        self.oc.put_file(oc_path, local_path)
+        print(f"-> soubor nahrán za {(time.time() - start_time):.2f} sekund")
+
+    def ensure_owncloud_directory_exists(self, directory):
+        incomplete_path = ""
+        for path_element in os.path.normpath(directory).split(os.sep):
+            incomplete_path = os.path.join(incomplete_path, path_element)
+
+            try:
+                self.oc.mkdir(incomplete_path)
+            except HTTPResponseError as e:
+                pass
+
+    def update_owncloud_file(self,
+                             file_id: ObjectId,
+                             local_path: str,
+                             delete_local=True):
+        """
+        Nahraje novou verzi souboru na owncloud.
+        :param file_id: Id mdokumentu souboru v kolekci owncloud (vráceno metodou upload_to_owncloud).
+        :param local_path: Cesta k lokálnímu souboru.
+        :param delete_local: Pokud je True, lokální soubor se po odeslání na owncloud automaticky smaže
+        """
+        coll: pymongo.collection.Collection = self.mdb.owncloud
+        file_mdoc = coll.find_one({"_id": file_id})
+
+        file_extension = os.path.splitext(local_path)[1]
+        version_number = get_file_last_version_number(file_mdoc) + 1
+        oc_path = generate_actual_owncloud_path(str(file_id),
+                                                file_mdoc['directory'],
+                                                file_mdoc['filename'],
+                                                file_extension,
+                                                version_number,
+                                                tornado.options.options.owncloud_root)
+
+        self.put_file(oc_path, local_path)
+        shared_url = self.oc.share_file_with_link(oc_path).get_link()
+
+        coll.update_one({"_id": file_id},
+                        {"$set": {
+                            f"versions.{version_number}": {
+                                "by": self.actual_user["_id"],
+                                "when": datetime.datetime.now(),
+                                "path": oc_path,
+                                "url": shared_url,
+                            }
+                        }})
+
+        if delete_local:
+            os.remove(local_path)
+
+    def save_uploaded_files(self, input_name, directory="static/tmp"):
+        """
+        Uloží soubory nahrané z frontendu pomocí formuláře do lokální složky. Uložené soubory zachovávají svá jména.
+        :param input_name: Jméno souborového inputu (<input type="file" name="jméno">), ze kterého se mají
+            uložit soubory.
+        :param directory: Cesta k lokální složce, do které se soubory uloží
+        :return: Cesty k uloženým souborům.
+        """
+        if not self.request.files or not self.request.files[input_name]:
+            return None
+
+        processed_paths = []
+
+        for file in self.request.files[input_name]:
+            file_path = os.path.join(directory, file["filename"])
+
+            with open(file_path, "wb") as f:
+                f.write(file["body"])
+
+            processed_paths.append(file_path)
+
+        return processed_paths
 
 
 def password_hash(user_name, password):
@@ -629,12 +774,12 @@ class LoginHandler(BaseHandler):
             self.render("_login.hbs", msg="No such user")
             return
 
-        user_name = user_mdoc["user"]
+        user_id = user_mdoc["_id"]
         real_password_hash = user_mdoc["pass"]
-        this_password_hash = password_hash(user_name, password)
+        this_password_hash = password_hash(user_id, password)
 
         if real_password_hash == this_password_hash:
-            self.set_secure_cookie('user', user_name)
+            self.set_secure_cookie('user', user_id)
             self.redirect('/')
             return
 
@@ -652,43 +797,74 @@ class LogoutHandler(BaseHandler):
 
 class RegistrationHandler(BaseHandler):
     def get(self):
-        self.render('_registration.hbs', msg=None)
+        self.render('_registration.hbs', msg=None, token=None, user_id=None)
 
     def post(self):
+        token = self.get_argument('token')
         email = self.get_argument('email')
+        user_id = self.get_argument('user_id')
         password = self.get_argument('password')
         password_check = self.get_argument('password_check')
         agree = self.get_argument('agree')
 
         if agree != 'agree':
-            self.render('_registration.hbs', msg='Musíte souhlasit s ...')
+            self.render('_registration.hbs', msg='Musíte souhlasit s ...', token=token, user_id=user_id)
             return
 
         if password != password_check:
-            self.render('_registration.hbs', msg='Hesla se neshodují')
+            self.render('_registration.hbs', msg='Hesla se neshodují', token=token, user_id=user_id)
             return
 
-        user_name = email
-        matching_users_in_db = list(self.mdb.users.find({'$or': [{'user': user_name}, {'email': email}]}))
+        if token:
+            self.validate_user_email_and_set_password(user_id, token, password)
+            return
+
+        matching_users_in_db = list(self.mdb.users.find({'$or': [{'_id': user_id}, {'email': email}]}))
+
         if matching_users_in_db:
             self.render('_registration.hbs',
-                        msg='Toto <b>uživatelské jméno</b> nebo <b>email</b> již v je zaregistrované.')
+                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.',
+                        token=token, user_id=user_id)
             return
 
-        new_password_hash = password_hash(user_name, password)
+        if not self.mdb.users.find_one({"type": "user"}):
+            role = ["sudo", "sudo-store", "sudo-users", "sudo-import", "invoice-access", "invoice-create",
+                    "invoice-sudo", "invoice-validator", "invoice-reciever"]
+        else:
+            role = []
+
+        new_password_hash = password_hash(user_id, password)
 
         self.mdb.users.insert({
-            'user': user_name,
+            '_id': user_id,
+            'user': user_id,
             'pass': new_password_hash,
             'email': email,
             'email_validated': "no",
             'created': datetime.datetime.now(),
             'type': 'user',
-            'role': [],
+            'role': role,
         })
 
         print("Registrován email", email)
         self.redirect('/')
+
+    def validate_user_email_and_set_password(self, user_id, token, password):
+        from plugins.helpers import database_user as udb
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if "pass" not in user_mdoc and user_mdoc["email_validated"] == "pending" \
+                and user_mdoc["email_validation_token"] == token:
+            new_password_hash = password_hash(user_id, password)
+
+            self.mdb.users.update_one({"_id": user_id},
+                                      {"$set": {
+                                          "pass": new_password_hash,
+                                      }})
+            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+
+            self.redirect('/')
 
 
 class doBackup(BaseHandlerOwnCloud):
@@ -700,14 +876,3 @@ class doBackup(BaseHandlerOwnCloud):
         self.oc.put_directory(remote, 'static/tmp/mdb')
         # os.remove('static/tmp/mdb')
         self.write("OK")
-
-
-class system_handler(BaseHandler):
-    def get(self):
-        self.render('system.homepage.hbs', warehouses=self.get_warehouseses())
-
-    def post(self):
-        operation = self.get_argument('operation')
-        if operation == 'set_warehouse':
-            self.set_cookie("warehouse", self.get_argument('warehouse'))
-            print("Nastaveno cookie pro vybrany warehouse")

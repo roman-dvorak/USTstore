@@ -40,17 +40,20 @@ CONTRACT_DOC_KEYS = [
     "_id",
     "type",
     "signing_date",
+    "signing_place",
     "valid_from",
     "valid_until",
     "hour_rate",
-    "scan_signed_url",
+    "file",
+    "scan_file",
+    "invalidation_date",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
 ]
 DOCUMENT_DOC_KEYS = [
     "type",
     "valid_from",
     "valid_until",
-    "path_to_file",
-    "invalidated",  # datetime zrušení, key existuje jen pokud smlouva byla předčasně zrušena
+    "file",
+    "invalidation_date",  # datetime zrušení, key existuje jen pokud dokument byl předčasně zrušen
 ]
 VACATION_DOC_KEYS = [
     "from",
@@ -68,4 +71,18 @@ WORKSPAN_DOC_KEYS = [
     "from",
     "hours",
     "assignment",
+]
+
+OWNCLOUD_DOC_KEYS = [
+    "_id",
+    "versions",
+    "directory",
+    "filename",  # jméno souboru tak jak ho uživatel dá do ukládací fce
+]
+
+OWNCLOUD_VERSION_DOC_KEYS = [
+    "url",
+    "by",
+    "when",
+    "path",  # skutečná cesta k souboru na owncloudu (s id a verzí)
 ]
