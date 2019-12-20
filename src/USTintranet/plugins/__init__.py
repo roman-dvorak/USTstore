@@ -827,6 +827,12 @@ class RegistrationHandler(BaseHandler):
                         token=token, user_id=user_id)
             return
 
+        if not self.mdb.users.find_one({"type": "user"}):
+            role = ["sudo", "sudo-store", "sudo-users", "sudo-import", "invoice-access", "invoice-create",
+                    "invoice-sudo", "invoice-validator", "invoice-reciever"]
+        else:
+            role = []
+
         new_password_hash = password_hash(user_id, password)
 
         self.mdb.users.insert({
@@ -837,8 +843,7 @@ class RegistrationHandler(BaseHandler):
             'email_validated': "no",
             'created': datetime.datetime.now(),
             'type': 'user',
-            'role': ["sudo", "sudo-store", "sudo-users", "sudo-import", "invoice-access", "invoice-create",
-                     "invoice-sudo", "invoice-validator", "invoice-reciever"],
+            'role': role,
         })
 
         print("Registrován email", email)
