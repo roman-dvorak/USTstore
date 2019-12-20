@@ -18,6 +18,7 @@ import bson
 from hashlib import blake2s
 
 from bson import ObjectId
+from owncloud import HTTPResponseError
 from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
@@ -670,10 +671,27 @@ class BaseHandlerOwnCloud(BaseHandler):
         """
         Obaluje owncloud Client.put_file(), přidává logování
         """
+        oc_directory_path = os.path.split(oc_path)[0]
+
+        start_time = time.time()
+        print("-> zajišťuji existenci složky na owncloudu")
+        self.ensure_owncloud_directory_exists(oc_directory_path)
+        print(f"-> hotovo za {(time.time() - start_time):.2f} sekund")
+
         start_time = time.time()
         print("-> nahrávám soubor na owncloud")
         self.oc.put_file(oc_path, local_path)
         print(f"-> soubor nahrán za {(time.time() - start_time):.2f} sekund")
+
+    def ensure_owncloud_directory_exists(self, directory):
+        incomplete_path = ""
+        for path_element in os.path.normpath(directory).split(os.sep):
+            incomplete_path = os.path.join(incomplete_path, path_element)
+
+            try:
+                self.oc.mkdir(incomplete_path)
+            except HTTPResponseError as e:
+                pass
 
     def update_owncloud_file(self,
                              file_id: ObjectId,

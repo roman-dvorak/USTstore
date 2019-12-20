@@ -213,12 +213,14 @@ class AttendanceCalculator:
 
     @property
     def month_max_hours(self):
-        if self.month_hour_rate == 0:
+        if self.month_hour_rate is None:
             return None
         return floor_to_half(self.month_max_gross_wage / self.month_hour_rate)
 
     @property
     def month_available_hours(self):
+        if self.month_max_hours is None:
+            return None
         return self.month_max_hours - self.month_hours_worked
 
     @property
