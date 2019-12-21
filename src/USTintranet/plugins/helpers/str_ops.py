@@ -56,6 +56,8 @@ def address_to_str(address_document: dict):
     """
     Převede dokument address na řetězec.
     """
+    czechia_variants = ["česká republika", "čr", "česko", "č.r.", "č. r."]
+
     if not address_document:
         return ""
 
@@ -66,14 +68,14 @@ def address_to_str(address_document: dict):
         if address:
             address += " "
         address += address_document["city"]
-    if "state" in address_document:
-        if address:
-            address += ", "
-        address += address_document["state"]
     if "zip" in address_document:
         if address:
             address += ", "
         address += address_document["zip"]
+    if "state" in address_document and address_document["state"].lower().strip() not in czechia_variants:
+        if address:
+            address += ", "
+        address += address_document["state"]
 
     return address
 
