@@ -526,6 +526,7 @@
          * proto je nutné tuto informaci předat ve formatterParams.
          */
         let addressFormatter = function (cell, formatterParams, onRendered) {
+
             let field = formatterParams.field;
             let data = cell.getData();
 
@@ -543,7 +544,7 @@
             let zip = data[field]["zip"];
             if (typeof zip === "undefined") zip = "";
 
-            return `${street} ${city}, ${state}, ${zip}`;
+            return `${street} ${city}, ${zip}, ${state}`;
         };
 
         /**
