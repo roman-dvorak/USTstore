@@ -19,3 +19,6 @@
 [submodule "src/USTintranet/static/js-cookie"]
 	path = src/USTintranet/static/js-cookie
 	url = git@github.com:js-cookie/js-cookie.git
+[submodule "src/USTintranet/static/bootstrap"]
+	path = src/USTintranet/static/bootstrap
+	url = git@github.com:twbs/bootstrap.git
