@@ -163,11 +163,14 @@
                     </div>
 
                     <div class="form-group col-lg-12 col-md-6">
-                        <label class="col-12">Pozice</label>
-                       <!--  <input class="form-control form-control-lg" type="text" name="count" id="positions" disabled> -->
-                        <div class="component_positions_list">
-                          
-                        </div>
+                        <label class="">Pozice</label>
+                        <div class="component_positions_list"></div>
+                    </div>
+
+
+                    <div class="form-group col-lg-12 col-md-6">
+                        <label class="">Pozice v ostatních skladech</label>
+                        <div class="component_positions_list_other"></div>
                     </div>
 
                     {% if stocktaking %}
@@ -193,7 +196,7 @@
 
                     <div class="form-group row col-lg-12 col-md-6">
                       <label class="col-sm-2 col-form-label">Automaticky přidat</label>
-                      <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add"></div>
+                      <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add" checked disabled></div>
                     </div>
 
               </div>
@@ -297,6 +300,7 @@
                 
                 // Vytvoreni seznamu aktualnich pozic
                 $('.component_positions_list').empty();
+                $('.component_positions_list_other').empty();
                 var pos_text = "";
                 for (var i = 0; i < data.position.length; i++) {
                     var pos = data.position[i];
@@ -313,7 +317,15 @@
                     //<span class="sr-only">unread messages</span>
                     tag += '</button>'
 
-                    $('.component_positions_list').append(tag);
+                    console.log("POROVNANI");
+                    console.log(pos.info[0]);
+                    console.log(data.warehouse);
+
+                    if(pos.info[0].warehouse.$oid == data.warehouse._id.$oid){
+                      $('.component_positions_list').append(tag);
+                    }else{
+                      $('.component_positions_list_other').append(tag);
+                    }
 
                 }
                 //$('#positions').val(pos_text);
