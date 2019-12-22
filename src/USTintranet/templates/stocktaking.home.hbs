@@ -31,6 +31,10 @@
         background: #fafafa;
     }
 
+    .form-group {
+      margin-bottom: 0.5rem;
+    }
+
 
   .cat_top{
     flex: 0 0 auto;
@@ -47,6 +51,11 @@
 .form-tab-td{
   padding: 0px;
 }
+
+  .list_name{
+    padding-left: 0.5em;
+    vertical-align: top;
+  }
 
 
 </style>
@@ -83,63 +92,78 @@
     <div class="row row-cols-1 row-cols-md-3">
         <div class="col-6 col-md-12 col-lg-5">
             <div class="card">
-                <div class="card-body row">
-                    {% if stocktaking %}
-                    <div class="form-group row col pl-5 bg-success">
-                      Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
-                    </div>
-                    {% else %}
-                    <div class="form-group row col pl-5 bg-danger text-white">
-                      Není odemčená žádná kampaň inventury. Inventuru nelze nyní provádět. O její otevření požádejte správce inventur.
-                    </div>
-                    {% end %}
 
-                    <div class="form-group row col-lg-12 col-md-6">
-                        <label class="col-sm-2 col-form-label">SKU</label>
-                        <div class="input-group col-sm-10">
+                {% if stocktaking %}
+                <div class="card-header bg-success">
+                  Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
+                </div>
+                {% else %}
+                <div class="card-header bg-danger text-white">
+                  Není odemčená žádná kampaň inventury. Inventuru nelze nyní provádět. O její otevření požádejte správce inventur.
+                </div>
+                {% end %}
+                <div class="card-body row">
+
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">SKU</label>
+                        <div class="input-group col-sm-9">
                           <input class="form-control" type="text" id="sku_search">
                           <div class="input-group-append">
-                            <button class="btn btn-outline-secondary pt-0 pb-0" type="button" onclick="reload_sku()"><i class="material-icons">refresh</i></button>
+                            <button class="btn btn-outline-secondary material-icons" type="button" onclick="reload_sku()">refresh</button>
                           </div>
                         </div>
-                    </div>
-                    <div class="form-group row col-lg-12 col-md-6">
-                        <label class="col-sm-2 col-form-label">_ID</label>
-                        <div class="col-sm-10"><input class="form-control" type="text" id="id_val" disabled></div>
-                    </div>
-                    <div class="form-group row col-lg-12 col-md-6">
-                        <label class="col-sm-2 col-form-label">Name</label>
-                        <div class="col-sm-10"><input class="form-control" type="text" id="all_search" disabled></div>
-                    </div>
+                    </div></div>
+
+                    <div class="form-group col-lg-12 col-md-6 form-group-sm"><div class="row">
+                        <label class="col-sm-3 col-form-label">_ID</label>    
+                        <div class="input-group col-sm-9">
+                          <input class="form-control" type="text" id="id_val" disabled>
+                          <div class="input-group-append">
+                            <a class="btn btn-outline-secondary material-icons" type="button" href="#" id="id_stock_link" target="__blank__">open_in_new</a>
+                          </div>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">Name</label>
+                        <div class="col-sm-9"><input class="form-control" type="text" id="all_search" disabled></div>
+                    </div></div>
                     <div>
 
                     </div>
                     <div id="next_operation" class=" display-5 text-muted col-md-6">
                         Načtěte další kód...
                     </div>
-                    <div class="row col-lg-12 col-md-6">
-                        <div class="col text-center align-middle display-4 shadow"><span id="val_old">000.00</span> ks</div>
+                    <div class="col-lg-12 col-md-6">
+                        <div class="col text-center align-middle display-4 shadow alert alert-success">
+                          <div class="old_val_text"> <span id="val_old">000.00</span> ks</div>
+                          <div class="old_val_spinner spinner-grow text-success" role="status" style="display: none;"><span class="sr-only">Loading...</span></div>
+                        </div>
                     </div>
 
-                    <div class="row col-lg-12 col-md-6">
+                    <div class="col-lg-12 col-md-6">
                         <div class="col" id='message'></div>
                     </div>
-                    <div class="form-group col-lg-12 col-md-6">
-                        <label>Nový počet kusů</label>
-                        <input class="form-control form-control-lg" type="number" name="count" id="new_count" autofocus>
-                    </div>
-                    <div class="row col-lg-12 col-md-6">
-                        <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
-                        <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">Nový počet kusů</label>
+                        <div class="col-sm-9"><input class="form-control form-control-lg" type="number" name="count" id="new_count" autofocus></div>
+                    </div></div>
+
+
+                    <div class="col-lg-12 col-md-6">
+                      <div class="text-center align-middle display-4 shadow alert alert-warning"><div class="row">
+                          <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
+                          <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
+                      </div></div>
                     </div>
 
                     <div class="form-group col-lg-12 col-md-6">
-                        <label>Poznámka</label>
-                        <input class="form-control form-control-lg" type="text" name="count" id="note" autofocus>
+                        <label class="">Poznámka</label>
+                        <input class=" form-control form-control-sm" type="text" name="count" id="note" autofocus>
                     </div>
 
                     <div class="form-group col-lg-12 col-md-6">
-                        <label>Pozice</label>
+                        <label class="col-12">Pozice</label>
                        <!--  <input class="form-control form-control-lg" type="text" name="count" id="positions" disabled> -->
                         <div class="component_positions_list">
                           
@@ -147,7 +171,7 @@
                     </div>
 
                     {% if stocktaking %}
-                    <div class="row form-group col-lg-12 col-md-6">
+                    <div class="form-group col-lg-12 col-md-6">
                         <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
                     </div>
                     {% end %}
@@ -220,6 +244,10 @@
     $("#sku_search").on("change", reload_sku());
     function reload_sku(){
         clear_form();
+        // Show loading icon
+        $(".old_val_spinner").show();
+        $(".old_val_text").hide();
+
         $.ajax({
           type: "POST",
           url: "/stocktaking/get_item/",
@@ -234,16 +262,11 @@
                 item = data;
                 item['count'] = 0;
                 $("#next_operation").text(data.item.name);
-                console.log("item", data.item);
+                //console.log("item", data.item);
                 $("#id_val").val(data.item._id.$oid);
                 $("#all_search").val(data.item.name);
                 $("#val_old").empty();
-                // for (row in data.history){
-                //     console.log(row);
-                //     //$("#val_old").append(" + "+data.history[row].bilance);
-                //     item.count += data.history[row].bilance;
-                // }
-
+                
         // Zjisti, jestli uz to bylo inventurovane
                 for (rec_i in data.item.history){
                   var rec = data.item.history[rec_i];
@@ -300,7 +323,15 @@
                 }catch(e){
                   $("#val_old").text(0);
                 }
+
+                // hide loader spinner
+                $(".old_val_spinner").hide();
+                $(".old_val_text").show();
+
                 $("#new_count").focus();
+
+
+                $("#id_stock_link").attr("href", "/store#"+data.item._id.$oid);
 
             }else{
                 // pokud soucastka neni nalezena
@@ -397,6 +428,7 @@
         $("#sku_search").focus();
         $('#message').removeClass('bg-warning')
         $('#message').empty();
+        $("#id_stock_link").attr("href", "#");
         //$("#message").
     }
     clear_form();
@@ -527,6 +559,15 @@ function add_history(name, count, status = null){
 
 
 <script type="text/javascript">
+  function do_stocktaking_by_id(id){
+    clear_form();
+    $('#sku_search').val(id);
+    reload_sku();
+  }
+</script>
+
+
+<script type="text/javascript">
   
   function update_list_of_position(){
         console.log("Obnova seznamu pozic");
@@ -564,11 +605,17 @@ function add_history(name, count, status = null){
 
                   if (first_time) {
                     //console.log("poprve", x);
-                    $( "#list_of_position_pending" ).append( "<p>" + x.name + "</p>" );
-                  }else{
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    text += x.name + "</span></div>";
+                    $( "#list_of_position_pending" ).append( text );
 
+                  }else{
                     //console.log("opakovane", x);
-                    $( "#list_of_position_done" ).append( "<p>" + x.name + "</p>" );
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    text += x.name + "</span></div>";
+                    $( "#list_of_position_done" ).append( text );
                   }
 
               }
