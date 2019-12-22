@@ -777,8 +777,8 @@ class LoginHandler(BaseHandler):
             self.render("_login.hbs", msg="No such user")
             return
 
-        user_id = str(user_mdoc["user"])
-        real_password_hash = str(user_mdoc["pass"])
+        user_id = user_mdoc["user"]
+        real_password_hash = user_mdoc["pass"]
         this_password_hash = password_hash(user_id, password)
         print(this_password_hash)
 
