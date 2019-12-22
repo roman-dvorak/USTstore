@@ -137,12 +137,20 @@ class load_item(BaseHandler):
                 item = "{:x}".format(int(item))
             item = bson.ObjectId(item)
         except Exception as e:
-            raise(e)
+            print("Vyhledavam poomci jinych parametru")
+            component = list(self.mdb.stock.aggregate([
+                {"$unwind": '$barcode'},
+                {"$match": {'barcode': item}}
+            ]))
+            print(type(component[0]['_id']))
+            item = component[0]['_id']
+            print(item)
+            #raise(e)
 
             # TODO: vyhledavani pomoci jinych parametru
 
         if add_position:
-            self.component_set_position(bson.ObjectId(item), bson.ObjectId(stk_position))
+            self.component_set_position(item, bson.ObjectId(stk_position))
         print("ObjectID pro nacteni", item)
         self.component_update_counts(item)
         out['item'] = self.mdb.stock.find_one({'_id': item})
