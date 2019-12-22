@@ -38,6 +38,7 @@ def make_handlers(module, plugin):
 
 def plug_info():
     return {
+        "display": False,
         "module": "init",
         "name": "init"
     }
@@ -207,9 +208,11 @@ class BaseHandler(tornado.web.RequestHandler):
         login = self.get_secure_cookie("user")
         if login:
             login = str(login, encoding="utf-8")
-
+        
+        print("cookies", login)
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
+        print("DB", user_db)
 
         self.company_info = get_company_info(self.mdb)
         self.dpp_params = get_dpp_params(self.mdb)
@@ -756,7 +759,7 @@ class BaseHandlerOwnCloud(BaseHandler):
 
 
 def password_hash(user_name, password):
-    return hashlib.sha384((password + user_name).encode('utf-8')).hexdigest()
+    return hashlib.sha384((str(password) + str(user_name)).encode('utf-8')).hexdigest()
 
 
 class LoginHandler(BaseHandler):
@@ -774,9 +777,10 @@ class LoginHandler(BaseHandler):
             self.render("_login.hbs", msg="No such user")
             return
 
-        user_id = user_mdoc["_id"]
-        real_password_hash = user_mdoc["pass"]
+        user_id = str(user_mdoc["user"])
+        real_password_hash = str(user_mdoc["pass"])
         this_password_hash = password_hash(user_id, password)
+        print(this_password_hash)
 
         if real_password_hash == this_password_hash:
             self.set_secure_cookie('user', user_id)
@@ -836,7 +840,6 @@ class RegistrationHandler(BaseHandler):
         new_password_hash = password_hash(user_id, password)
 
         self.mdb.users.insert({
-            '_id': user_id,
             'user': user_id,
             'pass': new_password_hash,
             'email': email,
