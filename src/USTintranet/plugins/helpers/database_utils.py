@@ -2,7 +2,7 @@ import pymongo
 
 
 def add_embedded_mdoc_to_mdoc_array(coll: pymongo.collection.Collection,
-                                    user_id: str,
+                                    user: str,
                                     array_field: str,
                                     document: dict,
                                     document_id: str = "",
@@ -17,7 +17,7 @@ def add_embedded_mdoc_to_mdoc_array(coll: pymongo.collection.Collection,
     if document_id:
         document["_id"] = str(document_id)
 
-    coll.update_one({"_id": user_id},
+    coll.update_one({"user": user},
                     {"$addToSet": {
                         array_field: document
                     }
@@ -34,8 +34,8 @@ def get_mdocument_set_unset_dicts(document, unset_values=(None, "")):
     return to_set, to_unset
 
 
-def get_user_embedded_mdoc_by_id(database, user_id: str, field: str, mdoc_id: str):
-    mdoc = database.users.find_one({"_id": user_id, f"{field}._id": mdoc_id},
+def get_user_embedded_mdoc_by_id(database, user: str, field: str, mdoc_id: str):
+    mdoc = database.users.find_one({"user": user, f"{field}._id": mdoc_id},
                                    {f"{field}.$": 1})
     if not mdoc:
         return None

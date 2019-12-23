@@ -654,7 +654,7 @@ class BaseHandlerOwnCloud(BaseHandler):
             "filename": oc_filename,
             "versions": {
                 "0": {
-                    "by": self.actual_user["_id"],
+                    "by": self.actual_user["user"],
                     "when": datetime.datetime.now(),
                     "path": oc_path,
                     "url": shared_url,
@@ -721,7 +721,7 @@ class BaseHandlerOwnCloud(BaseHandler):
         coll.update_one({"_id": file_id},
                         {"$set": {
                             f"versions.{version_number}": {
-                                "by": self.actual_user["_id"],
+                                "by": self.actual_user["user"],
                                 "when": datetime.datetime.now(),
                                 "path": oc_path,
                                 "url": shared_url,
@@ -764,22 +764,21 @@ class LoginHandler(BaseHandler):
         self.render('_login.hbs', msg='')
 
     def post(self):
-        email = self.get_argument('email').lower()
+        user = self.get_argument('user')
         password = self.get_argument('password')
-        print("Prihlasovani", email)
+        print("Prihlasovani", user)
 
-        user_mdoc = self.mdb.users.find_one({"type": "user", "email": email})
+        user_mdoc = self.mdb.users.find_one({"type": "user", "user": user})
 
         if not user_mdoc:
             self.render("_login.hbs", msg="No such user")
             return
 
-        user_id = user_mdoc["user"]
         real_password_hash = user_mdoc["pass"]
-        this_password_hash = password_hash(user_id, password)
+        this_password_hash = password_hash(user, password)
 
         if real_password_hash == this_password_hash:
-            self.set_secure_cookie('user', user_id)
+            self.set_secure_cookie('user', user)
             self.redirect('/')
             return
 
@@ -797,34 +796,34 @@ class LogoutHandler(BaseHandler):
 
 class RegistrationHandler(BaseHandler):
     def get(self):
-        self.render('_registration.hbs', msg=None, token=None, user_id=None)
+        self.render('_registration.hbs', msg=None, token=None, user=None)
 
     def post(self):
         token = self.get_argument('token')
         email = self.get_argument('email')
-        user_id = self.get_argument('user_id')
+        user = self.get_argument('user')
         password = self.get_argument('password')
         password_check = self.get_argument('password_check')
         agree = self.get_argument('agree')
 
         if agree != 'agree':
-            self.render('_registration.hbs', msg='Musíte souhlasit s ...', token=token, user_id=user_id)
+            self.render('_registration.hbs', msg='Musíte souhlasit s ...', token=token, user=user)
             return
 
         if password != password_check:
-            self.render('_registration.hbs', msg='Hesla se neshodují', token=token, user_id=user_id)
+            self.render('_registration.hbs', msg='Hesla se neshodují', token=token, user=user)
             return
 
         if token:
-            self.validate_user_email_and_set_password(user_id, token, password)
+            self.validate_user_email_and_set_password(user, token, password)
             return
 
-        matching_users_in_db = list(self.mdb.users.find({'$or': [{'_id': user_id}, {'email': email}]}))
+        matching_users_in_db = list(self.mdb.users.find({'$or': [{'user': user}, {'email': email}]}))
 
         if matching_users_in_db:
             self.render('_registration.hbs',
                         msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.',
-                        token=token, user_id=user_id)
+                        token=token, user=user)
             return
 
         if not self.mdb.users.find_one({"type": "user"}):
@@ -833,11 +832,10 @@ class RegistrationHandler(BaseHandler):
         else:
             role = []
 
-        new_password_hash = password_hash(user_id, password)
+        new_password_hash = password_hash(user, password)
 
         self.mdb.users.insert({
-            '_id': user_id,
-            'user': user_id,
+            'user': user,
             'pass': new_password_hash,
             'email': email,
             'email_validated': "no",
@@ -849,20 +847,20 @@ class RegistrationHandler(BaseHandler):
         print("Registrován email", email)
         self.redirect('/')
 
-    def validate_user_email_and_set_password(self, user_id, token, password):
+    def validate_user_email_and_set_password(self, user, token, password):
         from plugins.helpers import database_user as udb
 
-        user_mdoc = udb.get_user(self.mdb.users, user_id)
+        user_mdoc = udb.get_user(self.mdb.users, user)
 
         if "pass" not in user_mdoc and user_mdoc["email_validated"] == "pending" \
                 and user_mdoc["email_validation_token"] == token:
-            new_password_hash = password_hash(user_id, password)
+            new_password_hash = password_hash(user, password)
 
-            self.mdb.users.update_one({"_id": user_id},
+            self.mdb.users.update_one({"user": user},
                                       {"$set": {
                                           "pass": new_password_hash,
                                       }})
-            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+            udb.update_email_is_validated_status(self.mdb.users, user, yes=True)
 
             self.redirect('/')
 

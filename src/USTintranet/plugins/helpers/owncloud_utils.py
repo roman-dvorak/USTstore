@@ -27,16 +27,16 @@ def get_file_last_version_number(file_mdoc: dict):
     return int(get_file_last_version_index(file_mdoc))
 
 
-def generate_user_directory_path(user_id: str, year_date):
+def generate_user_directory_path(user: str, year_date):
     if isinstance(year_date, datetime):
         year_date = str(year_date.year)
 
-    return os.path.join("accounting", year_date, "employees", user_id)
+    return os.path.join("accounting", year_date, "employees", user)
 
 
-def generate_contracts_directory_path(user_id: str, year_date):
-    return os.path.join(generate_user_directory_path(user_id, year_date), "contracts")
+def generate_contracts_directory_path(user: str, year_date):
+    return os.path.join(generate_user_directory_path(user, year_date), "contracts")
 
 
-def generate_documents_directory_path(user_id: str, year_date):
-    return os.path.join(generate_user_directory_path(user_id, year_date), "documents")
+def generate_documents_directory_path(user: str, year_date):
+    return os.path.join(generate_user_directory_path(user, year_date), "documents")
