@@ -759,7 +759,7 @@ class BaseHandlerOwnCloud(BaseHandler):
 
 
 def password_hash(user_name, password):
-    return hashlib.sha384((str(password) + str(user_name)).encode('utf-8')).hexdigest()
+    return hashlib.sha384((password + user_name).encode('utf-8')).hexdigest()
 
 
 class LoginHandler(BaseHandler):
