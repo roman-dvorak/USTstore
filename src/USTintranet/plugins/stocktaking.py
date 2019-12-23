@@ -63,7 +63,13 @@ class home(BaseHandler):
 class view_categories(BaseHandler):
     def get(self):
         self.authorized(['inventory'])
+
+        # Ziskat kategorie
         categories = list(self.mdb.category.aggregate([]))
+
+        # Ziskat vsechny sklady
+        warehouse = self.get_warehouse()
+        warehouses = self.get_warehouseses()
 
         # seradit kategorie tak, aby to odpovidalo adresarove strukture
         paths = set()
@@ -74,6 +80,7 @@ class view_categories(BaseHandler):
         data = []
         data = list(data)
         
+
         for i, path in enumerate(paths):
             data += [{}]
             data[i]['path'] = path
@@ -81,6 +88,7 @@ class view_categories(BaseHandler):
             data[i]['level'] = len(path.split('/'))-2
             data[i]['category'] = path
 
+        # Vyhledat artikly ve vybrane katerogii 
             cat_modules = self.mdb.stock.aggregate([
                 {'$match': {'category.0': path.split('/')[-1]}},
                 {'$addFields': {'count': {'$sum': '$history.bilance'}}},
@@ -94,16 +102,29 @@ class view_categories(BaseHandler):
 
             for module in data[i]['modules']:
                 #module['inventory'] = getInventory(module, datetime.datetime(2018, 10, 1), None, False)
-                module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
-                if module['inventory']:
-                    module['count'] = module['inventory']
-                module['inventory'] = bool(module['inventory'])
-                module['price_sum'] = getPrice(module)
-                if module['count'] > 0:
-                    module['price'] = module['price_sum']/module['count']
-                else:
-                    module['price'] = 0
 
+                module['count_all'] = module['overview']['count']['onstock']
+                if str(warehouse['_id']) in module['overview']['stocks']:
+                    module['count'] = module['overview']['stocks'][str(warehouse['_id'])]['count']['onstock']
+                else:
+                    module['count'] = 0
+
+                module['price_sum'] = module['count_all']*module['warehouse_unit_price']
+                module['price_warehouse'] = module['count']*module['warehouse_unit_price']
+
+
+                module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
+                #if module['inventory']:
+                #    module['count'] = module['inventory']
+                module['inventory'] = bool(module['inventory'])
+                
+                #module['price_sum'] = getPrice(module)
+                #if module['count'] > 0:
+                #   module['price'] = module['price_sum']/module['count']
+                #else:
+                #    module['price'] = 0
+
+                
                 module['inventory_2018'] = {'bilance_count': None, 'bilance_price': None}
                 (module['inventory_2018']['count'], module['inventory_2018']['price']) = getInventory(module, datetime.datetime(2018, 1, 1), datetime.datetime(2018, 10, 1), False)
                 module['inventory_2018']['bilance_count'] = module['count'] - module['inventory_2018']['count']
@@ -119,7 +140,9 @@ class view_categories(BaseHandler):
             data[i]['cat_sum_bilance'] = cat_sum_bilance
             data[i]['cat_elements'] = cat_elements
             data[i]['cat_inventura'] = inventura
-        self.render("stocktaking.view.categories.hbs", data=data, category = data)
+
+
+        self.render("stocktaking.view.categories.hbs", data=data, category = data, warehouses = warehouses )
 
 
 class load_item(BaseHandler):
