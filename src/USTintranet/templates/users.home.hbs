@@ -1,72 +1,1365 @@
 {% extends "base.hbs" %}
-{% block title %} UST intranet | Adresář{%end%}
+{% block title %} UST intranet | Karta uživatele{%end%}
 {% block body %}
 
-<style type="text/css">
-	
-	td{
-		padding: 2pt;
-		padding-right: 5pt;
-	}
-	th{
-		padding: 7pt;
-		padding-bottom: 2pt;
-		border-bottom: black solid 2pt;
-		margin-bottom: 7pt;
-		background-color: lightgrey;
-	}
-	table{
-		width: 100%;
-	}
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+<script src="/static/validation.js"></script>
+
+<style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #body {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+    }
+
+    .page-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-outline-dark {
+        border-color: #212529;
+    }
+
+    .btn-outline-dark:hover {
+        background-color: #212529;
+    }
+
+    .address-form-part {
+        padding-left: 1em;
+    }
+
+    #basic-info table td:first-child {
+        width: 40%;
+    }
+
+    .contract-header {
+        cursor: pointer;
+    }
+
+    .contract-info {
+        display: none;
+    }
+
+    .contract-show-more {
+        display: none;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .document-show-more {
+        display: none;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .document-edit-btn {
+        float: right;
+    }
+
+    .document-header {
+        cursor: pointer;
+    }
+
+    .document-info {
+        display: none;
+    }
+
+    .form-button {
+        width: 100%;
+    }
+
+    .item-black {
+        color: black;
+    }
+
+    .item-grey {
+        color: grey;
+    }
+
+    .link-show-file {
+        text-align: center;
+    }
+
+    .invalidated-contract {
+        text-decoration: line-through;
+    }
 
 </style>
 
+<div class="modal" id="user-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="user-editor-title">Editor informací o uživateli</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="user-editor-form">
 
+                    <div class="form-group">
+                        <label for="pre-name-title-input">Titul před jménem</label>
+                        <input type="text" class="form-control" id="pre-name-title-input"
+                               placeholder="{{pre_name_title}}">
+                    </div>
 
-<div class="container" style="background: blue">
+                    <div class="form-group">
+                        <label for="first-name-input">Jméno</label>
+                        <input type="text" class="form-control" id="first-name-input" placeholder="{{first_name}}">
+                    </div>
 
-tady bude nějaký seznam - 
+                    <div class="form-group">
+                        <label for="surname-input">Příjmení</label>
+                        <input type="text" class="form-control" id="surname-input" placeholder="{{surname}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="post-name-title">Titul za jménem</label>
+                        <input type="text" class="form-control" id="post-name-title" placeholder="{{post_name_title}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="birthdate-input">Datum narození</label>
+                        <input type="date" class="form-control" id="birthdate-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email-input">Email</label>
+                        <input type="text" class="form-control" id="email-input" placeholder="{{email}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone-number-input">Telefon</label>
+                        <input type="text" class="form-control" id="phone-number-input" placeholder="{{phone_number}}">
+                    </div>
+
+                    <h6>Adresa trvalého pobytu</h6>
+                    <div class="address-form-part">
+
+                        <div class="form-group">
+                            <label for="residence-street-input">Ulice, Č.P.</label>
+                            <input type="text" class="form-control" id="residence-street-input"
+                                   placeholder="{{residence_street}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-city-input">Město</label>
+                            <input type="text" class="form-control" id="residence-city-input"
+                                   placeholder="{{residence_city}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-state-input">Stát</label>
+                            <input type="text" class="form-control" id="residence-state-input"
+                                   placeholder="{{residence_state}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="residence-zip-input">PSČ</label>
+                            <input type="text" class="form-control" id="residence-zip-input"
+                                   placeholder="{{residence_zip}}">
+                        </div>
+                    </div>
+
+                    <h6>Kontaktní adresa</h6>
+                    <div class="address-form-part">
+
+                        <div class="form-group">
+                            <label for="contact-street-input">Ulice, Č.P.</label>
+                            <input type="text" class="form-control" id="contact-street-input"
+                                   placeholder="{{contact_street}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-city-input">Město</label>
+                            <input type="text" class="form-control" id="contact-city-input"
+                                   placeholder="{{contact_city}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-state-input">Stát</label>
+                            <input type="text" class="form-control" id="contact-state-input"
+                                   placeholder="{{contact_state}}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact-zip-input">PSČ</label>
+                            <input type="text" class="form-control" id="contact-zip-input"
+                                   placeholder="{{contact_zip}}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="account-number-input">Číslo účtu</label>
+                        <input type="text" class="form-control" id="account-number-input"
+                               placeholder="{{account_number}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role-input">Role</label>
+                        <input type="text" class="form-control" id="role-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignment-input">Pracovní náplň</label>
+                        <input type="text" class="form-control" id="assignment-input" placeholder="{{assignment}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="skills-input">Dovednosti</label>
+                        <input type="text" class="form-control" id="skills-input" placeholder="{{skills}}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes-input">Poznámky</label>
+                        <textarea class="form-control" rows="2" id="notes-input" placeholder="{{notes}}"></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="user-save-btn"
+                        onclick="saveUserEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="container" style="">
 
-{{me}}
-<div class="card">
-	<div class="card-header"> <h2>Můj profil</h2></div>
-	<div class="card-content" id="place_user_edit">
-		<div class="form-row">
-			<div class="form-group col">
-				<label>Username</label>
-				<input class="form-control" type="text" disabled value="{{me.get('user', 'Err')}}">
-			</div>
-			<div class="form-group col">
-				<label>Jméno</label>
-				<input class="form-control" type="text" value="{{me.get('name', 'Err')}}>
-			</div>
-			<div class="form-group col">
-				<label>E-mail</label>
-				<input class="form-control" type="email" disabled>
-			</div>
-		</div>
-		<div class="form-row">
-			<div class="form-group col">
-				<label>Oprávnění</label>
-				<select class="form-control" id=""></select>
-			</div>
+<div class="modal" id="contract-editor-modal" tabindex="-1" role="dialog"
+     data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" id="contract-form-modal-part">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="contract-editor-form">
+                    <input type="hidden" id="contract-id-input">
 
-		</div>
-	</div>
+                    <button type="button" class="btn btn-secondary form-button"
+                            id="contracts-load-previous-values-button" onclick="contractLoadPreviousValues()">
+                        Načíst předchozí hodnoty
+                    </button>
+
+                    <div class="form-group">
+                        <label for="contract-type-select">Typ smlouvy</label>
+                        <select class="form-control" id="contract-type-select" required>
+                            <option value="dpp">Dohoda o provedení práce</option>
+                            <option value="dpc">Dohoda o pracovní činnosti</option>
+                            <option value="ps">Pracovní smlouva</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-signing-date-input">Datum uzavření</label>
+                        <input type="date" class="form-control" id="contract-signing-date-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-signing-place-input">
+                            Kde byla smlouva uzavřena
+                        </label>
+                        <input type="text" class="form-control" id="contract-signing-place-input"
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-valid-from-input">Platná od</label>
+                        <input type="date" class="form-control" id="contract-valid-from-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-valid-until-input">Platná do</label>
+                        <input type="date" class="form-control" id="contract-valid-until-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-hour-rate-input">Hodinová sazba</label>
+                        <input type="number" class="form-control" id="contract-hour-rate-input" required>
+                    </div>
+                </form>
+
+                <a href="#" onclick="showUserParamsInContractModal()" id="show-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Zobrazit parametry uživatele
+                </a>
+                <a href="#" onclick="hideUserParamsInContractModal()" id="hide-user-params-in-contract-modal-link"
+                   class="text-center">
+                    Skrýt parametry uživatele
+                </a>
+                <form name="contract-user-params-form" class="collapse">
+                    <div class="form-group">
+                        <label for="contract-name-input">Jméno</label>
+                        <input type="text" class="form-control" id="contract-name-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-address-input">Adresa</label>
+                        <input type="text" class="form-control" id="contract-address-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-birthdate-input">Datum narození</label>
+                        <input type="date" class="form-control" id="contract-birthdate-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-account-number-input">Číslo účtu</label>
+                        <input type="text" class="form-control" id="contract-account-number-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contract-assignment-input">Pracovní náplň</label>
+                        <input type="text" class="form-control" id="contract-assignment-input" required>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveContractEditor()">Uložit
+                </button>
+            </div>
+        </div>
+        <div class="modal-content" id="contract-preview-modal-part">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contract-editor-title">Editor smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" name="_id">
+                    <a class="contract-url btn btn-success form-button" role="button" target="_blank">
+                        Náhled vygenerované smlouvy
+                    </a>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="finalizeContract()">Potvrdit
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
+<div class="modal" id="upload-contract-scan-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát sken podepsané smlouvy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="upload-contract-scan-form" action="/users/api/u/{{user}}/contracts/scan"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="contract-scan-id-input" name="_id">
 
+                    <div class="form-group">
+                        <label for="contract-scan-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="contract-scan-file-input" name="file" required>
+                    </div>
 
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveUploadContractScanModal()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<script type="text/javascript">
-	
-  $(document).ready(function(){
-  });
+<div class="modal" id="reupload-document-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nahrát jinou verzi dokumentu</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="reupload-document-form" action="/users/api/u/{{user}}/documents/reupload"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="reupload-document-id-input" name="_id">
 
+                    <div class="form-group">
+                        <label for="reupload-document-file-input">Soubor</label>
+                        <input type="file" class="form-control" id="reupload-document-file-input" name="file" required>
+                    </div>
 
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="user-save-btn"
+                        onclick="saveReuploadDocumentModal()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
+<div class="modal" id="document-editor-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="document-editor-title">Editor dokumentu</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form name="document-editor-form" action="/users/api/u/{{user}}/documents"
+                      method="post" enctype="multipart/form-data" novalidate>
+                    <input type="hidden" id="document-id-input" name="_id">
+
+                    <button type="button" class="btn btn-secondary form-button" id="delete-document-button"
+                            onclick="deleteDocument()">
+                        Smazat dokument
+                    </button>
+                    <div class="form-group">
+                        <label for="document-valid-until-input">Soubor</label>
+                        <input type="file" class="form-control" id="document-file-input" name="file" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-type-select">Typ dokumentu</label>
+                        <select class="form-control" id="document-type-select" name="type" required>
+                            <option value="study_certificate">Potvrzení o studiu</option>
+                            <option value="tax_declaration">Prohlášení k dani</option>
+                            <!--                            <option value="cv">Životopis</option>-->
+                        </select>
+                    </div>
+                    <div id="document-valid-dates-section">
+                        <div class="form-group">
+                            <label for="document-valid-from-input">Platný od</label>
+                            <input type="date" class="form-control" id="document-valid-from-input"
+                                   name="valid_from" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="document-valid-until-input">Platný do</label>
+                            <input type="date" class="form-control" id="document-valid-until-input"
+                                   name="valid_until" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="document-notes-textarea">Poznámky</label>
+                        <textarea class="form-control" rows="2" id="document-notes-textarea" name="notes"></textarea>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" id="document-save-btn"
+                        onclick="saveDocumentEditor()">Uložit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="page-title">
+        <h1>Karta uživatele: <a href="/users/u/{{user}}">{{name}}</a></h1>
+        <a href="/attendance/u/{{user}}" role="button" class="btn btn-outline-dark">Docházková karta</a>
+    </div>
+    <div class="row">
+        <div class="col col-12 col-lg-6">
+            <div id="basic-info">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th>Základní informace</th>
+                        <th class="text-right">
+                            <button type="button" class="btn btn-light" onclick="showUserEditor()">Změnit</button>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Přihlašovací jméno</td>
+                        <td>{{user}}</td>
+                    </tr>
+                    <tr>
+                        <td>Jméno</td>
+                        <td>{{name}}</td>
+                    </tr>
+                    <tr>
+                        <td>Datum narození</td>
+                        <td>{{birthdate}}</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td>{{email}}</td>
+                    </tr>
+                    <tr>
+                        <td>Telefon</td>
+                        <td>{{phone_number}}</td>
+                    </tr>
+                    <tr>
+                        <td>Adresa trvalého pobytu</td>
+                        <td>{{residence_address}}</td>
+                    </tr>
+                    <tr>
+                        <td>Kontaktní adresa</td>
+                        <td>{{contact_address}}</td>
+                    </tr>
+                    <tr>
+                        <td>Číslo bankovního účtu</td>
+                        <td>{{account_number}}</td>
+                    </tr>
+                    <tr>
+                        <td>Role</td>
+                        <td>{{role}}</td>
+                    </tr>
+                    <tr>
+                        <td>Pracovní náplň</td>
+                        <td>{{assignment}}</td>
+                    </tr>
+                    <tr>
+                        <td>Dovednosti</td>
+                        <td>{{skills}}</td>
+                    </tr>
+                    <tr>
+                        <td>Poznámky</td>
+                        <td>{{notes}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col col-12 col-lg-6">
+            <div id="contracts">
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th class="align-text-bottom">
+                            <button type="button" class="btn btn-light" style="float: right;"
+                                    onclick="showContractEditor()">
+                                Přidat
+                            </button>
+                            Smlouvy
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for contract in contracts %}
+                    <tr class="contract-header" data-id="{{contract["_id"]}}">
+                        <th class="item-{{"black" if contract["is_valid"] else "grey"}}">
+                            {% if contract["is_valid"] %}
+                            <button type="button" class="btn btn-sm btn-secondary"
+                                    style="float: right; padding-bottom: 0" onclick="invalidateContract(this)">
+                                <i class="material-icons" style="font-size: 17px">close</i>
+                            </button>
+                            {% end %}
+                            <div class="
+{{'invalidated-contract' if 'invalidation_date' in contract and contract['invalidation_date'] < today else ''}}
+                                ">
+                                {{contract["title"]}}
+                            </div>
+                        </th>
+                    </tr>
+                    <tr class="contract-info item-{{"black" if contract["is_valid"] else "grey"}}">
+                        <td>
+                            <table style="width: calc(100% - 20px); margin-left: auto; margin-right: auto">
+                                <tbody>
+                                <tr>
+                                    <td style="border-top: 0px">Druh smlouvy</td>
+                                    <td style="border-top: 0px">{{contract["type"]}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Datum uzavření smlouvy</td>
+                                    <td>{{contract["signing_date"]}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Začátek platnosti</td>
+                                    <td>{{contract["valid_from"]}}</td>
+                                </tr>
+                                <tr>
+                                    <td>Konec platnosti</td>
+                                    <td>{{contract["valid_until"]}}</td>
+                                </tr>
+                                {% if contract.get("notes", None) %}
+                                <tr>
+                                    <td>Poznámka</td>
+                                    <td>{{contract["notes"]}}</td>
+                                </tr>
+                                {% end %}
+                                <tr>
+                                    <td>Sken podepsané smlouvy</td>
+                                    <td>
+                                        {% if contract.get("scan_signed_url", None) %}
+                                        <button type="button" class="btn btn-sm btn-secondary"
+                                                style="float: right; padding-bottom: 0"
+                                                onclick="showUploadContractScanModal(this)">
+                                            <i class="material-icons" style="font-size: 17px">edit</i>
+                                        </button>
+                                        <a href="{{contract['scan_signed_url']}}" target="_blank">Zobrazit</a>
+                                        {% else %}
+                                        <a href="#" onclick="showUploadContractScanModal(this)">Nahrát</a>
+                                        {% end %}
+                                    </td>
+                                </tr>
+                                {% if contract.get("invalidation_date", False) %}
+                                <tr>
+                                    <td>Zneplatněna ke dni</td>
+                                    <td>{{contract["invalidation_date"]}}</td>
+                                </tr>
+                                {% end %}
+                                <tr>
+                                    <td colspan="2" class="link-show-file">
+                                        <a href="{{contract.get('url', '#')}}" target="_blank">
+                                            Zobrazit smlouvu
+                                        </a>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    {% end %}
+                    <tr class="contract-show-more">
+                        <th>Zobrazit starší</th>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="documents">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    table.table tbody + tbody {
+        border-top-width: 1px;
+    }
+
+    td.wrapper {
+        padding-top: 0;
+    }
+
+    table.inner {
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0;
+    }
+
+    table.table.inner tr:first-child td, table.table.inner tr:first-child th {
+        border-top: 0;
+    }
+
+    tr.show-file-link {
+        text-align: center;
+    }
+
+    tr.document-title {
+        cursor: pointer;
+    }
+
+    tr.document-content {
+        display: none;
+    }
+
+    tbody.document {
+        display: none;
+    }
+
+    tbody.document:first-child {
+        display: table-row-group;
+    }
+
+    tbody.show-older {
+        text-align: center;
+        cursor: pointer;
+    }
+</style>
+
+<template id="template-documents-table">
+    <table class="table">
+        <thead class="thead-dark">
+        <tr>
+            <th>
+                <button type="button" class="btn btn-light" style="float: right;"
+                        onclick="showDocumentEditor(this, true)">
+                    Přidat
+                </button>
+                Dokumenty
+            </th>
+        </tr>
+        </thead>
+
+    </table>
+</template>
+
+<template id="template-documents-subtable">
+    <tbody class="subtable">
+    <tr class="document-type-row">
+        <th class="document-type">Typ dokumentu</th>
+    </tr>
+    <tr>
+        <td class="wrapper">
+            <table class="table inner">
+
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</template>
+
+<template id="template-document">
+    <tbody class="document">
+    <tr class="document-title">
+        <th>
+            <div class="btn-group edit-invalidate-buttons" role="group" style="float: right">
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="reuploadDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">edit</i>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" style="padding-bottom: 0"
+                        onclick="invalidateDocument(this)">
+                    <i class="material-icons" style="font-size: 17px">close</i>
+                </button>
+            </div>
+            <span></span>
+        </th>
+    </tr>
+    <tr class="document-content">
+        <td class="wrapper">
+            <table class="table inner">
+                <tbody class="rows">
+
+                </tbody>
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</template>
+
+<template id="template-document-row">
+    <tr>
+        <td></td>
+        <td></td>
+    </tr>
+</template>
+
+<template id="template-show-file-row">
+    <tr class="show-file-link">
+        <td colspan="2">
+            <a target="_blank">Zobrazit soubor</a>
+        </td>
+    </tr>
+</template>
+
+<template id="template-show-older-row">
+    <tbody class="show-older">
+    <tr>
+        <th>
+            Zobrazit starší
+        </th>
+    </tr>
+    </tbody>
+</template>
+{% autoescape None %}
+<script>
+
+    const DOCUMENTS_JSON = `{{documents_json}}`;
+
+    $(document).ready(() => {
+        initBasicInfo();
+        initContracts();
+        initDocuments();
+    });
+
+    function initBasicInfo() {
+    }
+
+    function initContracts() {
+        setupContractHiding();
+        setContractFieldsChangeHandlers();
+    }
+
+    function setupContractHiding() {
+        let contractInfos = $(".contract-info");
+        contractInfos.first().show();
+
+        let contractHeaders = $(".contract-header");
+        contractHeaders.on("click", event => {
+            contractInfos.hide();
+            $(event.target).closest("tr").next().show();
+        });
+
+        let showMore = $(".contract-show-more");
+        showMore.on("click", () => {
+            contractHeaders.show();
+            showMore.hide();
+        });
+
+        if (contractInfos.length > 2) {
+            showMore.show();
+            contractHeaders.slice(2).hide();
+        }
+    }
+
+    function setContractFieldsChangeHandlers() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            e.addEventListener("change", () => {
+                sessionStorage.setItem(e.id, e.value);
+            });
+        }
+    }
+
+    function initDocuments() {
+        buildDocumentsTable(JSON.parse(DOCUMENTS_JSON));
+
+        $("#document-type-select").on("change", handleDocumentTypeChange);
+    }
+
+    function buildDocumentsTable(documentsData) {
+        console.log("documentsData", documentsData);
+
+        const tableTemplate = document.getElementById("template-documents-table");
+        const documentsDiv = document.getElementById("documents");
+
+        const table = document.importNode(tableTemplate.content, true);
+        const tableTag = table.querySelector("table");
+
+        for (let documentType in documentsData)
+            if (documentsData.hasOwnProperty(documentType)) {
+                const subtable = buildDocumentsSubtable(documentsData[documentType]);
+                if (subtable) tableTag.appendChild(subtable);
+            }
+
+        documentsDiv.appendChild(table);
+    }
+
+    function buildDocumentsSubtable(subtableData) {
+        console.log("subtableData", subtableData);
+        if (subtableData.length === 0) return false;
+
+        const subtableTemplate = document.getElementById("template-documents-subtable");
+        const subtable = document.importNode(subtableTemplate.content, true);
+        const subtableDocumentType = subtable.querySelector("th.document-type");
+        const subtableTableTag = subtable.querySelector("table");
+
+        subtableDocumentType.textContent = subtableData[0]["type_text"];
+
+        for (let docData of subtableData) {
+            const doc = buildDocument(docData);
+            subtableTableTag.appendChild(doc);
+        }
+
+        subtableTableTag.appendChild(buildShowOlderRow());
+
+        return subtable;
+    }
+
+    function buildDocument(docData) {
+        const documentTemplate = document.getElementById("template-document");
+        const doc = document.importNode(documentTemplate.content, true);
+        const documentBody = doc.querySelector("tbody.document");
+        const documentTitleRow = doc.querySelector("tr.document-title");
+        const documentContentRow = doc.querySelector("tr.document-content");
+        const documentTitle = doc.querySelector("tr.document-title th span");
+        const documentRows = doc.querySelector("tbody.rows");
+
+        documentBody.setAttribute("data-id", docData["_id"]);
+
+        documentTitle.textContent = docData["title"];
+
+        if (docData.hasOwnProperty("valid_from_text"))
+            documentRows.appendChild(buildDocumentRow("Začátek platnosti", docData["valid_from_text"]));
+        if (docData.hasOwnProperty("valid_until_text"))
+            documentRows.appendChild(buildDocumentRow("Konec platnosti", docData["valid_until_text"]));
+        if (docData.hasOwnProperty("invalidation_date_text")) {
+            documentRows.appendChild(buildDocumentRow("Zneplatněn ke dni", docData["invalidation_date_text"]));
+            console.log("invalidation_date", docData["invalidation_date"]);
+            if (docData["invalidation_date"] <= moment().format("YYYY-MM-DD"))
+                documentTitle.style.textDecoration = "line-through";
+        }
+        if (docData.hasOwnProperty("notes"))
+            documentRows.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
+
+        if (docData.hasOwnProperty("url"))
+            documentRows.appendChild(buildShowFileRow(docData["url"]));
+
+        if (!docData["is_valid"]) {
+            documentTitleRow.style.color = "grey";
+            documentContentRow.style.color = "grey";
+        }
+
+        if ((docData.hasOwnProperty("invalidation_date") && moment(docData["invalidation_date"]).isBefore(moment())) ||
+                moment(docData["valid_until"]).isBefore(moment())) {
+            const buttons = documentTitleRow.querySelector("div.edit-invalidate-buttons");
+            $(buttons).hide();
+        }
+
+        documentTitleRow.addEventListener("click", () => {
+            const next = $(documentTitleRow).next();
+            console.log(next);
+            if (next.is(":hidden")) next.show();
+            else next.hide();
+        });
+
+        return doc;
+    }
+
+    function buildDocumentRow(title, value) {
+        const documentRowTemplate = document.getElementById("template-document-row");
+        const documentRow = document.importNode(documentRowTemplate.content, true);
+
+        const tds = documentRow.querySelectorAll("td");
+        tds[0].textContent = title;
+        tds[1].textContent = value;
+
+        return documentRow;
+    }
+
+    function buildShowFileRow(url) {
+        const showFileRowTemplate = document.getElementById("template-show-file-row");
+        const showFileRow = document.importNode(showFileRowTemplate.content, true);
+
+        const link = showFileRow.querySelector("a");
+        link.href = url;
+
+        return showFileRow;
+    }
+
+    function buildShowOlderRow() {
+        const showOlderRowTemplate = document.getElementById("template-show-older-row");
+        const showOlderRow = document.importNode(showOlderRowTemplate.content, true);
+
+        const tbody = showOlderRow.querySelector("tbody.show-older");
+        tbody.addEventListener("click", () => {
+            const tbody_jquery = $(tbody);
+            tbody_jquery.siblings().show();
+            tbody_jquery.hide();
+        });
+
+        return showOlderRow;
+    }
+
+    function showUserEditor() {
+        let inputs = document.forms["user-editor-form"].getElementsByTagName("input");
+        for (let input of inputs) {
+            input.value = ""
+        }
+        $("#notes-input").val("");
+        $("#role-input").val("{{role}}");
+
+        let birthdateInput = $("#birthdate-input");
+        birthdateInput.val("{{birthdate_iso}}");
+
+        $("#user-editor-modal").modal("show");
+    }
+
+    function saveUserEditor() {
+        let changes = {};
+        let residence = {};
+        let contact = {};
+
+        changes["name.pre_name_title"] = $("#pre-name-title-input").val();
+        changes["name.first_name"] = $("#first-name-input").val();
+        changes["name.surname"] = $("#surname-input").val();
+        changes["name.post_name_title"] = $("#post-name-title-input").val();
+
+        changes["email"] = $("#email-input").val();
+        changes["phone_number"] = $("#phone-number-input-input").val();
+        changes["account_number"] = $("#account-number-input").val();
+        changes["assignment"] = $("#assignment-input").val();
+        changes["skills"] = $("#skills-input").val();
+        changes["notes"] = $("#notes-input").val();
+
+        let role_input = $("#role-input");
+        if (role_input.val().replace(" ", "") !== "{{role}}") {
+            changes["role"] = role_input.val();
+        }
+
+        let new_birthdate = $("#birthdate-input").val();
+        if (new_birthdate !== "{{birthdate_iso}}") {
+            changes["birthdate"] = new_birthdate;
+        }
+
+        residence["street"] = $("#residence-street-input").val();
+        residence["city"] = $("#residence-city-input").val();
+        residence["state"] = $("#residence-state-input").val();
+        residence["zip"] = $("#residence-zip-input").val();
+
+        contact["street"] = $("#contact-street-input").val();
+        contact["city"] = $("#contact-city-input").val();
+        contact["state"] = $("#contact-state-input").val();
+        contact["zip"] = $("#contact-zip-input").val();
+
+        for (let obj of [changes, residence, contact]) {
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key) && !obj[key]) {
+                    delete obj[key];
+                }
+            }
+        }
+
+        if (!$.isEmptyObject(residence)) changes["residence_address"] = residence;
+        if (!$.isEmptyObject(contact)) changes["contact_address"] = contact;
+
+        console.log(changes);
+
+        $.ajax({
+            url: "/users/api/u/{{user}}/edit",
+            type: "post",
+            data: JSON.stringify(changes),
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: ajaxError,
+        });
+    }
+
+    function showContractEditor() {
+        hideUserParamsInContractModal();
+
+        $("#contract-form-modal-part").show();
+        $("#contract-preview-modal-part").hide();
+
+        $("#contract-name-input").val("{{name}}");
+        $("#contract-address-input").val("{{residence_address}}");
+        $("#contract-birthdate-input").val("{{birthdate_iso}}");
+        $("#contract-account-number-input").val("{{account_number}}");
+        $("#contract-assignment-input").val("{{assignment}}");
+
+        $("#contract-editor-modal").modal("show");
+    }
+
+    function saveContractEditor() {
+        let form = document.forms["contract-editor-form"];
+        console.log(form);
+        if (!validateContractEditorForm()) {
+            return;
+        }
+
+        if (!validateContractUserParamsForm()) {
+            showUserParamsInContractModal();
+            return;
+        }
+
+        let data = {};
+        data["type"] = $("#contract-type-select").val();
+        data["signing_date"] = $("#contract-signing-date-input").val();
+        data["signing_place"] = $("#contract-signing-place-input").val();
+        data["valid_from"] = $("#contract-valid-from-input").val();
+        data["valid_until"] = $("#contract-valid-until-input").val();
+        data["hour_rate"] = $("#contract-hour-rate-input").val();
+
+        data["name"] = $("#contract-name-input").val();
+        data["address"] = $("#contract-address-input").val();
+        data["birthdate"] = $("#contract-birthdate-input").val();
+        data["account_number"] = $("#contract-account-number-input").val();
+        data["assignment"] = $("#contract-assignment-input").val();
+
+        $.ajax({
+            url: "/users/api/u/{{user}}/contracts",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (responseJson) {
+                $("#contract-form-modal-part").hide();
+                $("#contract-preview-modal-part").show();
+
+                response = JSON.parse(responseJson);
+                $("#contract-preview-modal-part input[name='_id']").val(response["_id"]);
+                $("#contract-preview-modal-part a.contract-url").attr("href", response["url"])
+            },
+            error: ajaxError,
+        });
+    }
+
+    function finalizeContract() {
+        let contractId = $("#contract-preview-modal-part input[name='_id']").val();
+
+        $.ajax({
+            url: "/users/api/u/{{user}}/contracts/finalize",
+            type: "post",
+            data: contractId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: ajaxError,
+        });
+    }
+
+    function showDocumentEditor(button, is_new = false) {
+
+        if (is_new) {
+            $("#delete-document-button").hide();
+            $("#document-id-input").val("");
+            $("#document-valid-from-input").val("");
+            $("#document-valid-until-input").val("");
+            $("#document-notes-textarea").val("");
+            $("#document-file-input").val("");
+            $("#document-type-select")[0].selectedIndex = 0;
+            $("#document-file-input").parent().show();
+        } else {
+            $("#delete-document-button").show();
+            let documentInfo = $(button).closest("tr").next();
+            let id = documentInfo.data("id");
+            let type = documentInfo.find(".document-type-cell").data("raw");
+            let valid_from = documentInfo.find(".document-valid-from-cell").data("raw");
+            let valid_until = documentInfo.find(".document-valid-until-cell").data("raw");
+            let notes = documentInfo.find(".document-notes-cell").data("raw");
+
+            $("#document-id-input").val(id);
+            $("#document-valid-from-input").val(valid_from);
+            $("#document-valid-until-input").val(valid_until);
+            $("#document-notes-textarea").val(notes);
+            $("#document-type-select").val(type);
+            $("#document-file-input").parent().hide();
+            $("#document-type-select").parent().hide();
+        }
+
+        handleDocumentTypeChange();
+
+        $("#document-editor-modal").modal("show");
+    }
+
+    function saveDocumentEditor() {
+        let form = document.forms["document-editor-form"];
+        console.log(form);
+        if (validateDocumentEditorForm()) {
+            form.submit();
+            // console.log("OK")
+        }
+    }
+
+    function deleteDocument() {
+        let id = $("#document-id-input").val();
+
+        $.ajax({
+            url: "/users/api/u/{{user}}/documents/delete",
+            type: "post",
+            data: id,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: ajaxError,
+        });
+
+    }
+
+    function validateContractEditorForm() {
+        let isValid = validateRequired(document.forms["contract-editor-form"]);
+
+        let signing_date = $("#contract-signing-date-input");
+        let valid_from = $("#contract-valid-from-input");
+        let valid_until = $("#contract-valid-until-input");
+
+        isValid = validateOneDateBeforeOther(signing_date, valid_from) && isValid;
+        isValid = validateOneDateBeforeOther(valid_from, valid_until) && isValid;
+
+        return isValid;
+    }
+
+    function validateContractUserParamsForm() {
+        return validateRequired(document.forms["contract-user-params-form"], true);
+    }
+
+    function validateDocumentEditorForm() {
+        let isValid = validateRequired(document.forms["document-editor-form"]);
+
+        let type = $("#document-type-select").val();
+        if (type !== "contract_scan") {
+            let valid_from = $("#document-valid-from-input");
+            let valid_until = $("#document-valid-until-input");
+
+            let areDatesValid = validateOneDateBeforeOther(valid_from, valid_until);
+            isValid = isValid && areDatesValid;
+        }
+
+        return isValid;
+    }
+
+    function handleDocumentTypeChange() {
+        let selectedType = $("#document-type-select").val();
+        if (selectedType === "cv") {
+            $("#document-valid-dates-section").hide();
+        } else {
+            $("#document-valid-dates-section").show();
+        }
+    }
+
+    function invalidateContract(button) {
+        event.stopPropagation();
+
+        let contractHeaderRow = $(button).closest("tr");
+        let contractId = contractHeaderRow.data("id");
+
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění smlouvy",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
+            },
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = contractId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/users/api/u/{{user}}/contracts/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
+
+    function invalidateDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
+
+        Lobibox.prompt("date", {
+            "title": "Datum zneplatnění dokumentu",
+            "value": moment().format("YYYY-MM-DD"),
+            "buttons": {
+                "ok": {
+                    "text": "OK",
+                },
+                "cancel": {
+                    "text": "Zrušit"
+                }
+            },
+            "callback": function (lb, type) {
+                if (type === "ok") {
+                    let data = {};
+                    data["_id"] = documentId;
+                    data["date"] = lb.getValue();
+
+                    $.ajax({
+                        url: "/users/api/u/{{user}}/documents/invalidate",
+                        type: "post",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
+
+    function reuploadDocument(button) {
+        event.stopPropagation();
+
+        const documentId = button.closest("tbody.document").getAttribute("data-id");
+        document.getElementById("reupload-document-id-input").value = documentId;
+
+        $("#reupload-document-modal").modal("show");
+    }
+
+    function showUploadContractScanModal(link) {
+        console.log(link);
+        let contractHeaderRow = $(link).closest("tr.contract-info").prev();
+        let contractId = contractHeaderRow.data("id");
+
+        $("#contract-scan-id-input").val(contractId);
+
+        $("#upload-contract-scan-modal").modal("show");
+    }
+
+    function saveUploadContractScanModal() {
+        let form = document.forms["upload-contract-scan-form"];
+
+        if (!validateRequired(form)) return;
+
+        form.submit();
+    }
+
+    function saveReuploadDocumentModal() {
+        let form = document.forms["reupload-document-form"];
+
+        if (!validateRequired(form)) return;
+
+        form.submit();
+    }
+
+    function contractLoadPreviousValues() {
+        let form = document.forms["contract-editor-form"];
+        let elements = form.querySelectorAll("input, select, textarea");
+
+        for (let e of elements) {
+            let previousValue = sessionStorage.getItem(e.id);
+            if (previousValue != null) {
+                e.value = previousValue;
+            }
+        }
+    }
+
+    function hideUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").hide();
+        $("#show-user-params-in-contract-modal-link").show();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("hide");
+    }
+
+    function showUserParamsInContractModal() {
+        $("#hide-user-params-in-contract-modal-link").show();
+        $("#show-user-params-in-contract-modal-link").hide();
+        let form = document.forms["contract-user-params-form"];
+        $(form).collapse("show");
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
+    } // TODO u dokumentů se zobrazit starší zobrazuje i když je jeden dokument
 </script>
 
 {% end %}{# block body#}

@@ -245,7 +245,7 @@ class UserPageHandler(BaseHandler):
         template_params["documents_json"] = self.prepare_documents(documents)
 
         print("template_params", template_params)
-        self.render("users.user-page.hbs", **template_params)
+        self.render("users.home.hbs", **template_params)
 
     def prepare_contracts(self, contracts):
         possible_type = {
