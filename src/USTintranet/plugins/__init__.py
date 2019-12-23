@@ -282,10 +282,10 @@ class BaseHandler(tornado.web.RequestHandler):
         return (warehouse)
 
     def warehouse_get_positions(self, warehouse):
-        data = self.mdb.store_positions.aggregate([
+        data = list(self.mdb.store_positions.aggregate([
             {"$match": {'warehouse': warehouse}},
             # {"$project": {''}}
-        ])
+        ]))
         return (data)
 
     '''

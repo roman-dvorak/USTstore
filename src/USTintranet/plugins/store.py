@@ -19,6 +19,8 @@ import code128
 import codecs
 import datetime
 
+from plugins.helpers.warehouse import *
+
 def make_handlers(module, plugin):
         return [
              (r'/%s' %module, plugin.hand_bi_home),
@@ -288,6 +290,7 @@ class api(BaseHandler):
             id = bson.ObjectId(self.get_argument('value', ''))
             self.component_update_suppliers_url(id) 
             self.component_update_counts(id)
+            update_article_price(self.mdb.stock, id)
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
                     {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}

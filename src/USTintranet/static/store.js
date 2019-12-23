@@ -142,6 +142,7 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   $("#copyID_edit").attr('copy', element['_id'].$oid);
                   $('#inputNAME_edit').val(element['name'] || "Bez názvu");
                   $('#inputPRICEp_edit').val(element['price_sell'] || 0);
+                  $('#input_warehouse_unit_price').val(element['warehouse_unit_price'] || 0);
                   $('#inputSELLABLE_edit').prop('checked', element['sellable'] || false);
                   $('#inputDESCRIPTION_edit').val(element['description'] || "");
                   $('#inputCATEGORY_edit').val(element['category']).trigger('change');

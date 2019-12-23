@@ -142,8 +142,9 @@
                     </div>
 
                     <div class="col-lg-12 col-md-6">
-                        <div class="col" id='message'></div>
+                        <div class="col alert" id='message'></div>
                     </div>
+
                     <div class="form-group col-lg-12 col-md-6"><div class="row">
                         <label class="col-sm-3 col-form-label">Nový počet kusů</label>
                         <div class="col-sm-9"><input class="form-control form-control-lg" type="number" name="count" id="new_count" autofocus></div>
@@ -154,6 +155,14 @@
                       <div class="text-center align-middle display-4 shadow alert alert-warning"><div class="row">
                           <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
                           <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
+                      </div></div>
+                    </div>
+
+
+                    <div class="col-lg-12 col-md-6">
+                      <div class="text-center align-middle shadow alert alert-info"><div class="row">
+                          <div class="col text-center align-middle" id="holder_percent"><span id="val_unit_price">---</span> Czk/unit</div>
+                          <div class="col text-center align-middle" id="holder_delta"><span id="val_price">----</span> Czk</div>
                       </div></div>
                     </div>
 
@@ -269,14 +278,14 @@
                 $("#id_val").val(data.item._id.$oid);
                 $("#all_search").val(data.item.name);
                 $("#val_old").empty();
+
+               // console.log("Artikl:", data);
                 
         // Zjisti, jestli uz to bylo inventurovane
                 for (rec_i in data.item.history){
-                  var rec = data.item.history[rec_i];
-                  if (rec.operation == 'inventory'){
-                    console.log("inventura", rec);
-                    console.log(data);
-                    if (rec.$oid == data.item._id.$oid && rec.stock.$oid == data.warehouse._id.$oid){
+                  var history = data.item.history[rec_i];
+                  if (history.operation == 'inventory' && history.inventory != undefined){
+                    if(history.inventory.$oid == data.inventory._id.$oid && history.stock.$oid == data.warehouse._id.$oid){
                       first_time = false;
                     } 
                   }
@@ -285,7 +294,6 @@
                 if (first_time == true){
                   Lobibox.notify('success', {
                       title: 'Načteno úšpěšně',
-                      //msg: 'U položky <b>'+$('#sku_search').val()+'</b> inventura již problěhla.',
                       delay: 1000
                   });
                 }else{
@@ -335,6 +343,10 @@
                 }catch(e){
                   $("#val_old").text(0);
                 }
+
+
+                $("#val_price").text(data.article_unit_price*$("#val_old").text());
+                $("#val_unit_price").text(data.article_unit_price);
 
                 // hide loader spinner
                 $(".old_val_spinner").hide();
