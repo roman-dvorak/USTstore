@@ -17,6 +17,9 @@ import pandas as pd
 from fpdf import FPDF
 import os
 import sys
+
+from plugins.helpers.warehouse import *
+
 sys.path.append("..")
 from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
 
@@ -45,11 +48,13 @@ def plug_info():
 
 class home(BaseHandler):
     def get(self):
+        wrehouse = bson.ObjectId(self.get_cookie('warehouse', False))
+        places = self.warehouse_get_positions(wrehouse)
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
         if current: stocktaking_info = self.mdb.stock_taking.find_one({'_id': current})
         else: stocktaking_info = None
 
-        self.render('stocktaking.home.hbs', stocktaking = stocktaking_info)
+        self.render('stocktaking.home.hbs', stocktaking = stocktaking_info, places = places)
 
 
 ##
@@ -121,34 +126,48 @@ class load_item(BaseHandler):
     def post(self):
         self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
-        item = self.get_argument('_id', None)
-        print("ARGUMENT JE....", item)
-        #self.write(item)
+        article_id = self.get_argument('_id', None)
+        stocktaking_position = self.get_argument('stocktaking_position', None)
+        add_stocktaking_position = self.get_argument('add_position', None)
+
+        print("Nacitani dat artiklu {} na pozici {}. Pozice se prida {}".format(article_id, stocktaking_position, add_stocktaking_position))
         out = {}
 
         # zjistit, jestli se jedna o ObjectID a v jake forme. Pokud je to cisto, tak prevest
         # Nasledne je potreba nacist data z DB
         try:
-            if item.isdecimal():
-                item = "{:x}".format(int(item))
-            item = bson.ObjectId(item)
+            if article_id.isdecimal():
+                article_id = "{:x}".format(int(article_id))
+            article_id = bson.ObjectId(article_id)
+
+        # Pokud to stale neni ObjectID, tak vyhledavat mezi starymi barcody...
         except Exception as e:
-            raise(e)
+            article = list(self.mdb.stock.aggregate([
+                {"$unwind": '$barcode'},
+                {"$match": {'barcode': article_id}}
+            ]))
+            article_id = article[0]['_id']
 
-            # TODO: vyhledavani pomoci jinych parametru
+        
+        if add_stocktaking_position:
+            self.component_set_position(article_id, bson.ObjectId(stocktaking_position))
 
-        print("ObjectID pro nacteni", item)
-        self.component_update_counts(item)
-        out['item'] = self.mdb.stock.find_one({'_id': item})
+        print("ObjectID pro nacteni", article_id)
+        self.component_update_counts(article_id)
+        
+        out['item'] = self.mdb.stock.find_one({'_id': article_id})
+        out['article_unit_price'] = get_article_price(out['item'])
         out['warehouse'] = self.get_warehouse()
-        out['invetury'] = self.get_inventory()
+        out['position'] = self.component_get_positions(id = article_id)
+        out['inventory'] = self.get_inventory()
+
         out = bson.json_util.dumps(out)
         self.write(out)
 
     def get_inventory(self):
         current_id = self.mdb.intranet.find_one({'_id': 'stock_taking'})
-        current = self.mdb.stock_taking.find_one({'_id': current_id['current']})
-        return list(current)
+        current = list(self.mdb.stock_taking.find({'_id': current_id['current']}))[0]
+        return current
 
 class save_stocktaking(BaseHandler):
     def post(self):

@@ -19,11 +19,14 @@ import code128
 import codecs
 import datetime
 
+from plugins.helpers.warehouse import *
+
 def make_handlers(module, plugin):
         return [
              (r'/%s' %module, plugin.hand_bi_home),
              (r'/%s/' %module, plugin.hand_bi_home),
              (r'/%s/print/' %module, plugin.print_layout),
+             (r'/{}/api/items/by_position/'.format(module), plugin.api_get_items_by_position),
              (r'/{}/api/item/(.*)/'.format(module), plugin.api_item_json),
              (r'/{}/api/item/(.*)/buy_request'.format(module), plugin.api_buyrequest_json),
              (r'/{}/api/item/(.*)/suppliers'.format(module), plugin.api_suppliers),
@@ -209,6 +212,22 @@ class api_products_json(BaseHandler):
         self.write(dout)
 
 
+class api_get_items_by_position(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+
+    def get(self):
+        position = bson.ObjectId(self.get_argument('position'))
+        #stock = self.get_argument('this_stock')
+
+        data = self.mdb.stock.aggregate([
+            {'$match': {'position.posid': position}},
+            {'$project' : { 'name' : 1 , 'description' : 1, 'history':1} }
+        ])
+
+        data = list(data)
+
+        self.write(bson.json_util.dumps(data))
+
 
 class api_parameters_list(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
@@ -271,6 +290,7 @@ class api(BaseHandler):
             id = bson.ObjectId(self.get_argument('value', ''))
             self.component_update_suppliers_url(id) 
             self.component_update_counts(id)
+            update_article_price(self.mdb.stock, id)
             dout = list(self.mdb.stock.aggregate([
                     {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
                     {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}

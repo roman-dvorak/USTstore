@@ -38,6 +38,7 @@ def make_handlers(module, plugin):
 
 def plug_info():
     return {
+        "display": False,
         "module": "init",
         "name": "init"
     }
@@ -207,9 +208,11 @@ class BaseHandler(tornado.web.RequestHandler):
         login = self.get_secure_cookie("user")
         if login:
             login = str(login, encoding="utf-8")
-
+        
+        print("cookies", login)
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
+        print("DB", user_db)
 
         self.company_info = get_company_info(self.mdb)
         self.dpp_params = get_dpp_params(self.mdb)
@@ -279,10 +282,10 @@ class BaseHandler(tornado.web.RequestHandler):
         return (warehouse)
 
     def warehouse_get_positions(self, warehouse):
-        data = self.mdb.store_positions.aggregate([
+        data = list(self.mdb.store_positions.aggregate([
             {"$match": {'warehouse': warehouse}},
             # {"$project": {''}}
-        ])
+        ]))
         return (data)
 
     '''
@@ -505,7 +508,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 x['full_url'] = x.get('url', '')
 
                 if x['supplier'].lower() == 'tme':
-                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'])
+                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'].replace('/','_'))
 
                 elif x['supplier'].lower() == 'mouser':
                     x['full_url'] = "https://cz.mouser.com/ProductDetail/{}".format(x['symbol'])
@@ -756,7 +759,7 @@ class BaseHandlerOwnCloud(BaseHandler):
 
 
 def password_hash(user_name, password):
-    return hashlib.sha384((password + user_name).encode('utf-8')).hexdigest()
+    return hashlib.sha384((str(password) + str(user_name)).encode('utf-8')).hexdigest()
 
 
 class LoginHandler(BaseHandler):

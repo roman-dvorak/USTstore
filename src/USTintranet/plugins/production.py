@@ -367,11 +367,11 @@ class edit(BaseHandler):
                     oid = bson.ObjectId(id)
                     count = self.component_get_counts(oid, bson.ObjectId(self.get_cookie('warehouse')))
                     print(id, "..", count)
-                    if len(count['by_warehouse']) > 0:
-                        print("Nastavuji", name, id, count['suma'][0]['count'])
+                    if len(count['stocks']) > 0:
+                        print("Nastavuji", name, id, count['count']['onstock'])
                         self.mdb.production.update_many(
                             {'_id': bson.ObjectId(name), 'components.UST_ID': id},
-                            {'$set': {"components.$[id].stock_count": count['suma'][0]['count']}},
+                            {'$set': {"components.$[id].stock_count": count['count']['onstock']}},
 
                             array_filters = [{ "id.UST_ID": id}],
                             upsert = False
@@ -379,7 +379,7 @@ class edit(BaseHandler):
                     else:
                         print("POLOZKA NENALEZENA....")
                 except Exception as e:
-                    print("CHYBA ....")
+                    print("CHYBA ....", e)
             self.write({'status': 'ok'})
 
 
