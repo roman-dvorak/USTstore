@@ -83,7 +83,7 @@
 
 
 <div class="container">
-    <h1>Docházková karta: <a href="/users/u/{{_id}}">{{name}}</a></h1>
+    <h1>Docházková karta: <a href="/users/u/{{user}}">{{name}}</a></h1>
 
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -382,7 +382,7 @@
             // TODO je potřeba v kalendáři mít přístup i k assignmentům
             $.ajax({
                 context: this,
-                url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
+                url: "/attendance/api/u/{{user}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
                 type: "post",
                 success: function (response) {
                     let parsedResponse = JSON.parse(response);
@@ -504,7 +504,7 @@
         _cellClickHandler(cell) {
             let isodate = cell.dataset.date;
             console.log(isodate);
-            window.location.href = `/attendance/u/{{_id}}/date/${isodate}`;
+            window.location.href = `/attendance/u/{{user}}/date/${isodate}`;
         }
     }
 
@@ -571,7 +571,7 @@
         if (typeof data == "undefined") {
             console.log("ajaxing month table");
             $.ajax({
-                url: "/attendance/api/u/{{_id}}/monthinfo/date/" + calendar.monthShown.format("YYYY-MM-DD"),
+                url: "/attendance/api/u/{{user}}/monthinfo/date/" + calendar.monthShown.format("YYYY-MM-DD"),
                 type: "post",
                 success: function (response) {
                     updateMonthInfoTable(JSON.parse(response));
@@ -635,7 +635,7 @@
         };
 
         $.ajax({
-            url: "/attendance/api/u/{{_id}}/workspans",
+            url: "/attendance/api/u/{{user}}/workspans",
             type: "post",
             data: JSON.stringify(data),
             success: function (response) {
@@ -653,7 +653,7 @@
         };
 
         $.ajax({
-            url: "/attendance/api/u/{{_id}}/vacations",
+            url: "/attendance/api/u/{{user}}/vacations",
             type: "post",
             data: JSON.stringify(data),
             success: function (response) {
@@ -685,7 +685,7 @@
                     data["date"] = lb.getValue();
 
                     $.ajax({
-                        url: "/attendance/api/u/{{_id}}/vacations/interrupt",
+                        url: "/attendance/api/u/{{user}}/vacations/interrupt",
                         type: "post",
                         data: JSON.stringify(data),
                         success: function (response) {
@@ -703,7 +703,7 @@
         let workspanId = $(button).data("id");
 
         $.ajax({
-            url: "/attendance/api/u/{{_id}}/workspans/delete",
+            url: "/attendance/api/u/{{user}}/workspans/delete",
             type: "post",
             data: workspanId,
             success: function (response) {
@@ -870,7 +870,7 @@
         }
 
         $.ajax({
-            url: "/attendance/api/u/{{_id}}/workspans/month",
+            url: "/attendance/api/u/{{user}}/workspans/month",
             type: "post",
             data: JSON.stringify(data),
             success: function (response) {

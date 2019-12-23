@@ -159,11 +159,11 @@
         })
     }
 
-    function sendValidationEmail(user_id) {
+    function sendValidationEmail(user) {
         setMessage("Posílám email");
 
         $.ajax({
-            url: `/users/api/u/${user_id}/validateemail`,
+            url: `/users/api/u/${user}/validateemail`,
             type: "post",
             data: "",
             success: function (response) {
@@ -239,7 +239,7 @@
          */
         let showAddressEditor = function (e, cell, field) {
             let data = cell.getData();
-            let id = cell.getRow().getIndex();
+            let user = cell.getRow().getIndex();
             let street = data[field]["street"];
             let city = data[field]["city"];
             let state = data[field]["state"];
@@ -247,7 +247,7 @@
 
             // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
             $("#address-column-field").val(field);
-            $("#address-row-id").val(id);
+            $("#address-row-id").val(user);
 
             $("#address-street-input").val(street);
             $("#address-city-input").val(city);
@@ -324,7 +324,7 @@
          * Vezme data z editoru adres a uloží je do tabulky (a do editedData).
          */
         let saveAddressEditor = function () {
-            let id = $("#address-row-id").val();
+            let user = $("#address-row-id").val();
             let field = $("#address-column-field").val();
 
             let street = $("#address-street-input").val();
@@ -332,7 +332,7 @@
             let state = $("#address-state-input").val();
             let zip = $("#address-zip-input").val();
 
-            let row = table.getRow(id);
+            let row = table.getRow(user);
 
             let setValueIfChanged = function (f, val) {
                 let cell = row.getCell(`${field}.${f}`);
@@ -346,7 +346,7 @@
             setValueIfChanged("state", state);
             setValueIfChanged("zip", zip);
 
-            reformatAddressCell(id, field);
+            reformatAddressCell(user, field);
         };
 
         /**
@@ -569,7 +569,7 @@
          */
         let dblClickEmailValidated = function (e, cell) {
             let value = cell.getValue();
-            let user_id = cell.getRow().getIndex();
+            let user = cell.getRow().getIndex();
 
             if (value === "yes") setMessage("Není dostupná žádná akce");
             else if (value === "no" || value === "pending") {
@@ -595,12 +595,12 @@
                         },
                         callback: function (lobibox, type) {
                             if (type === "send_email") {
-                                sendValidationEmail(user_id);
+                                sendValidationEmail(user);
                             } else if (type === "set_validated") {
                                 setMessage("Ukládám");
 
-                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
-                                editedData[user_id]["email_validated"] = "yes";
+                                if (!editedData.hasOwnProperty(user)) editedData[user] = {};
+                                editedData[user]["email_validated"] = "yes";
 
                                 saveUsersEdits();
                             }
@@ -619,7 +619,7 @@
             selectable: 1,  // TODO změna z true, uklidit pozůstatky
             selectablePersistence: false,
             tooltipsHeader: true,
-            index: "_id",
+            index: "user",
             cellEdited: cellDataEdited,
             historyUndo: undoHappened,
             historyRedo: redoHappened,
@@ -644,14 +644,8 @@
                     validator: "string",
                 },
                 {
-                    title: "Celé jméno",
-                    field: "full_name",
-                    cellDblClick: uneditableMsg,
-                    headerTooltip: "Dočasný sloupec",
-                },
-                {
-                    title: "Přezdívka/ID",
-                    field: "_id",
+                    title: "Přihlašovací jméno",
+                    field: "user",
                     cellDblClick: uneditableMsg,
                 },
                 {
@@ -785,70 +779,6 @@
                     formatter: dateFormatter,
                 },
                 {
-                    title: "Typ smlouvy",
-                    field: "contract_type",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Konec platnosti smlouvy",
-                    field: "contract_expiration_date",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Je smlouva podepsaná?",
-                    field: "scan_signed_url",
-                    formatter: "tickCross",
-                    align: "center",
-                    cellDblClick: boolCellChangeValue,
-                },
-                {
-                    title: "Potvrzení o studiu",
-                    field: "certificate_of_study",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Prohlášení k dani",
-                    field: "tax_evasion",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Hodinová mzda",
-                    field: "hour_rate",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Odpracováno hodin za tento měsíc",
-                    field: "hours_worked_this_month",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Aktuální hrubá mzda",
-                    field: "actual_gross_wage",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Odpracováno hodin za minulý měsíc",
-                    field: "hours_worked_last_month",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Hrubá mzda za minulý měsíc",
-                    field: "last_months_gross_wage",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Nejbližší dovolená",
-                    field: "next_vacation",
-                    cellDblClick: uneditableMsg,
-                },
-                {
-                    title: "Měsíc uzavřen",
-                    field: "month_closed",
-                    formatter: "tickCross",
-                    align: "center",
-                    cellDblClick: uneditableMsg,
-                },
-                {
                     title: "Poznámky",
                     field: "notes",
                     editor: "input",
@@ -965,10 +895,10 @@
             },
             callback: function (lobibox, type) {
                 if (type === "ok") {
-                    let id = lobibox.getValue();
+                    let user = lobibox.getValue();
 
-                    newData.add(id);
-                    table.addData([{_id: id}], true);
+                    newData.add(user);
+                    table.addData([{user: user}], true);
                 }
             }
         });
