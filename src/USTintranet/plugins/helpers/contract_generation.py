@@ -17,7 +17,7 @@ ONE_LINE_LIMIT = 60
 FONT_DIR = os.path.join("static", "dejavu")
 
 
-def generate_contract(user_id, contract, company_name, company_address, company_crn):
+def generate_contract(user, contract, company_name, company_address, company_crn):
     name = contract.get("name", None)
     if not name:
         raise MissingInfoError("Chybí jméno uživatele.")
@@ -46,7 +46,7 @@ def generate_contract(user_id, contract, company_name, company_address, company_
         raise MissingInfoError("Problém se smlouvou.")
 
     output_path = f"static/tmp/" \
-                  f"{user_id}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
+                  f"{user}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
 
     pdf = fpdf.FPDF("P", "mm", "A4")
     pdf.add_font(FONT, '', os.path.join(FONT_DIR, 'DejaVuSerif.ttf'), uni=True)

@@ -78,14 +78,14 @@
 
     {% if token %}
     <input type="hidden" name="email" value="">
-    <input type="hidden" name="user_id" value="{{user_id}}">
+    <input type="hidden" name="user" value="{{user}}">
 
     {% else %}
     <label for="registration-email-input" class="sr-only">Email</label>
     <input type="text" id="registration-email-input" name="email" class="form-control" placeholder="Email"
            required autofocus>
-    <label for="registration-identifier" class="sr-only">Přezdívka</label>
-    <input type="text" id="registration-identifier" name="user_id" class="form-control" placeholder="Přezdívka"
+    <label for="registration-user-input" class="sr-only">Přihlašovací jméno</label>
+    <input type="text" id="registration-user-input" name="user" class="form-control" placeholder="Přihlašovací jméno"
            required>
     {% end %}
 
