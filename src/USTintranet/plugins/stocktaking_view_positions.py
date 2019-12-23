@@ -20,6 +20,7 @@ import sys
 sys.path.append("..")
 from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
 
+from plugins.helpers.warehouse import *
 
 def make_handlers(module, plugin):
         return [
@@ -100,6 +101,9 @@ class view_positions(BaseHandler):
         #     data[i]['cat_elements'] = cat_elements
         #     data[i]['cat_inventura'] = inventura
 
+    # Ziskej ID aktualni inventury
+        current_inventory = get_current_inventory(self.mdb)
+
     # ziskej aktualni sklad
         warehouse = self.get_warehouse()
 
@@ -118,6 +122,9 @@ class view_positions(BaseHandler):
         articles = self.mdb.stock.aggregate([])
 
         for article in articles:
+            #print('article:', article['name'])
+            article['warehouse_unit_price'] = update_article_price(self.mdb.stock, article['_id'])
+            article['has_inventory'] = has_article_inventory(article, current_inventory['_id']).get(warehouse['_id'], False)
             position = False
             for article_position in article.get('position', []):
                 if article_position['posid'] in positions_id:
@@ -139,5 +146,5 @@ class view_positions(BaseHandler):
 
 
 
-        self.render("stocktaking.view.positions.hbs", data=data, positions = positions)
+        self.render("stocktaking.view.positions.hbs", data=data, positions = positions, warehouse = warehouse, get_warehouse_count = get_warehouse_count)
         #self.write("TEST")

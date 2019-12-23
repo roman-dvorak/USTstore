@@ -27,7 +27,7 @@ def get_article_price(article):
 
 	history_records = article.get('history', [])[::-1]
 	for history in history_records:
-		if history['operation'] in ['buy', 'inventory']:
+		if history.get('operation', None) in ['buy', 'inventory']:
 			record_price = history.get('price', 0)
 			record_count = history['bilance']
 			if record_count > missing_count:
@@ -43,7 +43,7 @@ def get_article_price(article):
 	else:
 		warehouse_price = 0
 
-	print("Skladova cena polozky je:", warehouse_price, "pocet je", count)
+	#print("Skladova cena polozky je:", warehouse_price, "pocet je", count)
 	return warehouse_price
 
 
@@ -51,4 +51,27 @@ def update_article_price(db, article_id):
 	article = db.find_one({"_id": article_id})
 	price = get_article_price(article)
 	db.update({"_id": article_id}, {"$set":{"warehouse_unit_price": price}})
-	return True
+	return price
+
+
+def has_article_inventory(article, inventory_id, stocks = None):
+	out = {}
+	history_records = article.get('history', [])[::-1]
+	for history in history_records:
+		if history.get('operation', None) in ['inventory']:
+			if history.get('inventory', None) == inventory_id:
+				if 'stock' in history:
+					out[history['stock']] = True
+	return out
+
+def get_current_inventory(db):
+    current_id = db.intranet.find_one({'_id': 'stock_taking'})
+    current = list(db.stock_taking.find({'_id': current_id['current']}))[0]
+    return current
+
+
+
+
+def get_warehouse_count(article, warehouse_id):
+	count = article['overview'].get('stocks', {}).get(str(warehouse_id), {}).get('count', {'onstock': 0})['onstock']
+	return count

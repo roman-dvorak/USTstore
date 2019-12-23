@@ -70,9 +70,26 @@
 		{%for position in data %}
 			<h2>{{data[position]['name']}}</h2>
 				{{data[position]['info']}}<br>
+
+				<table style="width: 100%" class="table-sm">	
+				<th>Nazev</th>
+				<th>Pocet celkem</th>
+				<th>Pocet skladem</th>
+				<th>Nakupni cena za ks</th>
 				{%for article in data[position]['list'] %}
-					{{article}}<br>
-				{% end %}
+						<tr class="{%if article['has_inventory']%}bg-success{%end%}">
+							<td>
+                            	<a class="btn btn-outline-secondary material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="__blank__">open_in_new</a>
+                            	{{article['name']}}
+                            </td>
+							<td>{{article['overview']['count']['onstock']}}</td>
+							<td> {{get_warehouse_count(article, warehouse["_id"])}}</td>
+							<td>{{article['warehouse_unit_price']}} Czk/unit</td>
+							<td>{{article['has_inventory']}}</td>
+							<!-- <small>{{article}}</small><br> -->
+						</tr>
+					
+				{% end %}</table>
 			<hr>
 
 		{%end%}
