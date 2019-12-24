@@ -373,7 +373,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form name="upload-contract-scan-form" action="/users/api/u/{{user}}/contracts/scan"
+                <form name="upload-contract-scan-form" action="/users/api/u/{{_id}}/contracts/scan"
                       method="post" enctype="multipart/form-data">
                     <input type="hidden" id="contract-scan-id-input" name="_id">
 
@@ -405,7 +405,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form name="reupload-document-form" action="/users/api/u/{{user}}/documents/reupload"
+                <form name="reupload-document-form" action="/users/api/u/{{_id}}/documents/reupload"
                       method="post" enctype="multipart/form-data">
                     <input type="hidden" id="reupload-document-id-input" name="_id">
 
@@ -437,7 +437,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form name="document-editor-form" action="/users/api/u/{{user}}/documents"
+                <form name="document-editor-form" action="/users/api/u/{{_id}}/documents"
                       method="post" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="document-id-input" name="_id">
 
@@ -491,8 +491,8 @@
 
 <div class="container">
     <div class="page-title">
-        <h1>Karta uživatele: <a href="/users/u/{{user}}">{{name}}</a></h1>
-        <a href="/attendance/u/{{user}}" role="button" class="btn btn-outline-dark">Docházková karta</a>
+        <h1>Karta uživatele: <a href="/users/u/{{_id}}">{{name}}</a></h1>
+        <a href="/attendance/u/{{_id}}" role="button" class="btn btn-outline-dark">Docházková karta</a>
     </div>
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -1040,7 +1040,7 @@
         console.log(changes);
 
         $.ajax({
-            url: "/users/api/u/{{user}}/edit",
+            url: "/users/api/u/{{_id}}/edit",
             type: "post",
             data: JSON.stringify(changes),
             success: function (response) {
@@ -1093,7 +1093,7 @@
         data["assignment"] = $("#contract-assignment-input").val();
 
         $.ajax({
-            url: "/users/api/u/{{user}}/contracts",
+            url: "/users/api/u/{{_id}}/contracts",
             type: "post",
             data: JSON.stringify(data),
             success: function (responseJson) {
@@ -1112,7 +1112,7 @@
         let contractId = $("#contract-preview-modal-part input[name='_id']").val();
 
         $.ajax({
-            url: "/users/api/u/{{user}}/contracts/finalize",
+            url: "/users/api/u/{{_id}}/contracts/finalize",
             type: "post",
             data: contractId,
             success: function (response) {
@@ -1170,7 +1170,7 @@
         let id = $("#document-id-input").val();
 
         $.ajax({
-            url: "/users/api/u/{{user}}/documents/delete",
+            url: "/users/api/u/{{_id}}/documents/delete",
             type: "post",
             data: id,
             success: function (response) {
@@ -1247,7 +1247,7 @@
                     data["date"] = lb.getValue();
 
                     $.ajax({
-                        url: "/users/api/u/{{user}}/contracts/invalidate",
+                        url: "/users/api/u/{{_id}}/contracts/invalidate",
                         type: "post",
                         data: JSON.stringify(data),
                         success: function (response) {
@@ -1284,7 +1284,7 @@
                     data["date"] = lb.getValue();
 
                     $.ajax({
-                        url: "/users/api/u/{{user}}/documents/invalidate",
+                        url: "/users/api/u/{{_id}}/documents/invalidate",
                         type: "post",
                         data: JSON.stringify(data),
                         success: function (response) {

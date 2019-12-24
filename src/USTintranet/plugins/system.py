@@ -1,11 +1,14 @@
 import json
 
+from bson import ObjectId
+
 from plugins import BaseHandler, get_company_info, get_dpp_params
 
 
 def make_handlers(module, plugin):
     handlers = [
         (r'/{}/parameters'.format(module), plugin.ParametersHandler),
+        (r'/{}/api/objectid'.format(module), plugin.ApiObjectIdHandler),
         (r'/{}'.format(module), plugin.SystemHandler),
         (r'/{}/'.format(module), plugin.SystemHandler), ]
     return handlers
@@ -81,3 +84,9 @@ class ParametersHandler(BaseHandler):
                                          {"$set": dpp_params})
 
         self.redirect("/system/parameters")
+
+
+class ApiObjectIdHandler(BaseHandler):
+
+    def get(self):
+        self.write(str(ObjectId()))

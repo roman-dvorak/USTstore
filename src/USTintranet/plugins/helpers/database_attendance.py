@@ -3,28 +3,35 @@ from datetime import datetime
 import pymongo
 from bson import ObjectId
 
+from plugins.helpers.assertions import assert_isinstance
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_user_embedded_mdoc_by_id
 
 
-def add_user_workspan(database, user, workspan):
+def add_user_workspan(database, user_id: ObjectId, workspan):
+    assert_isinstance(user_id, ObjectId)
+
     workspan_id = str(ObjectId())
 
-    add_embedded_mdoc_to_mdoc_array(database.users, user, "workspans", workspan, workspan_id, filter_values=())
+    add_embedded_mdoc_to_mdoc_array(database.users, user_id, "workspans", workspan, workspan_id, filter_values=())
 
     return workspan_id
 
 
-def add_user_vacation(database, user, vacation):
+def add_user_vacation(database, user_id: ObjectId, vacation):
+    assert_isinstance(user_id, ObjectId)
+
     vacation_id = str(ObjectId())
 
-    add_embedded_mdoc_to_mdoc_array(database.users, user, "vacations", vacation, vacation_id)
+    add_embedded_mdoc_to_mdoc_array(database.users, user_id, "vacations", vacation, vacation_id)
 
     return vacation_id
 
 
-def get_user_workspans(database, user, from_date: datetime, to_date: datetime):
+def get_user_workspans(database, user_id: ObjectId, from_date: datetime, to_date: datetime):
+    assert_isinstance(user_id, ObjectId)
+
     cursor = database.users.aggregate([
-        {"$match": {"user": user}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$workspans"},
         {"$match": {
             "workspans.from": {
@@ -40,9 +47,11 @@ def get_user_workspans(database, user, from_date: datetime, to_date: datetime):
 
 
 def get_user_vacations(database,
-                       user: str,
+                       user_id: ObjectId,
                        earliest_end: datetime,
                        latest_end: datetime = None):
+    assert_isinstance(user_id, ObjectId)
+
     earliest_latest_dict = {
         "$gte": earliest_end
     }
@@ -50,7 +59,7 @@ def get_user_vacations(database,
         earliest_latest_dict["$lt"] = latest_end
 
     cursor = database.users.aggregate([
-        {"$match": {"user": user}},
+        {"$match": {"_id": user_id}},
         {"$unwind": "$vacations"},
         {"$match": {
             "vacations.to": earliest_latest_dict
@@ -62,19 +71,25 @@ def get_user_vacations(database,
     return next(cursor, {}).get("vacations", [])
 
 
-def get_user_vacation_by_id(database, user: str, vacation_id: str):
-    return get_user_embedded_mdoc_by_id(database, user, "vacations", vacation_id)
+def get_user_vacation_by_id(database, user_id: ObjectId, vacation_id: str):
+    assert_isinstance(user_id, ObjectId)
+
+    return get_user_embedded_mdoc_by_id(database, user_id, "vacations", vacation_id)
 
 
-def interrupt_user_vacation(database, user, vacation_id, new_end_date):
-    database.users.update_one({"user": user, "vacations._id": vacation_id},
+def interrupt_user_vacation(database, user_id: ObjectId, vacation_id, new_end_date):
+    assert_isinstance(user_id, ObjectId)
+
+    database.users.update_one({"_id": user_id, "vacations._id": vacation_id},
                               {"$set": {
                                   "vacations.$.to": new_end_date,
                               }})
 
 
-def delete_user_workspan(database, user, workspan_id):
-    database.users.update_one({"user": user},
+def delete_user_workspan(database, user_id: ObjectId, workspan_id):
+    assert_isinstance(user_id, ObjectId)
+
+    database.users.update_one({"_id": user_id},
                               {"$pull": {
                                   "workspans": {
                                       "_id": workspan_id

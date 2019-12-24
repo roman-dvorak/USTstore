@@ -15,10 +15,10 @@ def find_type_in_addresses(addresses: list, addr_type: str):
     return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
 
 
-def get_user_days_of_vacation_in_year(database, user: str, date: datetime):
+def get_user_days_of_vacation_in_year(database, user_id: str, date: datetime):
     start_of_year = date.replace(day=1, month=1)
     end_of_year = start_of_year + relativedelta(years=1) - relativedelta(days=1)
-    vacations = adb.get_user_vacations(database, user, start_of_year)
+    vacations = adb.get_user_vacations(database, user_id, start_of_year)
 
     days = 0
     for vacation in vacations:

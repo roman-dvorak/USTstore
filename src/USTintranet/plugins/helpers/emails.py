@@ -11,8 +11,8 @@ def send_email(message, options):
     s.send_message(message)
 
 
-def generate_validation_message(address, user, token, options):
-    link = f"{options['intranet_url']}/users/api/u/{user}/validateemail/{token}"
+def generate_validation_message(address, user_id, token, options):
+    link = f"{options['intranet_url']}/users/api/u/{user_id}/validateemail/{token}"
 
     msg = MIMEMultipart("alternative")
 
