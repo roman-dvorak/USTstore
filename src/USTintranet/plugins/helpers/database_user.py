@@ -97,7 +97,7 @@ def add_users(coll: pymongo.collection.Collection, users: list):
                     "type": "user",
                     "email_validated": "no",
                     } for user in users]
-    coll.insert_many(users)
+    coll.insert_many(users_dicts)
 
 
 def delete_user(coll: pymongo.collection.Collection, user: str):
