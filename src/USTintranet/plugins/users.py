@@ -71,6 +71,8 @@ class ApiAdminTableHandler(BaseHandler):
         data = udb.get_users(self.mdb.users)
 
         for item in data:
+            item["_id"] = str(item["_id"])
+
             if "name" in item and not isinstance(item["name"], dict):
                 item["full_name"] = item.pop("name")
 
@@ -79,7 +81,7 @@ class ApiAdminTableHandler(BaseHandler):
             if "birthdate" in item:
                 item["birthdate"] = item["birthdate"].replace(microsecond=0).isoformat()
 
-            item.pop("password", None)
+            item.pop("pass", None)
 
             if "role" in item:
                 item["role"] = ",".join(item["role"])
