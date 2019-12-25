@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pymongo
+from pymongo.errors import OperationFailure
 
 DB_NAME = "USTintranet"
 
@@ -9,7 +10,10 @@ def convert_users():
     database = pymongo.MongoClient()[DB_NAME]
 
     users_old: pymongo.collection.Collection = database.users
-    users_old.rename("users_old")
+    try:
+        users_old.rename("users_old")
+    except OperationFailure:
+        print("! Pozor, kolekce users_old již existuje, končím.")
     users_old = database.users_old
 
     users_new = database.users
@@ -18,6 +22,8 @@ def convert_users():
 
     for mdoc in users_old_mdocs:
         new_mdoc = {}
+
+        new_mdoc["_id"] = mdoc["_id"]
 
         if "created" in mdoc:
             new_mdoc["created"] = mdoc["created"]
@@ -48,6 +54,9 @@ def convert_users():
             new_mdoc["pass"] = mdoc["pass"]
 
         if "name" in mdoc:
+            if not isinstance(mdoc["name"], str):
+                print(f"! jméno uživatele s _id {mdoc['_id']} není string, přeskakuji")
+
             name_parts = mdoc["name"].split()
             if len(name_parts) == 2:
                 new_mdoc["name"] = {

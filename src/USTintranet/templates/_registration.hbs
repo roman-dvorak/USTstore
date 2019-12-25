@@ -75,10 +75,11 @@
     {%end%}
 
     <input type="hidden" name="token" id="registration-token" value="{{token or ''}}">
+    <input type="hidden" name="user_id" value="{{user_id}}">
 
     {% if token %}
     <input type="hidden" name="email" value="">
-    <input type="hidden" name="user" value="{{user}}">
+    <input type="hidden" name="user" value="">
 
     {% else %}
     <label for="registration-email-input" class="sr-only">Email</label>

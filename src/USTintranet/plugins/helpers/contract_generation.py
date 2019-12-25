@@ -2,7 +2,7 @@ import fpdf
 import os
 
 import plugins.helpers.str_ops as str_ops
-from plugins.helpers.exceptions import MissingInfoError
+from plugins.helpers.exceptions import MissingInfoHTTPError
 from plugins.helpers.mdoc_ops import find_type_in_addresses
 from plugins.helpers.doc_keys import NAME_DOC_KEYS
 
@@ -17,36 +17,36 @@ ONE_LINE_LIMIT = 60
 FONT_DIR = os.path.join("static", "dejavu")
 
 
-def generate_contract(user, contract, company_name, company_address, company_crn):
+def generate_contract(user_id, contract, company_name, company_address, company_crn):
     name = contract.get("name", None)
     if not name:
-        raise MissingInfoError("Chybí jméno uživatele.")
+        raise MissingInfoHTTPError("Chybí jméno uživatele.")
 
     birthdate = str_ops.date_to_str(contract.get("birthdate", None))
     if not birthdate:
-        raise MissingInfoError("Chybí datum narození.")
+        raise MissingInfoHTTPError("Chybí datum narození.")
 
     address = contract.get("address", None)
     if not address:
-        raise MissingInfoError("Chybí adresa trvalého bydliště.")
+        raise MissingInfoHTTPError("Chybí adresa trvalého bydliště.")
 
     assignment = contract.get("assignment", None)
     if not assignment:
-        raise MissingInfoError("Chybí pracovní náplň.")
+        raise MissingInfoHTTPError("Chybí pracovní náplň.")
 
     account_number = contract.get("account_number", None)
     if not account_number:
-        raise MissingInfoError("Chybí číslo účtu.")
+        raise MissingInfoHTTPError("Chybí číslo účtu.")
 
     valid_from = str_ops.date_to_str(contract["valid_from"])
     valid_until = str_ops.date_to_str(contract["valid_until"])
     hour_rate = contract["hour_rate"]
     signing_date = contract["signing_date"]
     if not all((valid_from, valid_until, hour_rate, signing_date)):
-        raise MissingInfoError("Problém se smlouvou.")
+        raise MissingInfoHTTPError("Problém se smlouvou.")
 
     output_path = f"static/tmp/" \
-                  f"{user}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
+                  f"{user_id}_{contract['type']}_{str_ops.date_to_iso_str(contract['signing_date'])}.pdf"
 
     pdf = fpdf.FPDF("P", "mm", "A4")
     pdf.add_font(FONT, '', os.path.join(FONT_DIR, 'DejaVuSerif.ttf'), uni=True)

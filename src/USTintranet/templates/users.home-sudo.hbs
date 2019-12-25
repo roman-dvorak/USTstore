@@ -56,7 +56,8 @@
     }
 </style>
 
-<div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog">
+<div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog"
+     data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -159,11 +160,11 @@
         })
     }
 
-    function sendValidationEmail(user) {
+    function sendValidationEmail(user_id) {
         setMessage("Posílám email");
 
         $.ajax({
-            url: `/users/api/u/${user}/validateemail`,
+            url: `/users/api/u/${user_id}/validateemail`,
             type: "post",
             data: "",
             success: function (response) {
@@ -239,7 +240,7 @@
          */
         let showAddressEditor = function (e, cell, field) {
             let data = cell.getData();
-            let user = cell.getRow().getIndex();
+            let id = cell.getRow().getIndex();
             let street = data[field]["street"];
             let city = data[field]["city"];
             let state = data[field]["state"];
@@ -247,7 +248,7 @@
 
             // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
             $("#address-column-field").val(field);
-            $("#address-row-id").val(user);
+            $("#address-row-id").val(id);
 
             $("#address-street-input").val(street);
             $("#address-city-input").val(city);
@@ -324,7 +325,7 @@
          * Vezme data z editoru adres a uloží je do tabulky (a do editedData).
          */
         let saveAddressEditor = function () {
-            let user = $("#address-row-id").val();
+            let id = $("#address-row-id").val();
             let field = $("#address-column-field").val();
 
             let street = $("#address-street-input").val();
@@ -332,7 +333,7 @@
             let state = $("#address-state-input").val();
             let zip = $("#address-zip-input").val();
 
-            let row = table.getRow(user);
+            let row = table.getRow(id);
 
             let setValueIfChanged = function (f, val) {
                 let cell = row.getCell(`${field}.${f}`);
@@ -346,7 +347,7 @@
             setValueIfChanged("state", state);
             setValueIfChanged("zip", zip);
 
-            reformatAddressCell(user, field);
+            reformatAddressCell(id, field);
         };
 
         /**
@@ -569,7 +570,7 @@
          */
         let dblClickEmailValidated = function (e, cell) {
             let value = cell.getValue();
-            let user = cell.getRow().getIndex();
+            let user_id = cell.getRow().getIndex();
 
             if (value === "yes") setMessage("Není dostupná žádná akce");
             else if (value === "no" || value === "pending") {
@@ -595,12 +596,12 @@
                         },
                         callback: function (lobibox, type) {
                             if (type === "send_email") {
-                                sendValidationEmail(user);
+                                sendValidationEmail(user_id);
                             } else if (type === "set_validated") {
                                 setMessage("Ukládám");
 
-                                if (!editedData.hasOwnProperty(user)) editedData[user] = {};
-                                editedData[user]["email_validated"] = "yes";
+                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
+                                editedData[user_id]["email_validated"] = "yes";
 
                                 saveUsersEdits();
                             }
@@ -619,7 +620,7 @@
             selectable: 1,  // TODO změna z true, uklidit pozůstatky
             selectablePersistence: false,
             tooltipsHeader: true,
-            index: "user",
+            index: "_id",
             cellEdited: cellDataEdited,
             historyUndo: undoHappened,
             historyRedo: redoHappened,
@@ -642,6 +643,11 @@
                     editable: false,
                     cellDblClick: dblClickStartEdit,
                     validator: "string",
+                },
+                {
+                    title: "ID",
+                    field: "_id",
+                    cellDblClick: uneditableMsg,
                 },
                 {
                     title: "Přihlašovací jméno",
@@ -884,7 +890,7 @@
      */
     function addUser() {
         Lobibox.prompt("text", {
-            "title": "Zadejte přezdívku",
+            "title": "Zadejte přihlašovací jméno",
             "buttons": {
                 ok: {
                     "text": "OK",
@@ -895,10 +901,23 @@
             },
             callback: function (lobibox, type) {
                 if (type === "ok") {
-                    let user = lobibox.getValue();
+                    let user_name = lobibox.getValue();
+                    if (user_name.trim() === "") return;
 
-                    newData.add(user);
-                    table.addData([{user: user}], true);
+                    $.ajax({
+                        url: "/system/api/objectid",
+                        type: "get",
+                        success: function (response) {
+                            console.log(response);
+                            let id = response;
+
+                            newData.add(id);
+                            table.addData([{_id: id}], true);
+                            let cell = table.getRow(id).getCell("user");
+                            cell.setValue(user_name);
+                        },
+                        error: ajaxError,
+                    });
                 }
             }
         });
