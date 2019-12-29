@@ -42,7 +42,8 @@ def generate_contract(user_id, contract, company_name, company_address, company_
     valid_until = str_ops.date_to_str(contract["valid_until"])
     hour_rate = contract["hour_rate"]
     signing_date = contract["signing_date"]
-    if not all((valid_from, valid_until, hour_rate, signing_date)):
+    signing_place = contract["signing_place"]
+    if not all((valid_from, valid_until, hour_rate, signing_date, signing_place)):
         raise MissingInfoHTTPError("Problém se smlouvou.")
 
     output_path = f"static/tmp/" \
@@ -158,7 +159,7 @@ def generate_contract(user_id, contract, company_name, company_address, company_
                                  "zaměstnanec a jedno zaměstnavatel.")
     pdf.ln(SPACE_SIZE)
 
-    pdf.cell(w=0, txt=f"V Praze, dne {str_ops.date_to_str(signing_date)}")
+    pdf.cell(w=0, txt=f"{signing_place}, dne {str_ops.date_to_str(signing_date)}")
     pdf.ln(SPACE_SIZE * 3)
 
     pdf.cell(w=124, txt="." * 50)
