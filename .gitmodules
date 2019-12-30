@@ -1,24 +1,24 @@
-[submodule "src/USTintranet/static/lobibox"]
-	path = src/USTintranet/static/lobibox
+[submodule "src/OpenIntranet/static/lobibox"]
+	path = src/OpenIntranet/static/lobibox
 	url = git@github.com:arboshiki/lobibox.git
-[submodule "src/USTintranet/static/jquery"]
-	path = src/USTintranet/static/jquery
+[submodule "src/OpenIntranet/static/jquery"]
+	path = src/OpenIntranet/static/jquery
 	url = git://github.com/jquery/jquery.git
-[submodule "src/USTintranet/static/select2"]
-	path = src/USTintranet/static/select2
+[submodule "src/OpenIntranet/static/select2"]
+	path = src/OpenIntranet/static/select2
 	url = git@github.com:select2/select2.git
-[submodule "src/USTintranet/static/tabulator"]
-	path = src/USTintranet/static/tabulator
+[submodule "src/OpenIntranet/static/tabulator"]
+	path = src/OpenIntranet/static/tabulator
 	url = git@github.com:olifolkerd/tabulator.git
-[submodule "src/USTintranet/static/material-design-icons"]
-	path = src/USTintranet/static/material-design-icons
+[submodule "src/OpenIntranet/static/material-design-icons"]
+	path = src/OpenIntranet/static/material-design-icons
 	url = http://github.com/google/material-design-icons/
-[submodule "src/USTintranet/static/InteractiveHtmlBom"]
-	path = src/USTintranet/static/InteractiveHtmlBom
+[submodule "src/OpenIntranet/static/InteractiveHtmlBom"]
+	path = src/OpenIntranet/static/InteractiveHtmlBom
 	url = git@github.com:roman-dvorak/InteractiveHtmlBom.git
-[submodule "src/USTintranet/static/js-cookie"]
-	path = src/USTintranet/static/js-cookie
+[submodule "src/OpenIntranet/static/js-cookie"]
+	path = src/OpenIntranet/static/js-cookie
 	url = git@github.com:js-cookie/js-cookie.git
-[submodule "src/USTintranet/static/bootstrap"]
-	path = src/USTintranet/static/bootstrap
+[submodule "src/OpenIntranet/static/bootstrap"]
+	path = src/OpenIntranet/static/bootstrap
 	url = git@github.com:twbs/bootstrap.git
