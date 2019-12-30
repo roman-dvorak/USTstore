@@ -31,6 +31,7 @@ tornado.options.define("mdb_pass", default=None, help="MongoDB passworld")
 
 tornado.options.define("intranet_name", default="OpenIntranet", help="Intranet name")
 tornado.options.define("intranet_url", default="www.OpenIntranet.eu", help="Intranet name")
+tornado.options.define("intranet_storage", default='/data/intranet', help="Folder for local files as logo, ...")
 
 tornado.options.define("company_name", default="Company name", help="Company name")
 tornado.options.define("company_graphic", default=None, help="Folder with company graphic.")
@@ -93,8 +94,10 @@ class WebApp(tornado.web.Application):
                 print("Exception in plugin %s: %s" % (mod_name, e))
 
         handlers += [
-            # staticke soubory je vhodne nahradit pristupem primo z proxy serveru. (pak to tolik nevytezuje tornado)
-            (r'/favicon.ico', tornado.web.StaticFileHandler, {'path': "/static/"}),
+            # staticke soubory je vhodne nahradit pristupem primo z proxy serveru. (pak to tolik nevytezuje tornado)            
+
+            (r'/favicon.png', tornado.web.StaticFileHandler, {'path':  tornado.options.options.intranet_storage}),
+            (r'/storage/(.*)', tornado.web.StaticFileHandler, {'path':  tornado.options.options.intranet_storage}),
             (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': 'static/'}),
             (r'/user', user),
             (r'/user/(.*)/', user),

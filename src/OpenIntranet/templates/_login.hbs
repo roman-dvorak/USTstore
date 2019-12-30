@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>OpenIntranet Přihlášení</title>
-    <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/bootstrap/dist/css/bootstrap.min.css">
 
     <style media="screen">
         html,
@@ -66,7 +66,7 @@
 
 <form class="form-signin" action="/login" method="post">
     {% module xsrf_form_html() %}
-    <img class="mb-4" src="https://www.ust.cz/include/Logo_UST.png" alt="" height="72">
+    <img class="mb-4" src="/storage/logo.png" alt="" height="72">
     <h1 class="h3 mb-3 font-weight-normal">Přihlašte se, prosím</h1>
     {%if msg %}
     <div class="alert alert-danger" role="alert">{%raw msg %}</div>

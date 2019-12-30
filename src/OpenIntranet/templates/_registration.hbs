@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>OpenIntranet Registrace</title>
-    <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/bootstrap/dist/css/bootstrap.min.css">
 
     <style media="screen">
         html,
@@ -68,7 +68,7 @@
 
 <form class="form-signin" action="/registration" method="post">
     {% module xsrf_form_html() %}
-    <img class="mb-4" src="https://www.ust.cz/include/Logo_UST.png">
+    <img class="mb-4" src="/storage/logo.png">
     <h1 class="h3 mb-3 font-weight-normal">Registrace</h1>
     {%if msg %}
     <div class="alert alert-danger" role="alert">{%raw msg %}</div>
