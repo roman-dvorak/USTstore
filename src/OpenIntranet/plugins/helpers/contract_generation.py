@@ -129,15 +129,15 @@ def generate_contract(user_id, contract, company_name, company_address, company_
 
     pdf.multi_cell(w=0, h=5, txt="3. Zaměstnavatel se zavazuje vytvořit zaměstnanci přiměřené pracovní podmínky "
                                  "pro řádný a bezpečný výkon práce. Zaměstnavatel zaměstnance seznámil s předpisy "
-                                 "vztahujícími se na výkon jeho práce, zejména s přepisy vydanými k zajištění "
+                                 "vztahujícími se na výkon jeho práce, zejména s předpisy vydanými k zajištění "
                                  "bezpečnosti a ochrany při práci, jakož i s dalšími povinnostmi pracovníka "
                                  "a firmy, souvisejícími s uzavření této dohody v návaznosti na ustanovení "
                                  "§ 75 Zákoníku práce.")
     pdf.ln(MULTICELL_SPACE_SIZE)
 
     pdf.multi_cell(w=0, h=5, txt="4. Zaměstnavatel může odstoupit od dohody, jestliže pracovní úkol nebude proveden "
-                                 "ve sjednané lhůtě. Zaměstnanec může od dohody odstoupil, nemůže-li pracovní úkol "
-                                 "provést proto, že mu zaměstnavatel nevytvořil sjednané pracovní podmínky. "
+                                 "ve sjednané lhůtě. Zaměstnanec může od dohody odstoupit, nemůže-li pracovní úkol "
+                                 "provést protože mu zaměstnavatel nevytvořil sjednané pracovní podmínky. "
                                  "V takovém případě je zaměstnavatel povinen nahradit zaměstnanci škodu, která mu tím "
                                  "vznikla. Sjednanou odměnu může zaměstnavatel po projednání se zaměstnancem přiměřeně "
                                  "snížit, neodpovídá-li provedená práce sjednaným podmínkám (nedodržení termínu, "
@@ -146,7 +146,7 @@ def generate_contract(user_id, contract, company_name, company_address, company_
 
     pdf.multi_cell(w=0, h=5, txt="5. Zaměstnanec se zavazuje neposkytovat třetím osobám informace, které získal "
                                  "při výkonu práce pro firmu a které by mohly poškodit její obchodní zájmy. "
-                                 "Tyto informace nebude rovněž zneužívat v  neprospěch firmy. Porušení tohoto "
+                                 "Tyto informace nebude rovněž zneužívat v neprospěch firmy. Porušení tohoto "
                                  "ustanovení je důvodem k okamžitému zrušení dohody, přičemž si firma vyhrazuje právo "
                                  "vymáhat náhradu vzniklé škody.")
     pdf.ln(MULTICELL_SPACE_SIZE)
