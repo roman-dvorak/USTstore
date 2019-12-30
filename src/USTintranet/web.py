@@ -32,6 +32,9 @@ tornado.options.define("mdb_pass", default=None, help="MongoDB passworld")
 tornado.options.define("intranet_name", default="OpenIntranet", help="Intranet name")
 tornado.options.define("intranet_url", default="www.OpenIntranet.eu", help="Intranet name")
 
+tornado.options.define("company_name", default="Company name", help="Company name")
+tornado.options.define("company_graphic", default=None, help="Folder with company graphic.")
+
 tornado.options.define("email_address", default="")
 tornado.options.define("email_password", default="")
 tornado.options.define("email_smtp_host", default="")

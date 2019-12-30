@@ -243,6 +243,14 @@ class BaseHandler(tornado.web.RequestHandler):
             b = len(symbols)
         return ((num == 0) and symbols[0]) or (self.base(num // b, symbols, b).lstrip(symbols[0]) + symbols[num % b])
 
+    def get_template_namespace(self):
+        ns = super(BaseHandler, self).get_template_namespace()
+        ns.update({
+            'intranet_title': tornado.options.options.intranet_name,
+        })
+
+        return ns
+
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code', 1)]))
 
