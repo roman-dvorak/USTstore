@@ -1,0 +1,63 @@
+{% extends "base.hbs" %}
+{% block title %} | Adresář{%end%}
+{% block body %}
+
+<div class="container-fluid h-100">
+<div class="row h-100">
+  
+  <div class="col-3">
+    <div class="card">
+      <div class="card-body">
+
+      <div class="form-group">
+        <label>Typ štíktu</label>
+        <select class="form-control" id="label_type">
+          <option value="a4_3_8">A4 3x8 (aa x bb mm)</option>
+        </select>
+      </div>
+
+
+      <div class="form-group">
+        <label>Přeskočit počet štítků</label>
+        <input type="number" class="form-control" id="skip_labels" value="0">
+        <small class="form-text text-muted">Kolik prázdných štítků vynechat.</small>
+      </div>
+
+      <div class="form-group">
+        <button id="generate" onclick="generate_labels()">Vygenerovat</button>
+      </div>
+
+  </div>
+</div>
+</div>
+
+
+  <div class="col-9 h-100">
+    <div class="col-9 h-100 w-100">
+      <object data="" type="application/pdf" id="pdf_viewer" style="width: 100%;" class="h-100 w-100">
+          Zatim neni nic k zobrazeni
+      </object>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script type="text/javascript">
+  
+  function generate_labels(){
+    $.ajax({
+      type: "POST",
+      url: '/printer/generate_label?task={{print_task}}',
+      data: {'skip': $('#skip_labels').val()},
+      success: function(data, status){
+        $( "#pdf_viewer" ).attr("data", data);
+      }
+    });
+  }
+
+</script>
+
+
+
+{% end %}{# block body#}
