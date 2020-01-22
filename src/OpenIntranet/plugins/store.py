@@ -34,6 +34,12 @@ def make_handlers(module, plugin):
              (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
              (r'/{}/api/get_positions/list/'.format(module), plugin.api_positions_list),
              (r'/{}/api/set_positions/update/'.format(module), plugin.api_update_position),
+             (r'/{}/api/set_positions/move/'.format(module), plugin.api_move_position),
+
+             (r'/{}/api/get_categories/list/'.format(module), plugin.api_categories_list),
+             (r'/{}/api/set_categories/move/'.format(module), plugin.api_move_category),
+             (r'/{}/api/set_categories/update/'.format(module), plugin.api_update_category),
+
              (r'/%s/newprint' %module, plugin.newprint),
              (r'/%s/api/(.*)/' %module, plugin.api),
              (r'/{}/operation/(.*)/'.format(module), plugin.operation)
@@ -42,7 +48,7 @@ def make_handlers(module, plugin):
 def plug_info():
     return{
         "module": "store",
-        "name": "Správce skladu",
+        "name": "Sklad",
         "icon": 'icon_sklad.svg',
         "role": ['store-access', 'store-sudo', 'sudo', 'store-manager']
     }
@@ -261,22 +267,128 @@ class api_positions_list(BaseHandler):
         oid = bson.ObjectId(self.get_cookie("warehouse", None))
         self.set_header('Content-Type', 'application/json')
         print(oid)
+        jstree = bool(self.get_argument('jstree', False))
+        print("jstree", jstree, bool(jstree))
 
         dbcursor = self.warehouse_get_positions(oid)
         dout = list(dbcursor)
         output = bson.json_util.dumps(dout)
+
+        if jstree:
+            new = []
+            for i, out in enumerate(dout):
+                pos = {}
+                pos['_id'] = str(out['_id'])
+                pos['id'] = str(out['_id'])
+                #pos['id'] = out['name']
+                pos['text'] = out['name'] + " <small>({})</small>".format(out['text'])
+                pos['parent'] = "#"
+                pos['li_attr'] = {"name": out['name'], 'text': out['text']}
+                if len(out['name'].split('/')) > 1:
+                    pos['parent'] = '/'.join(out['name'].split('/')[:1])
+                pos['parent'] = str(out.get('parent', '#'))
+                new.append(pos)
+            output = bson.json_util.dumps(new)
+            print(output)
+
         self.write(output)
+
+
+# list of all categories
+class api_categories_list(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+    def post(self):
+        self.set_header('Content-Type', 'application/json')
+        jstree = bool(self.get_argument('jstree', False))
+
+        dout = list(self.mdb.category.find({}))
+        if jstree:
+            new = []
+            for i, out in enumerate(dout):
+                pos = {}
+                pos['_id'] = str(out['_id'])
+                pos['id'] = str(out['_id'])
+                pos['text'] = "{} <small>({})</small>".format(out['name'], out['description'])
+                pos['li_attr'] = {"name": out['name'], 'text': out['description']}
+                pos['parent'] = str(out.get('parent', '#'))
+                new.append(pos)
+            output = bson.json_util.dumps(new)
+
+        else:
+            output = list(self.mdb.category.find({}))
+
+        self.write(output)
+
+class api_move_category(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+    def post(self):
+        parent = self.get_argument('parent', '#')
+
+        if parent == '':
+            print("CHYBA neni nastaven rodic")
+            parent = '#'
+        if parent is not '#': parent = bson.ObjectId(parent.split('_')[0])
+        print("new parent", parent)
+        print("Object", self.get_argument("id", None))
+
+
+        data = {'$set': {'parent': parent} }
+        self.mdb.category.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        self.write("OK")
+
+class api_move_position(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+    def post(self):
+        parent = self.get_argument('parent', '#')
+
+        if parent == '':
+            print("CHYBA neni nastaven rodic")
+            parent = '#'
+        if parent is not '#': parent = bson.ObjectId(parent.split('_')[0])
+        print("new parent", parent)
+        print("Object", self.get_argument("id", None))
+
+
+        data = {'$set': {'parent': parent} }
+        self.mdb.store_positions.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        self.write("OK")
 
 class api_update_position(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
-        data = {'_id': bson.ObjectId(self.get_argument("id", None)),
-                'name': self.get_argument('name', 'not_set'),
+        cid = self.get_argument("id", None)
+        if cid == 'new':
+            cid = bson.ObjectId()
+        else:
+            cid = bson.ObjectId(cid)
+
+        data = {'_id': cid,
+                'name': self.get_argument('name'),
                 'text': self.get_argument('text', 'not_set'),
+                'parent': self.get_argument('parent', '#'),
+                'position': '#',
                 'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
 
         self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
         self.write("OK")
+
+class api_update_category(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+    def post(self):
+        cid = self.get_argument("id", None)
+        if cid == 'new':
+            cid = bson.ObjectId()
+        else:
+            cid = bson.ObjectId(cid)
+
+        data = {'_id': cid,
+                'name': self.get_argument('name'),
+                'description': self.get_argument('description', ''),
+                'parent': self.get_argument('parent', '#')}
+
+        self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
+        self.write("OK")
+
 
 class api(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
@@ -435,7 +547,28 @@ class api(BaseHandler):
             dout = {'done': True}
 
         elif data == 'get_categories':
-            dout = list(self.mdb.category.find({}))
+
+            jstree = bool(self.get_argument('jstree', False))
+            print("jstree", jstree, bool(jstree))
+
+            if jstree:
+                dbcursor = self.warehouse_get_positions(oid)
+                dout = list(dbcursor)
+                output = bson.json_util.dumps(dout)
+
+                new = []
+                for i, out in enumerate(dout):
+                    pos = {}
+                    pos['_id'] = str(out['_id'])
+                    pos['id'] = str(out['_id'])
+                    pos['text'] = out['name'] + " <small>({})</small>".format(out['description'])
+                    pos['li_attr'] = {"name": out['name'], 'description': out['description']}
+                    pos['parent'] = str(out.get('parent', '#'))
+                    new.append(pos)
+                dout = bson.json_util.dumps(new)
+
+            else:
+                dout = list(self.mdb.category.find({}))
 
         elif data == 'get_warehouses':
             dout = self.get_warehouseses()
@@ -525,7 +658,7 @@ class hand_bi_home(BaseHandler):
     role_module = ['store-access', 'store-sudo', 'store-manager']
     def get(self, data=None):
         cat = list(self.mdb.category.find({}))
-        cat = sorted(cat, key = lambda x: x['path']+x['name'])
+        cat = sorted(cat, key = lambda x: x.get('path', '/')+x['name'])
         permis = self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
         if permis:
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)

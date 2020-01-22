@@ -47,6 +47,9 @@
 
     <link href="/static/material-design-icons/iconfont/material-icons.css" rel="stylesheet">
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+
 
       <script type="text/javascript" src="/static/cart_tools.js"></script>
       <script type="text/javascript" src="/static/base.js"></script>
@@ -99,7 +102,7 @@
 	{%block head %}{%end%}
 
 </head>
-<body data-gr-c-s-loaded="true">
+<body data-gr-c-s-loaded="true" class="h-100">
 {% block top-nav %}
 <nav class="top_nav_base navbar navbar-toggleable-md navbar-inverse fixed-top bg-inverse">
   <a href="/"><img src="/storage/logo.png" alt="Logo" style="height:4em;"></a>
@@ -112,7 +115,7 @@
 </nav>
 {% end %}
 
-<div id="body">
+<div id="body" class="h-100">
 {% block body %} No content {%end%}
 </div>
 

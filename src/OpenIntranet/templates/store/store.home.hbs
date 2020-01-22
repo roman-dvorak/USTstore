@@ -110,15 +110,7 @@
 		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
 		</div>
 
-  {#
-  <div class="col-12 row form-group" style="margin: 0pt;">
-    <label class="col-12">Sklad</label>
-            <label class="col-2">PHA01 <small id="bilance_count_pha01_old"></small></label>
-        <input type="number" onchange="update_product('stock_bilance', this, 'pha01')" onkeypress="call_change(event, this)" class="stock_bilance_count col-4 form-control" id="bilance_count_pha01" value="0" step$
-        <label class="col-2">SOB01 <small id="bilance_count_sob01_old"></small>
-        <input type="number" onchange="update_product('stock_bilance', this, 'sob01')" class="stock_bilance_count col-4 form-control" id="bilance_count_sob01" value="0" step="1">
-  </div>
-  #}
+
 
 		  <div class="form-group">
 		    <label for="exampleFormControlTextarea1">Popis</label>
@@ -132,7 +124,7 @@
     <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
   	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
 		{% for cat in category %}
-			<option value="{{cat['name']}}"><b>{{cat['name_cs']}}</b> - <small>{{cat['path']}}{{cat['name']}}</small></option>
+			<option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
 		{% end %}
 	</select></div>
   </div>
@@ -275,14 +267,14 @@
         {% set last = {'path': "/", 'name':""} %}
         <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
         {% for cat in category %}
-          {% if (cat['path']+cat['name']).split('/')[1] != (last['path']+last['name']).split('/')[1]%}
+          {% if (cat.get('path', '/')+cat['name']).split('/')[1] != (last.get('path', '/')+last['name']).split('/')[1]%}
             </div>
             <div class="col cat_top">
           {% end %}
-          {# {{cat['path'].split('/')}}{{cat}}<br> #}
-           <a onclick="console.log('{{cat['path']}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
+          {# {{cat.get('path', '/').split('/')}}{{cat}}<br> #}
+           <a onclick="console.log('{{cat.get('path', '/')}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
              <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
-             {{cat['name_cs']}}
+             {{cat['name']}}
            </a>
           {% set last = cat%}
         {% end %}
@@ -474,8 +466,8 @@
 				for (var i = data.length - 1; i >= 0; i--) {
 					console.log(data[i]);
           document.getElementById('mcat_param_list').innerHTML += "<span onclick=\"mcat_load_existing('"+data[i]['name']+
-                                    "', '"+data[i]['name_cs']+"', '"+data[i]['description']+"', '"+data[i]['path']+"')\">" + "<i class='material-icons'>edit</i>" + "</span>"
-          document.getElementById('mcat_param_list').innerHTML +=  data[i]['path'] +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name_cs'] + "</small><br>";
+                                    "', '"+data[i]['name']+"', '"+data[i]['description']+"', '"+data[i].get('path', '/')+"')\">" + "<i class='material-icons'>edit</i>" + "</span>"
+          document.getElementById('mcat_param_list').innerHTML +=  data[i].get('path', '/') +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name'] + "</small><br>";
 				}
 			},
 			error: function( jqXhr, textStatus, errorThrown ){
