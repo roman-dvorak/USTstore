@@ -108,7 +108,7 @@ def perm_validator(method, permissions=[], sudo=True):
 
 
 def database_init():
-    print(options.as_dict())
+    #print(options.as_dict())
     return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[
         tornado.options.options.mdb_database]
 
@@ -210,11 +210,8 @@ class BaseHandler(tornado.web.RequestHandler):
         if login:
             login = str(login, encoding="utf-8")
         
-        print("cookies", login)
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
-        print("DB", user_db)
-
         self.company_info = get_company_info(self.mdb)
         self.dpp_params = get_dpp_params(self.mdb)
 
@@ -554,7 +551,7 @@ class BaseHandler(tornado.web.RequestHandler):
         if not login:
             return None
         login = str(login, encoding="utf-8")
-        print(login)
+        #print(login)
         user_db = self.mdb.users.find_one({'user': login})
 
         if not user_db:
@@ -567,7 +564,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return user_db
 
     def authorized(self, required=[], sudo=True):
-        print("Authorized.....", required)
+       # print("Authorized.....", required)
         if self.get_current_user():
             if sudo:
                 required = required + ['sudo']
