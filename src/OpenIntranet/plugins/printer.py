@@ -83,7 +83,10 @@ class generate_label(BaseHandler):
             pdf.add_page()
             page = 0
 
+            warehouse_name = self.get_warehouse().get('name', "Neni nastaven")
+
             for i, position in enumerate(items):
+                pdf.set_text_color(0)
                 
                 ir = i + skip
                 ip = ir%(3*8)
@@ -98,35 +101,36 @@ class generate_label(BaseHandler):
                 x0 = 70*cell
                 y0 = 37.125*row
 
-                pdf.set_draw_color(0, 80, 180)
-                pdf.set_fill_color(230, 230, 0)
+                #pdf.set_draw_color(231, 221, 25)
+                pdf.set_fill_color(231, 121, 25)
                 pdf.set_xy(x0, y0+2)
-                pdf.rect(x0, y0, w=5, h=37-4, style = 'F')
+                pdf.rect(x0, y0+9.5, w=70, h=8.5, style = 'F')
 
                 pdf.set_font('pt_sans-bold', '', 14)
-                pdf.set_xy(x0, y0+5)
-                pdf.cell(70, 0, position['name'], align = 'C')
+                pdf.set_xy(x0, y0+6.5)
+                pdf.cell(70, 0, position['name'][:25], align = 'C')
 
-                pdf.set_font('pt_sans', '', 12)
-                pdf.set_xy(x0, y0+11)
-                pdf.cell(70, 0, position['text'])
+                pdf.set_font('pt_sans', '', 11)
+                pdf.set_xy(x0+2, y0+10.5)
+                pdf.multi_cell(70-4, 3, position['text'], align='L')
 
+                pdf.set_text_color(100)
                 pdf.set_font('pt_sans', '', 8)
-                pdf.set_xy(x0+1, y0+2)
-                pdf.cell(70, 0, "Pozice")
+                pdf.set_xy(x0+2, y0+2.5)
+                pdf.cell(70, 0, "Pozice: {}".format(warehouse_name))
 
                 id = str(position['_id'])
                 barcode = "pos"+str(int(id, 16))
                 code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
-                pdf.set_xy(x0, y0+18)
-                pdf.image('static/tmp/barcode/%s.png'%(id), w = 70, h=9)
+                pdf.set_xy(x0+1, y0+18)
+                pdf.image('static/tmp/barcode/%s.png'%(id), w = 70-2, h=9)
 
                 pdf.set_font('pt_sans', '', 8)
                 pdf.set_xy(x0, y0+29)
                 pdf.cell(70, 0, barcode, align = 'C')
 
                 pdf.set_font('pt_sans', '', 6)
-                pdf.set_xy(x0, y0+31.5)
+                pdf.set_xy(x0+2, y0+31.5)
                 pdf.cell(70, 0, "Generovano {}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M")))
             
 
@@ -134,6 +138,8 @@ class generate_label(BaseHandler):
 
             gen_time = datetime.datetime(2018, 10, 1)
             lastOid = ObjectId.from_datetime(gen_time)
+
+            print(self.get_warehouse())
 
             self.write('/static/tmp/{}.pdf'.format(task))
 

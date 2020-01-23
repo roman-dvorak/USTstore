@@ -22,7 +22,14 @@
 <div class="col-lg-3 col-sm-6">
     <div class="card" style="overflow: hidden">
       <div class="card-body" style="overflow: hidden;">
-        <div class="card-title"><h5>Nastavení pozic</h5>  <a href="#" class="badge badge-secondary" onclick="new_position()">New</a> <a href="#" class="badge badge-info" onclick="do_print()">Print</a> <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('open_all')">Rozbalit vše</a> <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('close_all')">Sbalit vše</a></div>
+        <div class="card-title">
+          <h5>Nastavení pozic</h5>
+          <a href="#" class="badge badge-secondary" onclick="new_position()">New</a>
+          <a href="#" class="badge badge-info" onclick="do_print()">Print</a>
+          <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('open_all')">Rozbalit vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('close_all')">Sbalit vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('select_all')">Vybrat vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('deselect_all')">Odznačit vše</a></div>
       </div>
       <div id="positions-tree"></div>
     </div>
@@ -32,7 +39,13 @@
 <div class="col-lg-3 col-sm-6">
     <div class="card" style="overflow: hidden">
       <div class="card-body" style="overflow: hidden;">
-        <div class="card-title"><h5>Kategorie skladových položek (jeste nefunguje)</h5>  <a href="#" class="badge badge-secondary" onclick="new_category()">New</a> <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('open_all')">Rozbalit vše</a> <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('close_all')">Sbalit vše</a></div>
+        <div class="card-title">
+          <h5>Kategorie skladových položek</h5>
+          <a href="#" class="badge badge-secondary" onclick="new_category()">New</a>
+          <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('open_all')">Rozbalit vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('close_all')">Sbalit vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('select_all')">Vybrat vše</a>
+          <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('deselect_all')">Odznačit vše</a></div>
       </div>
       <div id="categories-tree"></div>
     </div>
