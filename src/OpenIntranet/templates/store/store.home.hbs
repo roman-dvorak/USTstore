@@ -74,8 +74,28 @@
 <div class="col-md-4 col-sm-12 col-12 bg-faded sidebar">
   <div>
 
+<div class="card">
+  <div class="card-body">
+
+    <div class="card-title">
+      <h5>Kategorie</h5> 
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
+    </div>
+    
+    <div id="category-tree">
+      
+    </div>
+
+  </div>
+</div>
+
+
 <div class="card" style="min-height: min-content;">
-<div class="card-body row">
+<div class="card-body">
+<div class="row">
     <div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
     <div style="width: 100%;" id="selected-tags" class="pl-3 pb-2 pr-3"></div>
 
@@ -162,6 +182,7 @@
     <div id="supplier_list" style="width: 100%;">
     </div>
   </div>
+</div>
 </div>
 
 
@@ -383,6 +404,49 @@
   </div>
 </div>
 
+
+<script type="text/javascript">
+  
+
+$('#category-tree').jstree({
+'core' : {
+  'data' : {
+    'type': "POST",
+    'url' : "/store/api/get_categories/list/?jstree=True"
+  },
+  "check_callback" : true
+},
+"plugins" : [
+  "checkbox",
+  //"contextmenu",
+  //"dnd",
+  "massload",
+  //"search",
+  "sort",
+  "state",
+  "types",
+  //"unique",
+],
+'dnd':{
+  'is_draggable': true,
+  'use_html5': true,
+},
+'checkbox':{
+  'whole_node': false,
+},
+'contextmenu':{
+  'items':{
+    'rename':{
+      'title': 'Edit',
+      'label': 'Edit',
+      'action': function (node) { return edit_category(node, $(node)); }
+    }
+  }
+}
+});
+
+</script>
+
 <script type="text/javascript">
 
   function load_modal_operation(type, placeholder = null) {
@@ -550,28 +614,32 @@ function select_categories(what){
 }
 
 function active_categories(name = false){
-	if (name != false){
-	}else{
-		var list = []
-		var selected=$(".filter_cat:checked")
-		for (var i = selected.length - 1; i >= 0; i--) {
-			list.push(selected[i].name)
-		}
-		//console.log('selected', list)
-		return(list)
-	}
+	// if (name != false){
+	// }else{
+	// 	var list = []
+	// 	var selected=$(".filter_cat:checked")
+	// 	for (var i = selected.length - 1; i >= 0; i--) {
+	// 		list.push(selected[i].name)
+	// 	}
+	// 	//console.log('selected', list)
+ //    console.log("AKtivni kategorie", list);
+	// 	return(list)
+	// }
+  var list_of_categories = $('#category-tree').jstree('get_selected');
+  return list_of_categories;
 }
 
 function update_list(){
 	$('.product_list_loading').show();
 	$('.page_select_btn').hide();
 	$('#product_list').empty();
+  console.log("DATA:", active_categories());
 	$.ajax({
 	  type: "POST",
 	  url: "/store/api/products/",
 	  //contentType : 'application/json',
 	  data: {
-	  		'selected': active_categories(),
+	  		'categories': active_categories(),
 	  		'search': $("#filter-search").val(),
 	  		'polarity': $('#category_polarity').is( ":checked" ),
 	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),

@@ -119,7 +119,11 @@ class api_products_json(BaseHandler):
 
         polarity = '$nin' if (self.request.arguments.get('polarity', [b'true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
-        selected = (self.request.arguments.get('selected[]', []))
+        selected = (self.request.arguments.get('categories[]', []))
+        for i, cat in enumerate(selected):
+            print(cat.decode('UTF-8'))
+            selected[i] = bson.ObjectId(cat.decode('UTF-8'))
+        print("SEZNAM kategorie", selected)
         in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
@@ -158,7 +162,7 @@ class api_products_json(BaseHandler):
                                     {'name': { '$regex': search, '$options': 'ix'}},
                                     {'description': { '$regex': search, '$options': 'ix'}} ]}
                 },{
-                    "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+                    "$match": {'category': {polarity: selected}}
                 },{
                     '$addFields': {'count': { '$sum': '$history.bilance'}}
                 }]
@@ -193,7 +197,7 @@ class api_products_json(BaseHandler):
                     "$lookup":{
                         "from": "category",
                         "localField": "category",
-                        "foreignField": "name",
+                        "foreignField": "_id",
                         "as": "category"
                     }
                 },{
