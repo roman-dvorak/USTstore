@@ -104,34 +104,34 @@ class generate_label(BaseHandler):
                 #pdf.set_draw_color(231, 221, 25)
                 pdf.set_fill_color(231, 121, 25)
                 pdf.set_xy(x0, y0+2)
-                pdf.rect(x0, y0+9.5, w=70, h=8.5, style = 'F')
+                pdf.rect(x0, y0+10.5, w=70, h=8.4, style = 'F')
 
                 pdf.set_font('pt_sans-bold', '', 14)
                 pdf.set_xy(x0, y0+6.5)
                 pdf.cell(70, 0, position['name'][:25], align = 'C')
 
                 pdf.set_font('pt_sans', '', 11)
-                pdf.set_xy(x0+2, y0+10.5)
-                pdf.multi_cell(70-4, 3, position['text'], align='L')
+                pdf.set_xy(x0+3.5, y0+11.5)
+                pdf.multi_cell(70-4, 3.4, position['text'], align='L')
 
                 pdf.set_text_color(100)
-                pdf.set_font('pt_sans', '', 8)
-                pdf.set_xy(x0+2, y0+2.5)
-                pdf.cell(70, 0, "Pozice: {}".format(warehouse_name))
+                # pdf.set_font('pt_sans', '', 8)
+                # pdf.set_xy(x0+2, y0+2.5)
+                # pdf.cell(70, 0, "Pozice: {}".format(warehouse_name))
 
                 id = str(position['_id'])
                 barcode = "pos"+str(int(id, 16))
                 code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
-                pdf.set_xy(x0+1, y0+18)
-                pdf.image('static/tmp/barcode/%s.png'%(id), w = 70-2, h=9)
+                pdf.set_xy(x0+2.5, y0+19)
+                pdf.image('static/tmp/barcode/%s.png'%(id), w = 70-5, h=7)
 
-                pdf.set_font('pt_sans', '', 8)
-                pdf.set_xy(x0, y0+29)
+                pdf.set_font('pt_sans', '', 7)
+                pdf.set_xy(x0, y0+28)
                 pdf.cell(70, 0, barcode, align = 'C')
 
-                pdf.set_font('pt_sans', '', 6)
-                pdf.set_xy(x0+2, y0+31.5)
-                pdf.cell(70, 0, "Generovano {}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M")))
+                pdf.set_font('pt_sans', '', 7)
+                pdf.set_xy(x0+3.5, y0+31)
+                pdf.cell(70, 0, "{} | {}".format(warehouse_name, datetime.datetime.now().strftime("%d. %m. %Y, %H:%M")))
             
 
             pdf.output('static/tmp/{}.pdf'.format(task), 'F')

@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 <style type="text/css">
 
-	.product_list_element {
+/*	.product_list_element {
 		margin: 0pt;
 		padding: 5pt;
 	}
@@ -28,7 +28,7 @@
 		margin: 0pt;
 		display: inline-flex;
 	}
-
+*/
 	.table_input{
 		width: 8em;
 		background: #fafafa;
@@ -144,7 +144,7 @@
     <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
   	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
 		{% for cat in category %}
-			<option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
+			<option value="{{cat['_id']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
 		{% end %}
 	</select></div>
   </div>

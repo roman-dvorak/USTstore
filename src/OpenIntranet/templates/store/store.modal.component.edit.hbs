@@ -102,7 +102,7 @@
               <div class="input-group input-group-sm col-sm-9">
                 <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
                 {% for cat in category %}
-                    <option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
+                    <option value="{{cat['_id']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
                 {% end %}
                 </select>
 
