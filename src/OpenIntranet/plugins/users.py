@@ -18,7 +18,7 @@ from plugins.helpers.contract_generation import generate_contract
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
 from plugins.helpers.exceptions import BadInputHTTPError
-from plugins.helpers.mdoc_ops import find_type_in_addresses
+from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
 
@@ -165,6 +165,7 @@ class ApiAdminTableHandler(BaseHandler):
             matching_users_in_db = udb.get_users(self.mdb.users, user=fields["user"])
             if matching_users_in_db:
                 raise BadInputHTTPError("Uživatel s tímto přihlašovacím jménem již existuje.")
+
 
 class ApiEditUserHandler(BaseHandler):
 
@@ -450,6 +451,12 @@ class ApiUserFinalizeContractHandler(BaseHandler):
         user_id = ObjectId(user_id)
 
         contract_id = self.request.body.decode("utf-8")
+        contract = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
+
+        update_workspans_contract_id(self.mdb, user_id,
+                                     contract["valid_from"],
+                                     contract["valid_until"] + relativedelta(days=1),
+                                     contract_id)
 
         udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
 
@@ -467,6 +474,11 @@ class ApiUserInvalidateContractHandler(BaseHandler):
 
         if not (contract_mdoc["valid_from"] <= invalidation_date <= contract_mdoc["valid_until"]):
             raise BadInputHTTPError("Datum zneplatnění smlouvy musí spadat do období platnosti smlouvy.")
+
+        update_workspans_contract_id(self.mdb, user_id,
+                                     invalidation_date,
+                                     contract_mdoc["valid_until"] + relativedelta(days=1),
+                                     None)
 
         udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
