@@ -1,0 +1,231 @@
+{% extends "base.hbs" %}
+{% block title %} | Produkce, uvod{% end %}
+{% block body %}
+
+<style type="text/css">
+	
+.cat-title{
+	width: 100%;
+	border-bottom: 2pt black solid;
+	padding-top: 1em;
+	padding-left: 3em;
+	font-weight: 500;
+	font-size: 15pt;
+}
+
+.cat-level-0{
+	padding-left: 3em;
+}
+
+.cat-level-1{
+	padding-left: 5em;
+}
+
+.cat-level-2{
+	padding-left: 7em;
+}
+
+.cat-level-3{
+	padding-left: 9em;
+}
+
+.module-row{
+	border-bottom: 0.2pt lightgray solid;
+	padding-left: 0pt;
+	padding-right: 0pt;
+	margin-left: 0pt;
+	margin-right: 0pt;
+}
+
+.col{
+	text-align: right;
+}
+
+.row-header{
+	font-weight: 400;
+	font-size: 1.2em;
+}
+
+.done{
+	background: rgb(170, 220, 170);
+}
+
+.warning{
+	background: rgb(220, 170, 170);
+}
+
+.not-in-stock{
+}
+
+</style>
+
+<script type="text/javascript">
+	
+	function toggle_external(){
+
+		if($("#show_all").is(':checked')){
+			$('.not-in-stock').attr('style','');
+		}else{
+			$('.not-in-stock').attr('style','display:none !important');
+		}
+	}
+
+</script>
+
+<div>
+
+	<div class="card">
+		<div class="card-header">
+			Přehled skladu
+		</div>
+		<div class="card-body">
+			Zobrazit pouze aktuální sklad? <input type="checkbox" id="show_all" onchange="toggle_external()">
+			
+		</div>
+
+	</div>
+	
+	<div class="pl-table">
+	{% set sklad = {'cena': 0, 'polozek':0, 'kusu':0, 'bilance':0} %}
+
+	<div class="d-flex flex-row justify-content-between row module-row row-header">
+		<div class="col">Název</div>
+		<div class="col" style="">Počet položek</div>
+		<div class="col" style="">Počet kusů</div>
+		<div class="col" style="">Rozdíl ceny</div>
+		<div class="col" style="">Cena kategorie</div>
+	</div>
+	{% for cat in category %}
+		<div class="d-flex flex-row justify-content-between row module-row {% if cat['cat_sum'] == 0 %}text-muted{%end%} {%if cat['cat_inventura']%}done{%end%}">
+			<div class="col">{{cat['category']}}</div>
+			<div class="col" style="">{{"{:d} ks".format(len(cat['modules']))}}</div>
+			<div class="col" style="">{{"{:6,.2f} j".format(cat['cat_elements'])}}</div>
+			<div class="col" style="">{{"{:+6,.2f} Czk".format(cat['cat_sum_bilance'])}}</div>
+			<div class="col" style="">{{"{:6,.2f} Czk".format(cat['cat_sum'])}}</div>
+
+			{%set sklad['cena'] += cat['cat_sum'] %}
+			{%set sklad['polozek'] += len(cat['modules']) %}
+			{%set sklad['kusu'] += cat['cat_elements'] %}
+			{%set sklad['bilance'] += cat['cat_sum_bilance'] %}
+		</div>
+	{% end %}
+
+
+		<div class="d-flex flex-row justify-content-between row module-row big bg-warning">
+			<div class="col">CELKEM:</div>
+			<div class="col" style="">{{"{:d} ks".format(sklad['polozek'])}}</div>
+			<div class="col" style="">{{"{:6,.2f} j".format(sklad['kusu'])}}</div>
+			<div class="col" style="">{{"{:+6,.2f} Czk".format(sklad['bilance'])}}</div>
+			<div class="col" style="">{{"{:6,.2f} Czk".format(sklad['cena'])}}</div>
+		</div>
+		<div class="d-flex flex-row justify-content-between row module-row big bg-warning">
+			<div class="col">2018:</div>
+			<div class="col" style=""></div>
+			<div class="col" style=""></div>
+			<div class="col" style=""></div>
+			<div class="col" style="">{{"{:6,.2f} Czk".format(sklad['cena']-sklad['bilance'])}}</div>
+		</div>
+
+	</div>
+
+</div>
+<hr>
+
+<h2> Přehled kategorií </h2>
+<div>
+	
+	{% for cat in category %}
+		<div class="d-flex flex-row justify-content-between cat-title">
+			<div class="cat-level-{{cat['level']}}">{{cat['category']}}</div>
+			<div></div>
+			<div class="" style="margin-right: 1em;">{{"{:d}".format(len(cat['modules']))}} položek</div>
+			<div class="" style="margin-right: 1em;"><span class="text-muted small" >{{"({:+6.2f} Czk) ".format(cat['cat_sum_bilance'])}}</span>{{"{:6,.2f} Czk".format(cat['cat_sum'])}}</div>
+		</div>
+		<div class="pl-table">
+			<div class="d-flex flex-row justify-content-between row module-row {%if cat['cat_inventura']%}done{%end%}">
+				<div class="col">Název</div>
+				<div class="col">Počet záznamů</div>
+				<div class="col">Počet kusů</div>
+				<div class="col">Cena za ks</div>
+				<div class="col">Cena celkem</div>
+				<div class="col">{{  ', '.join([ warehouse['code'] for warehouse in warehouses ])}}</div>
+				<div class="col">Operace</div>
+			</div>
+
+		{% for module in cat['modules'] %}
+			<div class="{% if module['count'] == 0%}not-in-stock{%end%} d-flex flex-row justify-content-between row module-row {% if module['price_sum'] == 0 %}text-muted small{%end%} {%if cat['cat_inventura']%}done{%end%} {%if module['count'] and module['warehouse_unit_price'] == 0%}warning{%end%}">
+				<div class="col">{{module['name']}}</div>
+				<div class="col" style="">{{"{:d}".format(len(module.get('history', [])))}}</div>
+
+<!-- Pocty KS -->
+				<div class="col" style=""> <span class="text-muted small" >{% if module['count_all']%}{{"({:5.2f})".format(module['count_all'])}} {%else%}{%end%}</span>  {{"{:6.2f} j".format(module['count'])}}</div>
+<!-- Cena za ks -->
+				<div class="col" style="">{{"{:6.4f} Czk".format(module['warehouse_unit_price'])}}</div>
+				
+				<div class="col" style=""> <span class="text-muted small">{% if module['price_sum']%} {{"({:5.2f})".format(module['price_sum'])}} {%else%}{%end%}</span>  {{"{:6.2f} Czk".format(module['price_warehouse'])}}</div>
+				
+				
+				<div class="col" style="flex-grow: 0;">{%if module['inventory_2018'].get('count',None)%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+				<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+				<div class="col" style=""> 
+					{% if (not module['inventory']) and (module['count'] > 0) %}
+					<div class="input-group input-group-sm">
+					  	<input type="number" class="form-control" id="inventory_count_{{module['_id']}}" input-component="{{module['_id']}}" old={{module['count']}} value={{module['count']}}>
+					  	<div class="input-group-append" value="{{module['count']}}">
+					    	<button class="btn btn-outline-secondary" type="button" id="inventory_btn_{{module['_id']}}" component="{{module['_id']}}" onclick="doStockTaking(this)">Inv</button>
+					  	</div>
+					</div>
+					{% end %}
+				</div>
+			</div>
+			
+		{% end %}
+		</div>
+	{% end %}
+</div>
+
+
+<script type="text/javascript">
+	
+	function doStockTaking(e) {
+		console.log(e);
+		var id = $(e).attr('component');
+		var new_count = $('[input-component="'+id+'"]').val();
+		var old_count = $('[input-component="'+id+'"]').attr('old');
+
+		console.log(id, new_count, old_count, new_count-old_count);
+
+        $.ajax({
+          type: "POST",
+          url: "/stocktaking/save_item/",
+          data: {
+            '_id': id,
+            'description': "Rychla inventura z prehledu..",
+            'bilance': new_count - old_count,
+            'absolute': new_count
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {
+                title: 'Provedeno',
+                msg: 'U součástky <b>'+id+'</b> byla provedena inventura. <b>' + new_count +' ks</b>.',
+                delay: 3000
+            });
+            },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                title: 'Nebylo možné provést úpravu položky',
+                msg: 'U položky <b>'+id+'</b> nastal neznámý problém. Zkontrolujte log.',
+                delay: 3000
+            });
+          }
+        });
+
+
+	}
+
+
+</script>
+
+{% end %}{# body #}

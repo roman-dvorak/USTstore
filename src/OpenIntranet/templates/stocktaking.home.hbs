@@ -1,0 +1,670 @@
+{% extends "base.hbs" %}
+{% block title %} | Produkce, uvod{% end %}
+{% block body %}
+<script type="text/javascript">
+    item = null;
+    current_page = [];
+    list_page = 0;
+    var inventory = '{{stocktaking['_id']}}';
+</script>
+
+<style type="text/css">
+
+    .product_list_element {
+        margin: 0pt;
+        margin-top: 10pt;
+        padding: 5pt;
+    }
+
+    .product_list_element_table{
+        width: 100%;
+        background: white;
+        border: #aaa solid 1pt;
+        padding: 5pt;
+        margin: 0pt;
+        display: inline-flex;
+    }
+
+    .table_input{
+        width: 8em;
+        border: #ccc solid thin;
+        background: #fafafa;
+    }
+
+    .form-group {
+      margin-bottom: 0.5rem;
+    }
+
+
+  .cat_top{
+    flex: 0 0 auto;
+    width: 150pt;
+  }
+
+  #filter_block{
+    /* display: flex; */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0pt;
+  }
+
+.form-tab-td{
+  padding: 0px;
+}
+
+  .list_name{
+    padding-left: 0.5em;
+    vertical-align: top;
+  }
+
+
+</style>
+
+<script type = "text/javascript">
+   function WebSocketBarcode() {
+      if ("WebSocket" in window) {
+         var ws = new WebSocket("ws://localhost:8765/ws");
+         ws.onopen = function() {
+            console.log("opened...")
+         };
+
+         ws.onmessage = function (evt) {
+           console.log(evt);
+            var received_msg = evt.data;
+            var obj = JSON.parse(evt.data);
+            $('#sku_search').val(obj.code);
+            $('#sku_search').trigger('change');
+         };
+
+         ws.onclose = function() {
+            alert("Barcode reader is disconected....");
+         };
+      } else {
+         alert("WebSocket NOT supported by your Browser!");
+      }
+   }
+
+   WebSocketBarcode();
+</script>
+
+
+<div class="container-fluid">
+    <div class="row row-cols-1 row-cols-md-3">
+        <div class="col-6 col-md-12 col-lg-5">
+            <div class="card">
+
+                {% if stocktaking %}
+                <div class="card-header bg-success">
+                  Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
+                </div>
+                {% else %}
+                <div class="card-header bg-danger text-white">
+                  Není odemčená žádná kampaň inventury. Inventuru nelze nyní provádět. O její otevření požádejte správce inventur.
+                </div>
+                {% end %}
+                <div class="card-body row">
+
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">SKU</label>
+                        <div class="input-group col-sm-9">
+                          <input class="form-control" type="text" id="sku_search" onchange="reload_sku()">
+                          <div class="input-group-append">
+                            <button class="btn btn-outline-secondary material-icons" type="button" onclick="reload_sku()">refresh</button>
+                          </div>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group col-lg-12 col-md-6 form-group-sm"><div class="row">
+                        <label class="col-sm-3 col-form-label">_ID</label>    
+                        <div class="input-group col-sm-9">
+                          <input class="form-control" type="text" id="id_val" disabled>
+                          <div class="input-group-append">
+                            <a class="btn btn-outline-secondary material-icons" type="button" href="#" id="id_stock_link" target="__blank__">open_in_new</a>
+                          </div>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">Name</label>
+                        <div class="col-sm-9"><input class="form-control" type="text" id="all_search" disabled></div>
+                    </div></div>
+                    <div>
+
+                    </div>
+                    <div id="next_operation" class=" display-5 text-muted col-md-6">
+                        Načtěte další kód...
+                    </div>
+                    <div class="col-lg-12 col-md-6">
+                        <div class="col text-center align-middle display-4 shadow alert alert-success">
+                          <div class="old_val_text"> <span id="val_old">000.00</span> ks</div>
+                          <div class="old_val_spinner spinner-grow text-success" role="status" style="display: none;"><span class="sr-only">Loading...</span></div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-12 col-md-6">
+                        <div class="col alert" id='message'></div>
+                    </div>
+
+                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                        <label class="col-sm-3 col-form-label">Nový počet kusů</label>
+                        <div class="col-sm-9"><input class="form-control form-control-lg" type="number" name="count" id="new_count" autofocus></div>
+                    </div></div>
+
+
+                    <div class="col-lg-12 col-md-6">
+                      <div class="text-center align-middle display-4 shadow alert alert-warning"><div class="row">
+                          <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
+                          <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
+                      </div></div>
+                    </div>
+
+
+                    <div class="col-lg-12 col-md-6">
+                      <div class="text-center align-middle shadow alert alert-info"><div class="row">
+                          <div class="col text-center align-middle" id="holder_percent"><span id="val_unit_price">---</span> Czk/unit</div>
+                          <div class="col text-center align-middle" id="holder_delta"><span id="val_price">----</span> Czk</div>
+                      </div></div>
+                    </div>
+
+                    <div class="form-group col-lg-12 col-md-6">
+                        <label class="">Poznámka</label>
+                        <input class=" form-control form-control-sm" type="text" name="count" id="note" autofocus>
+                    </div>
+
+                    <div class="form-group col-lg-12 col-md-6">
+                        <label class="">Pozice</label>
+                        <div class="component_positions_list"></div>
+                    </div>
+
+
+                    <div class="form-group col-lg-12 col-md-6">
+                        <label class="">Pozice v ostatních skladech</label>
+                        <div class="component_positions_list_other"></div>
+                    </div>
+
+                    {% if stocktaking %}
+                    <div class="form-group col-lg-12 col-md-6">
+                        <button id="btn_send" class="col-6 btn btn-success form-control" disabled>Inventurovat</button>
+                    </div>
+                    {% end %}
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-7">
+            <div class="card">
+                <div class="card-body row">
+                    
+                    <div class="form-group row col-lg-12 col-md-6">
+                      <label class="col-sm-2 col-form-label">Pozice</label>
+                      <div class="col-sm-10"><select class="form-control" id="position_select">
+                        {%for place in places %} <option value="{{place['_id']}}">{{place['name']}} | {{place['text']}}</option>{%end%}
+                      </select></div>
+                    </div>
+
+                    <div class="form-group row col-lg-12 col-md-6">
+                      <label class="col-sm-2 col-form-label">Automaticky přidat</label>
+                      <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add" checked disabled></div>
+                    </div>
+
+              </div>
+            </div>
+
+          <div class="row">
+              <div class="col-6"><div class="card">
+                  <div class="card-header">Bez inventury</div>
+                  <div class="card-body">
+                    <div class="list_of_position_spinner spinner-grow text-success" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                    <div id="list_of_position_pending">
+                    </div>
+
+                  </div></div>
+              </div>
+              <div class="col-6"><div class="card">
+                  <div class="card-header">S inventurou</div>
+                  <div class="card-body">
+                    <div class="list_of_position_spinner spinner-grow text-success" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                    <div id="list_of_position_done">
+                    </div>
+
+                </div></div>
+              </div>
+          </div>
+
+        </div>
+        <div class="col-6 col-md-6 col-lg-7">
+
+            <div class="list-group" id="stocktaking_history">
+            </div>
+        </div>
+    </div>
+
+    <a href="/stocktaking/view/categories" class="btn btn-outline-primary">Přehled skladu podle kategorií</a>
+    <a href="/stocktaking/view/positions" class="btn btn-outline-primary">Přehled skladu podle pozic</a>
+    <a href="/stocktaking/events" class="btn btn-outline-primary">Úprava inventur</a>
+    <div class="bg-danger">
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    $("#sku_search").on("change", reload_sku());
+    function reload_sku(){
+        clear_form();
+        // Show loading icon
+        $(".old_val_spinner").show();
+        $(".old_val_text").hide();
+
+        $.ajax({
+          type: "POST",
+          url: "/stocktaking/get_item/",
+          data: {
+            '_id': $('#sku_search').val(),
+            'stocktaking_position': $('#position_select').val(),
+            'add_position': $('#position_add').is(':checked'),
+          },
+          success: function( data, textStatus, jQxhr ){
+            var first_time = true;
+            if(data.item != null){
+                item = data;
+                item['count'] = 0;
+                $("#next_operation").text(data.item.name);
+                //console.log("item", data.item);
+                $("#id_val").val(data.item._id.$oid);
+                $("#all_search").val(data.item.name);
+                $("#val_old").empty();
+
+               // console.log("Artikl:", data);
+                
+        // Zjisti, jestli uz to bylo inventurovane
+                for (rec_i in data.item.history){
+                  var history = data.item.history[rec_i];
+                  if (history.operation == 'inventory' && history.inventory != undefined){
+                    if(history.inventory.$oid == data.inventory._id.$oid && history.stock.$oid == data.warehouse._id.$oid){
+                      first_time = false;
+                    } 
+                  }
+                }
+
+                if (first_time == true){
+                  Lobibox.notify('success', {
+                      title: 'Načteno úšpěšně',
+                      delay: 1000
+                  });
+                }else{
+                  $("#message").addClass('bg-warning');
+                  $("#message").text("Inventura této položky již problěhla...");
+                  Lobibox.notify('warning', {
+                      title: 'Tato položka již byla inventurovaná..',
+                      msg: 'U položky <b>'+$('#sku_search').val()+'</b> inventura již problěhla.',
+                      delay: 3000
+                  });
+                }
+                
+                // Vytvoreni seznamu aktualnich pozic
+                $('.component_positions_list').empty();
+                $('.component_positions_list_other').empty();
+                var pos_text = "";
+                for (var i = 0; i < data.position.length; i++) {
+                    var pos = data.position[i];
+                    console.log(">", pos.info[0]);
+                    if (i>0) {
+                      pos_text += ', ';
+                    }
+                    pos_text += pos.info[0].name;
+
+
+                    var tag = "";
+                    tag += '<button type="button" class="btn btn-sm btn-outline-info mr-1">';
+                    tag += pos.info[0].name; //<span class="badge badge-light">9</span>
+                    //<span class="sr-only">unread messages</span>
+                    tag += '</button>'
+
+                    console.log("POROVNANI");
+                    console.log(pos.info[0]);
+                    console.log(data.warehouse);
+
+                    if(pos.info[0].warehouse.$oid == data.warehouse._id.$oid){
+                      $('.component_positions_list').append(tag);
+                    }else{
+                      $('.component_positions_list_other').append(tag);
+                    }
+
+                }
+                //$('#positions').val(pos_text);
+
+                try{
+                  $("#val_old").text(data.item.overview.stocks[data.warehouse._id.$oid].count.onstock);
+                }catch(e){
+                  $("#val_old").text(0);
+                }
+
+
+                $("#val_price").text(data.article_unit_price*$("#val_old").text());
+                $("#val_unit_price").text(data.article_unit_price);
+
+                // hide loader spinner
+                $(".old_val_spinner").hide();
+                $(".old_val_text").show();
+
+                $("#new_count").focus();
+
+
+                $("#id_stock_link").attr("href", "/store#"+data.item._id.$oid);
+
+            }else{
+                // pokud soucastka neni nalezena
+                clear_form()
+                $("#next_operation").text("Polozka nenalezena...");
+            }
+            console.log(data);
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+          }
+        });
+    };
+
+
+    function after_count_edit(){
+        try{
+          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+        }catch(e){
+          var old_val = 0;
+        }
+        if ($("#new_count").val() == ""){
+            $("#new_count").val(old_val);
+        }
+        //$("#val_percent").text(item.count / $("#new_count").val());
+        $("#val_delta").text($("#new_count").val() - old_val);
+        $("#btn_send").prop('disabled', false);
+        $("#btn_send").focus();
+    }
+
+    $('#new_count').on('keypress', (event)=> {
+        if(event.which === 13){after_count_edit();}
+    });
+
+    $("#new_count").on("change", function(){
+        after_count_edit();
+    });
+
+
+    // ulozit data o inventure...
+    $("#btn_send").on("click", function(){
+        $("#btn_send").prop('disabled', true);
+        $("#sku_search").focus();
+
+        try{
+          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+        }catch(e){
+          var old_val = 0;
+        }
+
+        $.ajax({
+          type: "POST",
+          url: "/stocktaking/save_item/",
+          data: {
+            '_id': $('#id_val').val(),
+            'description': $('#note').val(),
+            'bilance': $("#new_count").val() - old_val,
+            'absolute': $("#new_count").val()
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {
+                title: 'Provedeno',
+                msg: 'U součástky <b>'+$('#sku_search').val()+'</b> byla provedena inventura <b>' + $("#new_count").val() +' ks</b>.',
+                delay: 3000
+            });
+            add_history($("#sku_search").val(), $("#new_count").val(), 'success');
+            $("#sku_search").val("");
+            update_list_of_position();
+            },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                title: 'Nebylo možné provést úpravu položky',
+                msg: 'U položky <b>'+$('#sku_search').val()+'</b> nastal neznámý problém. Zkontrolujte log.',
+                delay: 3000
+            });
+            add_history($("#sku_search").val(), $("#new_count").val(), 'danger');
+            $("#sku_search").val("");
+            update_list_of_position();
+          }
+        });
+    });
+
+    function clear_form(){
+        item = null;
+        $("#val_old").text("---.--");
+        $("#next_operation").text("Načtěte další kód...");
+        $("#new_count").val(null);
+        $('#id_val').val();
+        $('#all_search').val();
+        //$("#btn_accept").prop('disabled', false);
+        $("#btn_send").prop('disabled', true);
+        $("#sku_search").focus();
+        $('#message').removeClass('bg-warning')
+        $('#message').empty();
+        $("#id_stock_link").attr("href", "#");
+        //$("#message").
+    }
+    clear_form();
+</script>
+
+<script type="text/javascript">
+  
+  $('#position_select').select2({
+  
+  });
+
+
+</script>
+
+
+
+<template id="products-template_table">
+    <div class="product_list_element product_list_element_table">
+
+        <span class="product_list-name" style="font-size: 1.2em font-weight: 300; width: 30em;"></span>
+        <small style="width: 30em;"><span class="category_name"></span></small>
+        <span style="width: calc(100%);">
+            <span class="product_list-description" style=""></span>
+            <span style="" class="stock_holder"></span>
+        </span>
+    </div>
+</template>
+
+<script type="text/javascript">
+
+    function update_view() {
+        console.log(current_page);
+
+        $('.product_list_loading').show();
+        $('.page_select_btn').hide();
+        $('#product_list').empty();
+        for (var i = 0; i < current_page.length; i++) {
+            var element = current_page[i];
+            //active_categories()
+            var tmpl = document.getElementById('products-template_table').content.cloneNode(true);
+            tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, ""));
+            tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <small>"+ element['_id']+"</small>";
+            //tmpl.querySelector('.product_list-select').value = element['_id'];
+            tmpl.querySelector('.product_list-description').innerText = element['description'];
+
+            try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
+            catch(err){ tmpl.querySelector('.category_name').innerText = "err";}
+
+            var name = ""+element['_id']+"";
+            tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id']+'")');
+            tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id']+'");');
+
+            if (element.tags){
+                for(tag in element.tags){
+                    console.log(element.tags[tag]);
+                    if (element.tags[tag].id == 'inventura2019'){
+                        tmpl.querySelector('.product_list_element').style.backgroundColor = 'lightgreen';
+                    } else {
+                        tmpl.querySelector('.product_list_element').style.backgroundColor = 'orange';
+                    }
+            }}
+
+            //if(current_detail == element['_id']){
+            //    tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
+            //}
+            document.getElementById('product_list').appendChild(tmpl);
+        }
+        //console.log(selected);
+        $('.product_list_loading').hide();
+        $('.page_select_btn').show();
+        $('.actual_list_page').html(list_page);
+
+
+    }
+
+    function update_list(){
+        $('.product_list_loading').show();
+        $('.page_select_btn').hide();
+        $('#product_list').empty();
+        $.ajax({
+          type: "POST",
+          url: "/store/api/products/",
+          //contentType : 'application/json',
+          data: {
+                //'selected': active_categories(),
+                'search': "",
+                'polarity': true,
+                'tag_polarity': true,
+                'tag_search': "",
+                'page': list_page
+          },
+          success: function( data, textStatus, jQxhr ){
+              console.log('/products/', data, textStatus);
+              current_page = data.data;
+              //update_view();
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+              console.log('ERR, /store/api/products/')
+              console.log( errorThrown );
+          }
+        });
+    }
+    //update_list();
+
+
+
+function add_history(name, count, status = null){
+  console.log(name, count, status);
+  
+  switch(status){
+    case 'success':
+      var background = 'lightgreen';
+      break;
+    case 'success':
+      var background = 'lightred';
+      break;
+    default:
+      var background = 'white'
+  }
+
+  html  = " <div class='list-group-item d-flex justify-content-between align-items-center' style='background:"+background+"'> <div>"
+  html += name + "</div><div>" + count + " ks </div></div>";
+
+  $('#stocktaking_history').prepend(html);
+}
+
+</script>
+
+
+<script type="text/javascript">
+  function do_stocktaking_by_id(id){
+    clear_form();
+    $('#sku_search').val(id);
+    reload_sku();
+  }
+</script>
+
+
+<script type="text/javascript">
+  
+  function update_list_of_position(){
+        console.log("Obnova seznamu pozic");
+        $(".list_of_position_spinner").show();
+        $('#list_of_position_pending').empty();
+        $('#list_of_position_done').empty();
+        $.ajax({
+          type: "GET",
+          url: "/store/api/items/by_position/",
+          //contentType : 'application/json',
+          data: {
+                //'selected': active_categories(),
+                'position': $('#position_select').val(),
+          },
+          success: function( data, textStatus, jQxhr ){
+              data = JSON.parse(data)
+
+              console.log('/products/', data, textStatus);
+              for (var i = 0; i < data.length; i++) {
+                  var x = data[i];
+                  //console.log(x);
+                  var first_time = true;
+
+                  for (rec_i in x.history){
+                    var rec = x.history[rec_i];
+                    if (rec.operation == 'inventory'){
+                      //console.log("inventura", rec);
+                      //console.log(x);
+                      if (rec.inventory != undefined && rec.inventory.$oid == inventory){
+                        first_time = false;
+                      } 
+                    }
+                  }
+
+
+                  if (first_time) {
+                    //console.log("poprve", x);
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    text += x.name + "</span></div>";
+                    $( "#list_of_position_pending" ).append( text );
+
+                  }else{
+                    //console.log("opakovane", x);
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    text += x.name + "</span></div>";
+                    $( "#list_of_position_done" ).append( text );
+                  }
+
+              }
+
+              $(".list_of_position_spinner").hide();
+              
+              //update_view();
+          },
+          error: function( jqXhr, textStatus, errorThrown ){
+              console.log('ERR, /store/api/products/')
+              console.log( errorThrown );
+          }
+        });
+
+
+
+  }
+
+  update_list_of_position();
+  $("#position_select").on('select2:select', function (e) {update_list_of_position(); });
+  
+
+</script>
+
+
+
+{% end %}

@@ -1,0 +1,1008 @@
+{% extends "../base.hbs" %}
+{% block title %}UST intranet | Home{%end%}
+{% block body %}
+{% set permis = parent.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']) %}
+
+<script type="text/javascript"  src="/static/store.js" charset="utf-8"></script>
+<script type="text/javascript"  src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+	var product_json;		// promena, ktera slouzi pro upravu JSONu polozky.. je globalni.
+  {% if permis %}var permis = 1; {%else%}var permis = 0; {%end%}
+	var current_page = [];
+	var selected = [];
+	var current_detail = 0; // aktualne zobrazeny produkt
+</script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+<style type="text/css">
+
+	.product_list_element {
+		margin: 0pt;
+		padding: 5pt;
+	}
+
+	.product_list_element_table{
+		width: 100%;
+		padding: 0pt;
+		margin: 0pt;
+		display: inline-flex;
+	}
+
+	.table_input{
+		width: 8em;
+		background: #fafafa;
+	}
+
+  .sidebar {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+    padding-left: 10pt;
+    padding-right: 10pt;
+  }
+  @media (min-width:768px) {
+    .sidebar {
+      position: fixed;
+      overflow-y: scroll;
+  	max-height: calc(100% - 80px);
+    }
+  }
+
+  .cat_top{
+    flex: 0 0 auto;
+    width: 150pt;
+  }
+
+  #filter_block{
+    /* display: flex; */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0pt;
+  }
+
+.form-tab-td{
+  padding: 0px;
+}
+
+</style>
+
+
+<div class="container-fluid" id="wrapper"><div class="row">
+
+
+<div class="col-md-4 col-sm-12 col-12 bg-faded sidebar">
+  <div>
+
+<div class="card" style="min-height: min-content;">
+<div class="card-body row">
+    <div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
+    <div style="width: 100%;" id="selected-tags" class="pl-3 pb-2 pr-3"></div>
+
+  	<div class="col-12">
+
+        <div class="form-group form-inline">
+            <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
+        </div>
+
+        <div class="form-group form-inline">
+            <label class="col-4">{{_('Component ID')}}</label>
+            <input type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
+        </div>
+
+        <div class="form-group form-inline">
+            <label class="col-4">{{_('Component name')}}</label>
+            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" ></>
+        </div>
+
+        <div class="form-group form-inline">
+            <label class="col-4">Cena posl. nákupu</label>
+            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_last" value=""></>
+        </div>
+
+        <div class="form-group form-inline">
+            <label class="col-4">Cena nákupu prům.</label>
+            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_avg" value=""></>
+        </div>
+
+		<div class="form-group form-inline">
+		    <label class="col-4">Cena prodejní</label>
+		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
+		</div>
+
+
+
+		  <div class="form-group">
+		    <label for="exampleFormControlTextarea1">Popis</label>
+		    <textarea readonly class="form-control" id="selected-description" rows="4" onchange="update_product('description')"></textarea>
+		</div>
+  </div>
+
+
+  <div class="col-12">
+  <div class="form-group">
+    <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
+  	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
+		{% for cat in category %}
+			<option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
+		{% end %}
+	</select></div>
+  </div>
+
+
+{% if permis %}
+  <div class="col-12">
+	  <div class="form-group col">
+	      <label for="exampleFormControlTextarea1">Operace</label>
+	  	  <div id="selected_operations">
+	  	  	<div class="btn-group btn-group-justified">
+            <div class="btn-group" role="group">
+                <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons">playlist_add</i></button>
+                <div class="dropdown-menu form-group p-0" aria-labelledby="btnGroupDrop1">
+                  <input class="form-control" type="number" id="add_to_cart_count" min="0" value="0">
+                  <button class="form-control btn btn-success" onclick="add_to_cart_count(null, '#add_to_cart_count')">Přidat</button>
+                </div>
+            </div>
+				  	<button type="button" class="btn btn-primary" onclick="load_modal_operation('buy')">Nákup</button>
+            <button type="button" class="btn btn-primary">Prodej</button>
+            <button type="button" class="btn btn-primary" onclick="load_modal_operation('service')">Servisní odběr</button>
+            <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
+				</div>
+	  	  </div>
+	  </div>
+  </div>
+{% end %}
+
+  <div class="col-12 row" style="margin: 0pt;">
+    <label class="col-12 bg-danger">Skladové zásoby:</label>
+    <div id="stock_bilance"></div>
+  </div>
+  <div class="col-12 row" style="margin: 0pt;">
+    <label class="col-12">Dodavatel</label>
+    <div id="supplier_list" style="width: 100%;">
+    </div>
+  </div>
+</div>
+
+
+	<button class="btn btn-success" onclick="new_component()"><i class="material-icons">add</i></button>
+
+  	</div><!-- </form> -->
+</div>
+
+<div class="card" style="">
+    <h4 class="card-header">Možnosti</h4>
+  	<div class="card-body">
+
+
+  		    <select name="display" id="display_select" onchange="update_list()">
+  		    	<option value="table">tabulka</option>
+  		    	<option value="std">Standartní zobrazeni</option>
+  		    </select>
+
+  		    <div class="display_helper" id="display_helper_std">
+  		    	Standartní zobrazeni nema žádná nastavení
+
+  		    </div>
+
+  		    <div class="display_helper" id="display_helper_table">
+  		    	Výchozí sklad:
+  		    		<select id="display_sklad">
+  		    			<option value="pha01">PHA01</option>
+  		    			<option value="sob01">SOB01</option>
+  		    		</select>
+
+  		    	Kontrolovat kontrola TAGu:
+  		    		<select id="display_tag">
+                <option value="inventura2019">inventura2019</option>
+                <option value="inventura2018">inventura2018</option>
+  		    		</select>
+  		    </div>
+
+  	</div>
+
+    {% if permis %}<div class="card-footer">
+  			<label>Multiply:</label>
+  			<input type="number" name="" id="print_multiply" value="1" min="1", max="10" step="1">
+  			<label>Skip:</label>
+  			<input type="number" name="" id="print_skip" value="0" min="0", max="50" step="1">
+  			<label>Label template:</label>
+  			<select id="print_template">
+  				<option value="105x74_simple">105 x 74 mm portrait</option>
+  				<option value="105x48_panorama">105 x 48 mm panorama</option>
+  				<option value="70x40_simple">70 x 40 mm</option>
+  				<option value="70x42-3_simple">70 x 42,3 mm</option>
+  				<option value="souhrn_01">Souhrn základní</option>
+  			</select>
+  			<select id="print_type">
+  				<option value="pdf">PDF</option>
+  			</select>
+  			<button class="btn btn-primary" onclick="preparePrint()">Tisk</button>
+  			<hr>
+  			<button onclick="select_all_products(1)">Vybrat cely list</button>
+  			<button onclick="select_all_products(0)">Odznacit cely list</button>
+  	</div>{%end%}
+
+
+	{% if permis %}<!-- Trigger the modal with a button -->
+	<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#modal_cat"  onclick="mcat_update()">Nastaveni kategorii</button>
+  {% end %}
+
+  </div></div>
+
+
+</div> <!-- Konec levého sloupce, Pravy sloupec -->
+<div class="col-md-8 offset-md-4 col-sm-12 offset-sm-0 pt-3">
+
+<div class="card m-0">
+  <div class="form-inline m-1 row">
+    <button type="button" class="btn btn-success col-2" name="button" data-toggle="collapse" data-target="#filter-collapse">Filter</button>
+    <input type="text" class="form-control col-10" id="filter-search" onchange="update_list()" placeholder="Vyhledavani" value="">
+
+
+  </div>
+  <div id="filter-collapse" class="collapse m-1 pl-1 pr-1">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" role="tab" href="#nav-filter-categories">Kategorie</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-toggle="tab" role="tab" href="#nav-filter-parameters">Parametry</a>
+      </li>
+    </ul>
+    <div class="tab-content p-1">
+    <div class="tab-pane fade show active" role="tabpanel" id="nav-filter-categories"> <!-- Zacatek zalozky kategorie -->
+      <div class="pl-3 pb-3">
+        <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
+        <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
+        <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
+        <select id="filter-instock" onchange="update_list()">
+        <option value="All" selected>Vše</option>
+        <option value="Yes">Skladem</option>
+        <option value="No">Vyskladněno</option>
+      </select>
+      </div>
+
+      <div id="filter_block" class="row">
+        {% set last = {'path': "/", 'name':""} %}
+        <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
+        {% for cat in category %}
+          {% if (cat.get('path', '/')+cat['name']).split('/')[1] != (last.get('path', '/')+last['name']).split('/')[1]%}
+            </div>
+            <div class="col cat_top">
+          {% end %}
+          {# {{cat.get('path', '/').split('/')}}{{cat}}<br> #}
+           <a onclick="console.log('{{cat.get('path', '/')}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
+             <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
+             {{cat['name']}}
+           </a>
+          {% set last = cat%}
+        {% end %}
+        </div>
+      </div>
+    </div>
+
+      <div class="pl-3 pb-3">
+        <h3>Filtrovani podle tagu</h3>
+        <input type="text" class="form-control" id="tag-search" onchange="update_list()">
+        <small> (inverzní filtr <input type="checkbox" name="" id="tag_polarity" onchange="update_list()">)</small>
+      </div>
+    </div> <!-- Konec zalozky KATEGORIE -->
+    <div class="tab-pane fade" role="tabpanel" id="nav-filter-parameters"> <!-- Zacatek zalozky PARAMETRY -->
+      <div>
+        Filtrovat podle parametru: <select class="select-component-parameters" id="select-component-parameters-filter"></select>
+      </div>
+      <div id="filter_tab_content"></div>
+    </div> <!-- Konec zalozky PARAMETRY -->
+  </div>
+</div>
+<div class="card m-0 mt-2">
+
+	<div class="page_select_btn p-2">
+		<button onclick="page(-1, true)" class="btn btn-primary btn-sm"> -1 </button>
+		page <span class="actual_list_page"></span>
+		<button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
+		<button class="btn btn-default btn-sm" onclick="update_list()">obnovit</button>
+    Načteno <span id="item_count"></span> položek
+	</div>
+</div>
+<div>
+
+	<div class="product_list_loading">  <div class="loader"></div> </div>        	<!-- Točící se kolečko -->
+	<div id="product_list"> </div>                                                <!--  TABULKA S PRODUKTY -->
+
+  <div class="page_select_btn p-2">
+    <button onclick="page(-1, true)" class="btn btn-primary btn-sm"> -1 </button>
+    page <span class="actual_list_page btn-sm"></span>
+    <button onclick="page(+1, true)" class="btn btn-primary btn-sm"> +1 </button>
+  </div>
+</div></div>
+
+
+<!-- Modal - na nastaveni kategorii -->
+<div id="modal_cat" class="modal fade" role="dialog">
+  <div class="modal-dialog modal-lg">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nastaveni kategorii</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-4">
+            {#<button onclick="mcat_update()">Nacist seznam</button><br>#}
+            <label>name (C_0805, R_power, ..)</label>
+            <input type="text" name="name" id="mcat_cat_name"> <br>
+            <label>name_cs</label><small>(Kondenzátor 0805, Výkonové odpory)</small><br>
+            <input type="text" name="" id="mcat_cat_name_cs"> <br>
+            <label>Popis</label>
+            <small></small>
+            <input type="text" name="" id="mcat_cat_desc"> <br>
+            <label>Path</label>
+            <small>Na konci i zacatku lomeno</small>
+            <input type="text" name="" id="mcat_cat_path"> <br>
+            <br>
+            <button onclick="mcat_update_push()">update</button>
+          </div>
+          <div class="col-8" id="mcat_param_list" style="overflow-y: scroll; height: 70vh;">
+
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+
+                                                                          <!-- konec leveho sloupce -->
+</div></div>                                                              <!-- Konec divu WRPPPER a ROW -->
+
+
+{% module Template('store/store.modal.component.edit.hbs', permis=permis, category=category) %}
+{% module Template('store/store.modal.component.edit.scripts.hbs') %}
+
+
+<!-- Modal - pro produktove operace -->
+<div id="modal_operation" class="modal hide fade" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Operace s produktem</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-operation-content">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  function load_modal_operation(type, placeholder = null) {
+    if(placeholder == null){
+      $('#modal-operation-content').empty();
+      $('#modal_operation').modal('show');
+    }else{
+      $(placeholder).empty();
+      $(placeholder).show();
+    }
+    $.ajax({
+      type: "POST",
+      url: "/store/operation/"+type+"/",
+      data: {
+        'operation': type,
+        'component': current_detail,
+      },
+      success: function( data, textStatus, jQxhr ){
+        if(placeholder == null){
+          $("#modal-operation-content").html(data);
+          }else{
+          $(placeholder).html(data);
+        }
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+      }
+    });
+  }
+
+
+</script>
+
+
+<script type="text/javascript">
+
+  // Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna
+  {% if permis %}function mcat_update_push(){
+    if ( $('#mcat_cat_name').val() && $('#mcat_cat_name_cs').val() && $('#mcat_cat_path').val() ){
+  		$.ajax({
+  			type: "POST",
+  			url: "/store/api/update_category/",
+  			data: {
+  				'name': $('#mcat_cat_name').val(),
+  				'name_cs': $('#mcat_cat_name_cs').val(),
+  				'path': $('#mcat_cat_path').val(),
+  				'description': $('#mcat_cat_desc').val(),
+  			},
+  			success: function( data, textStatus, jQxhr ){
+  				mcat_update();
+  			},
+  			error: function( jqXhr, textStatus, errorThrown ){
+  				console.log( errorThrown );
+  			}
+  		});
+    }else{
+      Lobibox.notify('error', {
+        msg: 'Vyplňte všechna pole..',
+        icon: false,
+      });
+    }
+	}
+
+  function mcat_load_existing(id, cs, ds, path){
+    $('#mcat_cat_name').val(id);
+    $('#mcat_cat_name_cs').val(cs);
+    $('#mcat_cat_desc').val(ds);
+    $('#mcat_cat_path').val(path);
+  }{%end%}
+
+
+	function mcat_update(){
+		$.ajax({
+			type: "POST",
+			url: "/store/api/get_categories/",
+			data: {
+			},
+			success: function( data, textStatus, jQxhr ){
+				console.log(data, textStatus);
+				$('#mcat_param_list').empty();
+				for (var i = data.length - 1; i >= 0; i--) {
+					console.log(data[i]);
+          document.getElementById('mcat_param_list').innerHTML += "<span onclick=\"mcat_load_existing('"+data[i]['name']+
+                                    "', '"+data[i]['name']+"', '"+data[i]['description']+"', '"+data[i].get('path', '/')+"')\">" + "<i class='material-icons'>edit</i>" + "</span>"
+          document.getElementById('mcat_param_list').innerHTML +=  data[i].get('path', '/') +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name'] + "</small><br>";
+				}
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				console.log( errorThrown );
+			}
+		});
+	}
+</script>
+
+		<template id="products-template_std">
+			<div class="card product_list_element">
+				<input type="checkbox" class="product_list-select form-check-input" name="selected" value="" onchange="update_selected(this)">
+				<span class="product_list-name" style="font-size: 1.2em"></span><small><span class="category_name">kategorie</span></small>
+				<div><div class="product_list-description" style="float: left;">popis</div><div style="float: right;" class="stock_holder"></div></div>
+			</div>
+		</template>
+
+
+    <template id="products-template_table">
+       {% module Template('store/store.api.template.component.row.hbs') %}
+    </template>
+
+  	<template id="supplier-template">
+  		<div class="col-12 card supplier_list_element m-0 mb-1">
+  			<b><a class="supplier_name" target="_blank"></a></b>
+  			<span class="supplier_product"></span>
+  		</div>
+  	</template>
+
+    <template id="filter_tab_template">
+       {% module Template('store/store.api.template.filter_tab.hbs') %}
+    </template>
+
+
+
+<script type="text/javascript">
+var list_page = 0;
+$(document).ready(function() {
+
+    let barr = new barcode_reader();
+    barr.addCallback('OpenArticleEdit', BC_store_OpenArticleEdit, codetype = 'ObjectId');
+    barr.addCallback('load_product', BC_store_LoadProduct);
+
+
+
+    $('#selected-category').select2({width: '100%'});
+    update_list();
+    var hash = location.hash.substr(1);
+    if(hash.length>2){
+	    load_product(hash);
+	}
+
+});
+
+function page(value, relative=false){
+	if (relative=true){
+		list_page += value;
+	}else{
+		list_page = value;
+	}
+	if (list_page < 0){list_page = 0}
+	update_list();
+}
+
+function select_all_products(state) {
+	$('.product_list-select').prop('checked', state);
+	$('.product_list-select').trigger("change");
+}
+
+function select_categories(what){
+	if (what == 'all') {
+		console.log('select all')
+		$(".filter_cat").prop("checked", true);
+	}
+	if (what == 'none') {
+		console.log('select none')
+		$(".filter_cat").prop("checked", false);
+	}
+	update_list();
+}
+
+function active_categories(name = false){
+	if (name != false){
+	}else{
+		var list = []
+		var selected=$(".filter_cat:checked")
+		for (var i = selected.length - 1; i >= 0; i--) {
+			list.push(selected[i].name)
+		}
+		//console.log('selected', list)
+		return(list)
+	}
+}
+
+function update_list(){
+	$('.product_list_loading').show();
+	$('.page_select_btn').hide();
+	$('#product_list').empty();
+	$.ajax({
+	  type: "POST",
+	  url: "/store/api/products/",
+	  //contentType : 'application/json',
+	  data: {
+	  		'selected': active_categories(),
+	  		'search': $("#filter-search").val(),
+	  		'polarity': $('#category_polarity').is( ":checked" ),
+	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),
+	  		'tag_search': $("#tag-search").val(),
+        'in_stock': $("#filter-instock").val(),
+	  		'page': list_page
+	  },
+	  success: function( data, textStatus, jQxhr ){
+	      console.log('/products/', data, textStatus);
+        $('#item_count').html(data.count);
+	      current_page = data.data;
+	      update_view();
+	  },
+	  error: function( jqXhr, textStatus, errorThrown ){
+	      console.log('ERR, /store/api/products/')
+	      console.log( errorThrown );
+	  }
+	});
+}
+
+function update_veiw_parameters(selector){
+	$('.display_helper').css('display', 'none');
+	console.log(selector);
+	console.log(selector.value)
+	$('#display_helper_'+selector.value).css('display', 'block');
+}
+
+function update_view(){
+    $('.product_list_loading').show();
+    $('.page_select_btn').hide();
+    $('#product_list').empty();
+    for (var i = 0; i < current_page.length; i++) {
+        var element = current_page[i];
+        console.log("ELEMENT", element.overview);
+        active_categories()
+        var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
+        tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b>";
+        tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
+        tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
+        tmpl.querySelector('.product_list-description').innerText = element['description'];
+        tmpl.querySelector('.product_list_copyid').setAttribute('copy', element['_id'].$oid);
+
+        // zaskrtavatko vybaraných polozek
+        if(selected.indexOf(element['_id'].$oid) >= 0){
+            tmpl.querySelector('.product_list-select').checked = true;
+        }
+
+        try{tmpl.querySelector('.category_name').innerText = element['category'][0]['name'];}
+        catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
+
+        var name = ""+element['_id'].$oid+"";
+        tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id'].$oid+'")');
+        tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
+
+        if ($('#display_select').val() == 'table'){
+            try{var warehouse_count = element.overview.stocks[Cookies.get("warehouse")].count.onstock;}
+            catch(err){var warehouse_count = 0; console.log(err);}
+            console.log(warehouse_count)
+            tmpl.querySelector('.stock_count').innerHTML = "<b>"+warehouse_count +
+                      "</b><small class='text-muted'> (" + element.overview.count.onstock + ")</small>";
+            if (element.tags){
+
+              if(_.findKey(element.tags, { 'id': "inventura2020"})){
+                tmpl.querySelector('.stock_count').style.background = "#94e991";
+              }
+            }
+
+            tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
+        }
+
+        if(current_detail == element['_id']){
+            tmpl.querySelector('.product_list_element').style.backgroundColor = 'yellow';
+        }
+        document.getElementById('product_list').appendChild(tmpl);
+    }
+    console.log(selected);
+    $('.product_list_loading').hide();
+    $('.page_select_btn').show();
+    $('.actual_list_page').html(list_page);
+}
+
+
+function update_product_from_line(type, product_name, value, add1=null, add2=null){
+	if(type == 'stock_count'){
+		console.log("UPRAV POČET součástky", product_name, "ve skladu", add1, "na počet", value);
+			$.ajax({
+				type: "POST",
+				url: "/store/api/update_parameter/",
+				data: {'count':value,
+					   'component':product_name,
+					   'stock': add1
+					},
+				success: function( data, textStatus, jQxhr ){
+					//alert('Data sucessfuly updated');
+					Lobibox.notify('success', {
+						title: 'Položka zaktualizována',
+						msg: 'Počet skladových zásob součástky <b>'+product_name+'</b> byl zaktualizován. Ve skladu <b>' + String(add1) + '</b> na počet <b>'+String(value) + '</b> ks.',
+						delay: 3000
+					});
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
+					Lobibox.notify('error', {
+					msg: 'Aktualizace neproběhla úspěšně: ' + errorThrown,
+					icon: false,
+					});
+				}
+			});
+	}
+
+	if(type=="tag"){
+		console.log("tag ma byt:", product_name, value);
+		$.ajax({
+				type: "POST",
+				url: "/store/api/update_tag/",
+				data: {'component':product_name,
+					   'tag': $('#display_tag').val(),
+					   'state': value,
+					},
+				success: function( data, textStatus, jQxhr ){
+					//alert('Data sucessfuly updated');
+					Lobibox.notify('success', {
+						title: 'Položka zaktualizována',
+						msg: 'Počet skladových zásob',
+						delay: 3000
+					});
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
+					Lobibox.notify('error', {
+						msg: 'Aktualizace neproběhla úspěšně: ' + errorThrown,
+						icon: false,
+					});
+				}
+			});
+	}
+}
+
+
+function update_selected(cb){
+	var index = selected.indexOf(cb.value);
+	console.log("update_selected:", index);
+	if (cb.checked){
+		if (index == -1){
+			selected.push(cb.value);
+		}
+	}else{
+		if (index > -1){
+			selected.splice(index, 1);
+		}
+	}
+	console.log(selected);
+}
+
+function getUnitLabel(unit){
+	var table = {
+		"percent": ' %',
+		"volt": ' V',
+		"amper": 'A',
+	}
+
+	if (unit in table){
+		return table[unit]
+	}else{
+		return ""
+	}
+}
+
+
+function load_product(id){
+	$('.product_list_element').css('background-color', 'white');
+	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, "")).css("background-color", "yellow");
+
+	if (current_detail != id){
+		console.log("měl bych nacit produkc s id", id);
+		window.location.hash = '#'+id;
+		try {
+			$.ajax({
+				type: "POST",
+				url: "/store/api/product/",
+				data: {'type':'filter', 'key':'_id' ,'value': id, 'selected': active_categories(), 'polarity': $('#category_polarity').is( ":checked" )},
+				success: function( data, textStatus, jQxhr ){
+          console.log('load_product>>', data);
+					var element = data[0]
+					product_json = element;
+					//var stock = data[1]
+					//console.log(stock)
+
+					JsBarcode("#selected-barcode",element['barcode'][0], {
+						format: "CODE128",
+						displayValue: false,
+						margin: 2
+					});
+
+					if (false){
+						Lobibox.notify('warning', {
+							title: 'Neznámá položka',
+							msg: 'Položka s tímto ID ještě není zadána ve skladu. Pokračováním vytvoříte novou položku.',
+							delay: 5000,
+							icon: false
+						});
+
+						product_json = {
+							'_id': id,
+							'name': id,
+							'stock':{},
+							'price':0,
+							'description':'',
+							'category': [],
+						}
+						return 0;
+					}
+
+					$('.selected-name').text(element['_id'].$oid);
+					//$('#selected-name-id').val(element['_id']);
+					$('#selected-name-id').attr("placeholder", element['_id'].$oid);
+					$('#selected-name-name').val(element['name']);
+          $('#selected-description').val(element['description']);
+          $('#selected-price_buy_avg').val(element['price_buy_avg']);
+          $('#selected-price_buy_last').val(element['price_buy_last']);
+
+
+					console.log("kategorie", element['category'][0]);
+					$('#selected-category-name').html("("+element['category']+")");
+
+					$('#selected-category').val(element['category']).trigger('change');
+
+
+					if(element.price_sell === undefined) element['price_sell'] = null;
+					$('#selected-price').val(element['price_sell']);
+
+					$('#data-param-table > tbody').empty()
+					for (var i in element['parameters']) {
+						$('#data-param-table > tbody').append('<tr><td>'+i+'</td><td>'+element['parameters'][i]['value']+getUnitLabel(element['parameters'][i]['unit'])+'</td></tr>');
+					}
+
+					$('#supplier_list').empty();
+					for (var i in element['supplier']){
+              //var url = get_supplier_url(element['supplier'][i]);
+              var full_url = element['supplier'][i].full_url;
+						  var tmpl = document.getElementById('supplier-template').content.cloneNode(true);
+              if(full_url != null) tmpl.querySelector('.supplier_name').href = full_url;
+			  			tmpl.querySelector('.supplier_product').innerText = element['supplier'][i]['symbol'];
+			  			tmpl.querySelector('.supplier_name').innerText = element['supplier'][i]['supplier'];
+						  document.getElementById('supplier_list').append(tmpl);
+					}
+
+
+					$('#stock_bilance').empty();
+					//for (var i in stock){
+					//	document.getElementById('stock_bilance').append('<div>'+stock[i]+'</div>');
+					//}
+
+					try{
+						$('#bilance_count_sob01').val(element['stock']['sob01']['count']);
+						$('#bilance_count_sob01_old').text(element['stock']['sob01']['count']);
+					}
+					catch(e){
+						$('#bilance_count_sob01').val(null);
+						$('#bilance_count_sob01_old').text('');
+					}
+
+					try{
+						$('#bilance_count_pha01').val(element['stock']['pha01']['count']);
+						$('#bilance_count_pha01_old').text(element['stock']['pha01']['count']);
+					}
+					catch(e){
+						$('#bilance_count_pha01').val(null);
+						$('#bilance_count_pha01_old').text('');
+					}
+
+					$('#selected-tags').empty()
+					if(element.tags === undefined) element['tags']={};
+					for(var i in element.tags){
+            var tag = element.tags[i];
+						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag.id || 'err'+'</span>';
+					}
+
+
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
+					Lobibox.notify('error', {
+					msg: 'Načtení položky neproběhlo úspěšně: ' + errorThrown,
+					icon: false,
+					});
+				}
+			});
+			current_detail = id;
+		}catch(err){
+			alert("načítání se nezdařilo. Pro více informací navštivte konzoli... :-( Omlouvám se...");
+		}
+	}else{ // pokud je tato polozka otevrena v detailu
+		console.log('Tato polozka je prave zobrazena.')
+	}
+}
+
+
+function update_product(name, element = null, type = null){
+	if (name == 'price'){
+		product_json['price'] = $('#selected-price').val();
+	}
+
+
+	if (name == 'save'){
+		console.log(product_json);
+		$.ajax({
+			type: "POST",
+			url: "/store/api/update_product/",
+			data: {json: JSON.stringify(product_json)},
+			success: function( data, textStatus, jQxhr ){
+				console.log(textStatus);
+				Lobibox.notify('success', {
+					msg: 'Polozka uspesne ulozena: ' + textStatus,
+					icon: false,
+				});
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				console.log( errorThrown );
+				Lobibox.notify('error', {
+					msg: 'Ukladani nove polozky nebylo uspesne: ' + errorThrown,
+					icon: false,
+				});
+			}
+		});
+	}
+
+	if (name == 'stock_bilance'){
+		if(product_json.stock === undefined) {product_json['stock'] = {}}
+		console.log("JE to číslo?", !Number.isNaN(Number(element.value)))
+		if(!Number.isNaN(Number(element.value))){
+			product_json['stock'][type] = {'count': element.value};
+			if ($('#selected_advance_function').val() == 'inventura'){
+				$('#selected-name-id').focus();
+				product_json['tags']['inventura2018']={}
+				update_product('save');
+			}
+		}else{
+			Lobibox.notify('error', {
+				msg: 'Skladový počet není číslo!',
+				icon: false,
+			});
+			return(true);
+		}
+	}
+
+	if (name=='description'){
+		product_json['description'] = $('#selected-description').val();
+	}
+
+	if (name=='name'){
+		product_json['name'] = $('#selected-name-name').val();
+	}
+
+	if (name=='id'){
+		load_product($('#selected-name-id').val());
+		$('#selected-name-id').attr("placeholder", $('#selected-name-id').val());
+		$('#selected-name-id').val('');
+		$('#selected-name-id').trigger(':reset');
+
+		if ($('#selected_advance_function').val() == 'inventura'){
+			$('#bilance_count_pha01').focus().select();
+		}
+	}
+
+	if (name=='category'){
+		product_json['category'] = [element.value];
+	}
+
+	console.log(product_json);
+}
+
+function preparePrint(){
+	var str = "/store/print/?"+jQuery.param(
+		{
+			'type': $("#print_type").val(),
+			'skip': $('#print_skip').val(),
+			'multiply': $('#print_multiply').val(),
+			'template':$('#print_template').val(),
+			'action': selected
+		});
+	window.open(str,'_blank');
+}
+
+$('#inputID_edit').change(function(){
+  OpenArticleEdit($('#inputID_edit').val(), false, false);
+})
+
+// Tahle funkce pri zmacknuti enteru spusti onchange spoustec
+function call_change(event, element) {
+	console.log(event);
+	if (event.keyCode == 13){
+		element.onchange();
+	}
+}
+
+
+
+
+// Slouzi k vyhledani seznamu parametru pro vyhledavani polozek
+$('.select-component-parameters').select2({
+  ajax: {
+    url: '/store/api/get_parameters/list/',
+    dataType: 'json',
+    delay: 500,
+    type: "POST",
+    processResults: function (data) {
+      console.log(data.items)
+      return {
+          results: $.map(data.items, function (item) {
+              console.log(item);
+              return {
+                  text: item.lang.cs + "  ("+item.name+") ["+item.unit+"]",
+                  name: item.name,
+                  id: item.name
+              }
+          })
+      };
+    }
+  }
+});
+
+$('#select-component-parameters-filter').on('select2:select', function (e) {
+    var data = e.params.data;
+    console.log("Pridavam novy filter", data);
+    var t = document.querySelector('#filter_tab_template');
+
+    t.content.querySelector('.filter_tab_name').innerHTML = data.text;
+    $("#filter_tab_content").append(document.importNode(t.content, true));
+});
+
+</script>
+{% end %}

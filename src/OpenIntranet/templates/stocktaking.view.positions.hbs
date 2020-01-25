@@ -1,0 +1,145 @@
+{% extends "base.hbs" %}
+{% block title %} | Produkce, uvod{% end %}
+{% block body %}
+
+<style type="text/css">
+	
+.cat-title{
+	width: 100%;
+	border-bottom: 2pt black solid;
+	padding-top: 1em;
+	padding-left: 3em;
+	font-weight: 500;
+	font-size: 15pt;
+}
+
+.cat-level-0{
+	padding-left: 3em;
+}
+
+.cat-level-1{
+	padding-left: 5em;
+}
+
+.cat-level-2{
+	padding-left: 7em;
+}
+
+.cat-level-3{
+	padding-left: 9em;
+}
+
+.module-row{
+	border-bottom: 0.2pt lightgray solid;
+	padding-left: 0pt;
+	padding-right: 0pt;
+	margin-left: 0pt;
+	margin-right: 0pt;
+}
+
+.col{
+	text-align: right;
+}
+
+.row-header{
+	font-weight: 400;
+	font-size: 1.2em;
+}
+
+.done{
+	background: rgb(170, 220, 170);
+}
+
+
+</style>
+
+<div>
+
+	<div class="card">
+		<div class="card-header">
+			Přehled skladu
+		</div>
+		<div class="card-body">
+			
+		</div>
+
+	</div>
+
+	<div>
+		
+		{%for position in data %}
+			<h2>{{data[position]['name']}}</h2>
+				{{data[position]['info']}}<br>
+
+				<table style="width: 100%" class="table-sm">	
+				<th>Nazev</th>
+				<th>Pocet celkem</th>
+				<th>Pocet skladem</th>
+				<th>Nakupni cena za ks</th>
+				{%for article in data[position]['list'] %}
+						<tr class="{%if article['has_inventory']%}bg-success{%end%}">
+							<td>
+                            	<a class="btn btn-outline-secondary material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="__blank__">open_in_new</a>
+                            	{{article['name']}}
+                            </td>
+							<td>{{article['overview']['count']['onstock']}}</td>
+							<td> {{get_warehouse_count(article, warehouse["_id"])}}</td>
+							<td>{{article['warehouse_unit_price']}} Czk/unit</td>
+							<td>{{article['has_inventory']}}</td>
+							<!-- <small>{{article}}</small><br> -->
+						</tr>
+					
+				{% end %}</table>
+			<hr>
+
+		{%end%}
+
+
+	</div>
+	
+
+
+<script type="text/javascript">
+	
+	function doStockTaking(e) {
+		console.log(e);
+		var id = $(e).attr('component');
+		var new_count = $('[input-component="'+id+'"]').val();
+		var old_count = $('[input-component="'+id+'"]').attr('old');
+
+		console.log(id, new_count, old_count, new_count-old_count);
+
+        $.ajax({
+          type: "POST",
+          url: "/stocktaking/save_item/",
+          data: {
+            '_id': id,
+            'description': "Rychla inventura z prehledu..",
+            'bilance': new_count - old_count,
+            'absolute': new_count
+          },
+          success: function( data, textStatus, jQxhr ){
+            console.log(data);
+            Lobibox.notify('success', {
+                title: 'Provedeno',
+                msg: 'U součástky <b>'+id+'</b> byla provedena inventura. <b>' + new_count +' ks</b>.',
+                delay: 3000
+            });
+            },
+          error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                title: 'Nebylo možné provést úpravu položky',
+                msg: 'U položky <b>'+id+'</b> nastal neznámý problém. Zkontrolujte log.',
+                delay: 3000
+            });
+          }
+        });
+
+
+	}
+
+
+</script>
+
+{% end %}{# body #}

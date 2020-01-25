@@ -1,0 +1,971 @@
+{% extends "base.hbs" %}
+{% block title %} | Tabulka uživatelů{%end%}
+{% block body %}
+
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+
+<style>
+    body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #users-table-control-panel {
+        width: 100%;
+        padding: 5px;
+    }
+
+    #users-table-wrapper {
+        margin-left: -15px;
+        margin-right: -15px;
+    }
+
+    #right-side-buttons {
+        float: right;
+    }
+
+    .tabulator {
+        position: absolute;
+        bottom: 0;
+        top: 185px;
+        user-select: none;
+        overflow: auto;
+    }
+
+    #new-user-form-wrapper {
+        width: 50%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .new-user-row .tabulator-cell {
+        background-color: rgba(0, 0, 0, 0.05)
+    }
+
+    /*.edited-cell {*/
+    /*    background-color: rgba(0, 0, 0, 0.05)*/
+    /*}*/
+
+    .tabulator-row .edited-cell {
+        background-color: rgba(0, 0, 0, 0.05)
+    }
+
+    .table-icon {
+        line-height: 0;
+    }
+</style>
+
+<div class="modal fade" id="address-editor-modal" tabindex="-1" role="dialog"
+     data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="address-editor-title">Editor Adresy</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="address-column-field">
+                    <input type="hidden" id="address-row-id">
+                    <div class="form-group">
+                        <label for="address-street-input">Ulice, Č. P.</label>
+                        <input type="text" class="form-control" id="address-street-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-city-input">Město</label>
+                        <input type="text" class="form-control" id="address-city-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-state-input">Stát</label>
+                        <input type="text" class="form-control" id="address-state-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="address-zip-input">PSČ</label>
+                        <input type="text" class="form-control" id="address-zip-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Zrušit</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="address-save-btn">Uložit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <h1>Tabulka uživatelů</h1>
+            <div id="users-table-wrapper">
+                <div id="users-table-control-panel">
+                    <div id="right-side-buttons">
+                        <button id="open-user-page" type="button" class="btn btn-light" onclick="showUserPage()">
+                            Zobrazit uživatele
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button id="add-user-btn" type="button" class="btn btn-light" onclick="addUser()">
+                                Přidat
+                            </button>
+                            <button id="delete-user-btn" type="button" class="btn btn-light" onclick="deleteUser()">
+                                Smazat
+                            </button>
+                        </div>
+                        <button id="save-btn" type="button" class="btn btn-light" onclick="saveUsersEdits()">
+                            Uložit
+                        </button>
+                    </div>
+                    <div id="left-side-widgets">
+                        <div class="btn-group" role="group">
+                            <button id="undo-btn" type="button" class="btn btn-light" onclick="undoTableAction()">
+                                Vzít zpět
+                            </button>
+                            <button id="redo-btn" type="button" class="btn btn-light" onclick="redoTableAction()">
+                                Znovu
+                            </button>
+                        </div>
+                        <button id="deselect-all" type="button" class="btn btn-light" onclick="deselectAllRows()">
+                            Odznačit vše
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="users-table"></div>
+
+<script type="text/javascript">
+
+    let originalData = {}; // formát {<user id>: {<row data>}}, obsahuje originály jen editovaných řádků
+    let editedData = {}; // formát {<user id>: {<editovaný field>: <nová hodnota>}}, obsahuje editované fieldy
+    let newData = new Set(); // sem přijdou jen id nových uživatelů
+    let deletedData = new Set(); // sem přijdou jen id smazaných uživatelů
+
+    /**
+     * Zobrazí oznámení.
+     */
+    function setMessage(msg) {
+        Lobibox.notify("default", {
+            size: "mini",
+            position: "center top",
+            rounded: true,
+            delay: 2000,
+            msg: msg,
+        })
+    }
+
+    function sendValidationEmail(user_id) {
+        setMessage("Posílám email");
+
+        $.ajax({
+            url: `/users/api/u/${user_id}/validateemail`,
+            type: "post",
+            data: "",
+            success: function (response) {
+                console.log(response);
+                setMessage("Email poslán");
+                resetTable();
+            },
+            error: ajaxError,
+        });
+    }
+
+    /**
+     * Připraví tabulátor a callbacky.
+     * Očekávané chování: některé sloupce jsou editovatelné na double click. Je-li nová hodnota jiná
+     * než hodnota v databázi, editovaná buňka se podbarví šedě.
+     *
+     * Možný zdroj chyb: buňky momentálně nejsou obarvované pomocí formateru ale přímo v cellDataEdited.
+     * Dojde-li ke změně dat v buňce bez volání cellDataEdited, podbarvení se nezmění.
+     * V tuto chvíli nevím o takové možnosti kromě undo/redo, které jsou ošetřené.
+     * TODO Zkusit to udělat lépe
+     */
+    function drawTable() {
+
+        let regexEmail = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        let regexPhone = "^\\+?\\d+[0-9- ]*\\d+$";
+
+        /**
+         * Ztmaví pozadí buňky.
+         */
+        let markElementEdited = function (elem) {
+            elem.classList.add("edited-cell");
+        };
+
+        /**
+         * Zruší ztmavení pozadí buňky.
+         */
+        let unmarkElementEdited = function (elem) {
+            elem.classList.remove("edited-cell");
+        };
+
+        /**
+         * Znovu zavolá formatter pro danou buňku. (To se děje automaticky při změně dat v buňce, tato funkce je
+         * užitečná pro buňky, které nemají vlastní obsah a zobrazují kompilaci dat z ostatních sloupců)
+         */
+        let reformatCell = function (cell) {
+            cell._cell._generateContents();
+        };
+
+        /**
+         * Callback tabulatoru. Editace buněk tabulatoru na doubleclick.
+         * Zdroj: https://github.com/olifolkerd/tabulator/issues/631
+         */
+        let dblClickStartEdit = function (e, cell) {
+            if (cell.getField() === "email") {
+                setMessage("Pozor, změnou emailové adresy můžete uživateli znemožnit přihlášení");
+            }
+            deselectAllRows();
+            cell.edit(true);
+        };
+
+        /**
+         * Callback tabulatoru. Invertuje bool hodnotu buňky.
+         */
+        let boolCellChangeValue = function (e, cell) {
+            cell.setValue(!cell.getValue());
+            e.preventDefault()
+        };
+
+        /**
+         * Callback tabulatoru. Zobrazí modal editor adresy a nastaví hodnoty v inputech.
+         * Jelikož samotné prvky adresy jsou uložené v neviditelných sloupcích <field>.<prvek>, je nutné funkci dát
+         * jméno fieldu.
+         */
+        let showAddressEditor = function (e, cell, field) {
+            let data = cell.getData();
+            let id = cell.getRow().getIndex();
+            let street = data[field]["street"];
+            let city = data[field]["city"];
+            let state = data[field]["state"];
+            let zip = data[field]["zip"];
+
+            // formulář musí vědět o kterou buňku jde, protože funkce na zpracování formuláře nemá jak to zjistit
+            $("#address-column-field").val(field);
+            $("#address-row-id").val(id);
+
+            $("#address-street-input").val(street);
+            $("#address-city-input").val(city);
+            $("#address-state-input").val(state);
+            $("#address-zip-input").val(zip);
+            $("#address-editor-modal").modal("show");
+        };
+
+        /**
+         * Umožňuje editovat buňky s informací o datu stejně jako běžné textové buňky ale pomocí time inputu.
+         */
+        let dateEditor = function (cell, onRendered, success, cancel) {
+
+            let input = document.createElement("input");
+            input.setAttribute("type", "date");
+            input.style.padding = "10px";
+            input.style.width = "100%";
+            input.style.boxSizing = "border-box";
+
+            let value = cell.getValue();
+
+            let cellValue = "";
+            if (value && typeof value !== "undefined") {
+                cellValue = value;
+            }
+
+            input.value = cellValue;
+
+            onRendered(function () {
+                input.focus();
+                input.style.height = "100%";
+            });
+
+            function onChange() {
+                if (input.value !== cellValue) {
+                    success(input.value);
+                } else {
+                    cancel();
+                }
+            }
+
+            //submit new value on blur or change
+            input.addEventListener("blur", onChange);
+
+            //submit new value on enter
+            input.addEventListener("keydown", function (e) {
+                if (e.keyCode === 13) {
+                    onChange();
+                }
+
+                if (e.keyCode === 27) {
+                    cancel();
+                }
+            });
+
+            return input;
+        };
+
+        /**
+         * Formatter pro buňky s informací o datu. Formátuje datum v iso standardu na český standard zápisu data.
+         */
+        let dateFormatter = function (cell, formatterParams, onRendered) {
+            let value = cell.getValue();
+
+            if (!value || typeof value === "undefined") {
+                return ""
+            }
+
+            moment.locale("cs");
+            return moment(value, "YYYY-MM-DD").format("l");
+        };
+
+        /**
+         * Vezme data z editoru adres a uloží je do tabulky (a do editedData).
+         */
+        let saveAddressEditor = function () {
+            let id = $("#address-row-id").val();
+            let field = $("#address-column-field").val();
+
+            let street = $("#address-street-input").val();
+            let city = $("#address-city-input").val();
+            let state = $("#address-state-input").val();
+            let zip = $("#address-zip-input").val();
+
+            let row = table.getRow(id);
+
+            let setValueIfChanged = function (f, val) {
+                let cell = row.getCell(`${field}.${f}`);
+                if (cell.getValue() !== val) {
+                    cell.setValue(val);
+                }
+            };
+
+            setValueIfChanged("street", street);
+            setValueIfChanged("city", city);
+            setValueIfChanged("state", state);
+            setValueIfChanged("zip", zip);
+
+            reformatAddressCell(id, field);
+        };
+
+        /**
+         * Přeformátuje buňku adresy (zavolá formatter). Pokud byla adresa upravena, označí buňku jako upravenou.
+         */
+        let reformatAddressCell = function (id, field) {
+            reformatCell(table.getRow(id).getCell(`${field}_`));
+            let edited = false;
+
+            if (id in editedData) {
+                for (let f of ["street", "city", "state", "zip"]) {
+                    let key = `${field}.${f}`;
+                    if (key in editedData[id]) {
+                        if (originalData[id][key] !== editedData[id][key]) {
+                            edited = true;
+                        }
+                    }
+                }
+            }
+
+            if (edited) {
+                markElementEdited(table.getRow(id).getCell(`${field}_`).getElement());
+            } else {
+                unmarkElementEdited(table.getRow(id).getCell(`${field}_`).getElement());
+            }
+        };
+
+        /**
+         * Callback tabutatoru. Zobrazí varování po doubleclicku na needitovatelnou buňku.
+         */
+        let uneditableMsg = function (e, cell) {
+            setMessage("Tato buňka není editovatelná")
+        };
+
+        /**
+         * Callback tabutatoru. Zobrazí varování po doubleclicku na zatím needitovatelnou buňku.
+         * Funkce pro vývoj, nebude ve výsledném produktu.
+         */
+        let yetUneditableMsg = function (e, cell) {
+            setMessage("Editace není implementovaná")
+        };
+
+        /**
+         * Callback tabulatoru. Volá se po změně dat v buňce.
+         *
+         * Při první úpravě řádku se starý obsah řádku uloží to originalData.
+         * Změněný field se uloží do editedData. Pokud je nová hodnota stejná jako originální hodnota (v db),
+         * field je z editedData odstraněn. Pokud je odstraněn poslední field, odstraní se id.
+         *
+         * Liší-li se originální a nová data, buňka je podbarvena šedě.
+         */
+        let cellDataEdited = function (cell) {
+            let id = cell.getRow().getIndex();
+            let field = cell.getField();
+
+            let oldV = cell.getOldValue();
+            let newV = cell.getValue();
+
+            if (oldV === newV) return;
+
+            if (typeof oldV == "undefined" && newV === "") return;
+
+            // zkopíruj řádek do originalData, vrať změnu
+            // z originalData už nebude odstraněn
+            if (!(id in originalData) && !(newData.has(id))) {
+                console.log("dávám řádek do originalData");
+                originalData[id] = Object.assign({}, cell.getRow().getData());
+                originalData[id][field] = oldV;
+            }
+
+            if ((id in originalData) && !(field in originalData[id])) {
+                console.log("přidávám field do originalData");
+                originalData[id][field] = oldV;
+            }
+
+            // dej id do editedData
+            if (!(id in editedData)) {
+                console.log("dávám id do editedData");
+                editedData[id] = {};
+            }
+
+            // změnil-li se field zpět na původní hodnotu, smaž field z editedData,
+            // jinak ulož změnu
+            if (!newData.has(id) && originalData[id][field] === newV) {
+                console.log("data jsou stejná jako originál");
+                console.log(originalData[id][field]);
+                console.log(newV);
+                delete editedData[id][field];
+                unmarkElementEdited(cell.getElement())
+            } else {
+                console.log("ukládám změnu");
+                editedData[id][field] = newV;
+                markElementEdited(cell.getElement());
+            }
+
+            // pokud byl poslední field řádku upraven zpět na původní hodnotu, smaž id z editedData
+            if ($.isEmptyObject(editedData[id])) {
+                console.log("Mažu id z editedData");
+                delete editedData[id];
+            }
+
+            console.log("originalData");
+            console.log(originalData);
+            console.log("editedData");
+            console.log(editedData);
+        };
+
+        /**
+         * Callback tabulátoru. Pokud byla vrácena úprava buňky, zavolá cellDataEdited.
+         * Pokud bylo vráceno smazání řádku, podbarvi všechny upravené fieldy (bohužel, tabulátor si
+         * nepamatuje podbarvení smazaných řádků).
+         */
+        let undoHappened = function (action, component, data) {
+            if (action === "cellEdit") {
+                cellDataEdited(component);
+
+                if (component.getField().includes("address")) {
+                    reformatAddressCell(component.getRow().getIndex(), component.getField().split(".")[0]);
+                }
+            }
+            if (action === "rowDelete") {
+                let id = component.getIndex();
+
+                if (id in editedData) {
+                    for (let field in editedData[id]) {
+                        if (editedData[id].hasOwnProperty(field)) {
+                            markElementEdited(component.getCell(field).getElement());
+                        }
+                    }
+                }
+            }
+        };
+
+        /**
+         * Callback tabulátoru. Pokud byla znovu provedena úprava buňky, zavolá cellDataEdited.
+         */
+        let redoHappened = function (action, component, data) {
+            if (action === "cellEdit") {
+                cellDataEdited(component);
+
+                if (component.getField().includes("address")) {
+                    reformatAddressCell(component.getRow().getIndex(), component.getField().split(".")[0]);
+                }
+            }
+        };
+
+        /**
+         * Callback tabulatoru. Pokud je to obnovený dříve smazaný řádek, odstraní id z deletedData.
+         * Nové řádky jsou podbarveny šedě.
+         */
+        let rowAdded = function (row) {
+            let id = row.getIndex();
+
+            // pokud byl tento řádek dříve odstraněn, už odstraněn není
+            if (deletedData.has(id)) {
+                deletedData.delete(id);
+            }
+
+            // je-li to nově vytvořený řádek, podbarvi ho
+            if (newData.has(id)) {
+                row.getElement().classList.add("new-user-row")
+            }
+        };
+
+        /**
+         * Callback tabulatoru. Přidá id řádku do deletedData.
+         */
+        let rowDeleted = function (row) {
+            let id = row.getIndex();
+
+            deletedData.add(id);
+        };
+
+        /**
+         * Formatter buňky adresy. Protože buňka adresy nemá vlastní hodnotu, zobrazená hodnota je vytvořena ze
+         * skrytých sloupců <field>.<prvek adresy>. Buňka samotná neví, jak se jmenuje jí příslušný field adresy,
+         * proto je nutné tuto informaci předat ve formatterParams.
+         */
+        let addressFormatter = function (cell, formatterParams, onRendered) {
+
+            let field = formatterParams.field;
+            let data = cell.getData();
+
+            if (!data[field] || typeof data[field] === "undefined") return "";
+
+            let street = data[field]["street"];
+            if (typeof street === "undefined") street = "";
+
+            let city = data[field]["city"];
+            if (typeof city === "undefined") city = "";
+
+            let state = data[field]["state"];
+            if (typeof state === "undefined") state = "";
+
+            let zip = data[field]["zip"];
+            if (typeof zip === "undefined") zip = "";
+
+            return `${street} ${city}, ${zip}, ${state}`;
+        };
+
+        /**
+         * Formatter validace emailu. Zobrazuje material ikony pro "no", "pending" a "yes" hodnoty email_validated
+         */
+        let emailValidatedFormatter = function (cell, formatterParams, onRendered) {
+            let value = cell.getValue();
+
+            let icon = "";
+            if (value === "no") icon = "close";
+            else if (value === "pending") icon = "hourglass_empty";
+            else if (value === "yes") icon = "check";
+            else console.log("email_validated obsahuje neočekávanou hodnotu", value);
+
+            return `<span class='material-icons table-icon'>${icon}</span>`
+        };
+
+        /**
+         * Callback tabulátoru. Je-li hodnota buňky "yes", nedělá nic, pro hodnotu "no" and "pending"
+         * se zeptá na zamýšlenou akci a buď řekne serveru ať pošle ověřovací email nebo nastaví
+         * email_validated na "yes" sama.
+         */
+        let dblClickEmailValidated = function (e, cell) {
+            let value = cell.getValue();
+            let user_id = cell.getRow().getIndex();
+
+            if (value === "yes") setMessage("Není dostupná žádná akce");
+            else if (value === "no" || value === "pending") {
+                if ($.isEmptyObject(editedData) && newData.size === 0 && deletedData.size === 0) {
+                    Lobibox.alert('info', {
+                        msg: 'Zvolte akci:',
+                        buttons: {
+                            send_email: {
+                                class: "btn",
+                                text: "Poslat ověřovací email",
+                                closeOnClick: true,
+                            },
+                            set_validated: {
+                                class: "btn",
+                                text: "Nastavit jako ověřený",
+                                closeOnClick: true,
+                            },
+                            close: {
+                                class: "btn",
+                                text: "Zrušit",
+                                closeOnClick: true,
+                            }
+                        },
+                        callback: function (lobibox, type) {
+                            if (type === "send_email") {
+                                sendValidationEmail(user_id);
+                            } else if (type === "set_validated") {
+                                setMessage("Ukládám");
+
+                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
+                                editedData[user_id]["email_validated"] = "yes";
+
+                                saveUsersEdits();
+                            }
+                        }
+                    });
+                } else setMessage("Nejprve prosím uložte nebo zahoďte změny")
+            } else setMessage(`email_validated obsahuje neočekávanou hodnotu ${value}`)
+        };
+
+        $("#address-save-btn").on("click", saveAddressEditor);
+
+        return new Tabulator("#users-table", {
+            width: '100%',
+            movableColumns: true,
+            history: true,
+            selectable: 1,  // TODO změna z true, uklidit pozůstatky
+            selectablePersistence: false,
+            tooltipsHeader: true,
+            index: "_id",
+            cellEdited: cellDataEdited,
+            historyUndo: undoHappened,
+            historyRedo: redoHappened,
+            rowAdded: rowAdded,
+            rowDeleted: rowDeleted,
+            columns: [
+                {
+                    title: "Přijmení",
+                    field: "name.surname",
+                    frozen: true,
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    validator: "string",
+                },
+                {
+                    title: "Jméno",
+                    field: "name.first_name",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    validator: "string",
+                },
+                {
+                    title: "ID",
+                    field: "_id",
+                    cellDblClick: uneditableMsg,
+                },
+                {
+                    title: "Přihlašovací jméno",
+                    field: "user",
+                    cellDblClick: uneditableMsg,
+                },
+                {
+                    title: "Email",
+                    field: "email",
+                    sorter: "string",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    validator: ["required", `regex:${regexEmail}`],
+                },
+                {
+                    title: "Ověření emailu",
+                    field: "email_validated",
+                    formatter: emailValidatedFormatter,
+                    align: "center",
+                    cellDblClick: dblClickEmailValidated,
+                },
+                {
+                    title: "Telefon",
+                    field: "phone_number",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    validator: `regex:${regexPhone}`
+                },
+                {
+                    title: "Datum narození",
+                    field: "birthdate",
+                    editor: dateEditor,
+                    editable: false,
+                    formatter: dateFormatter,
+                    cellDblClick: dblClickStartEdit,
+                },
+                {
+                    title: "Bydliště",
+                    field: "residence_address_",
+                    formatter: addressFormatter,
+                    formatterParams: {field: "residence_address"},
+                    cellDblClick: (e, cell) => showAddressEditor(e, cell, "residence_address")
+                },
+                {
+                    field: "residence_address.street",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.city",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.state",
+                    visible: false,
+                },
+                {
+                    field: "residence_address.zip",
+                    visible: false,
+                },
+                {
+                    title: "Kontaktní adresa",
+                    field: "contact_address_",
+                    formatter: addressFormatter,
+                    formatterParams: {field: "contact_address"},
+                    cellDblClick: (e, cell) => showAddressEditor(e, cell, "contact_address")
+                },
+                {
+                    field: "contact_address.street",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.city",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.state",
+                    visible: false,
+                },
+                {
+                    field: "contact_address.zip",
+                    visible: false,
+                },
+                {
+                    title: "Titul p. j.",
+                    field: "name.pre_name_title",
+                    sorter: "string",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    headerTooltip: "Titul před jménem",
+                },
+                {
+                    title: "Titul z. j.",
+                    field: "name.post_name_title",
+                    sorter: "string",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                    headerTooltip: "Titul za jménem",
+                },
+                {
+                    title: "Číslo účtu",
+                    field: "account_number",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                },
+                {
+                    title: "Role",
+                    field: "role",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                },
+                {
+                    title: "Pracovní náplň",
+                    field: "assignment",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                },
+                {
+                    title: "Dovednosti",
+                    field: "skills",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                },
+                {
+                    title: "Datum založení účtu",
+                    field: "created",
+                    cellDblClick: uneditableMsg,
+                    formatter: dateFormatter,
+                },
+                {
+                    title: "Poznámky",
+                    field: "notes",
+                    editor: "input",
+                    editable: false,
+                    cellDblClick: dblClickStartEdit,
+                },
+            ],
+            ajaxURL: "users/api/admintable",
+            ajaxConfig: {
+                method: "GET",
+                headers: {
+                    "Content-type": 'application/json; charset=utf-8', //set specific content type
+                },
+                body: undefined,
+            }
+        });
+    }
+
+    let table = drawTable();
+
+    /**
+     * Zruší všechen výběr.
+     */
+    function deselectAllRows() {
+        rows = table.getSelectedRows();
+
+        for (let row of rows) {
+            row.deselect();
+        }
+    }
+
+    /**
+     * onclick handler tlačítka vzít zpět.
+     * není-li co vzít zpět, zobrazí oznámení.
+     */
+    function undoTableAction() {
+        let undone = table.undo();
+        if (!undone) {
+            setMessage("Není co vzít zpět");
+        }
+    }
+
+    /**
+     * onclick handler tlačítka znovu.
+     * není-li co provést znovu, zobrazí oznámení.
+     */
+    function redoTableAction() {
+        let redone = table.redo();
+        if (!redone) {
+            setMessage("Není co provést znovu")
+        }
+    }
+
+    /**
+     * onclick handler tlačítka uložit (změny dat v tabulce uživatelů)
+     * Ajaxem odesílá stringified data na server
+     */
+    function saveUsersEdits() {
+        let data = {
+            "new": [],
+            "edited": {},
+            "deleted": [],
+        };
+
+        // ulož id nových řádků, které nebyly následně smazány
+        for (let id of newData) {
+            if (!(deletedData.has(id))) {
+                data["new"].push(id);
+            }
+        }
+
+        // ulož id řádků, byly smazány a nebyly vytvořeny v tomto sezení
+        for (let id of deletedData) {
+            if (!(newData.has(id))) {
+                data["deleted"].push(id);
+            }
+        }
+
+        // ulož změny v řádcích
+        for (let id in editedData) {
+            if (editedData.hasOwnProperty(id)) {
+                if (!deletedData.has(id)) {
+                    data["edited"][id] = editedData[id];
+                }
+            }
+        }
+
+        $.ajax({
+            url: "/users/api/admintable",
+            type: "post",
+            data: JSON.stringify(data),
+            success: function (response) {
+                console.log(response);
+                setMessage("Změny uloženy");
+                resetTable();
+            },
+            error: ajaxError,
+        });
+    }
+
+    /**
+     * onclick handler tlačítka přidat. Přidá řádek do tabulky a jeho id do newData.
+     */
+    function addUser() {
+        Lobibox.prompt("text", {
+            "title": "Zadejte přihlašovací jméno",
+            "buttons": {
+                ok: {
+                    "text": "OK",
+                },
+                cancel: {
+                    "text": "Zrušit",
+                }
+            },
+            callback: function (lobibox, type) {
+                if (type === "ok") {
+                    let user_name = lobibox.getValue();
+                    if (user_name.trim() === "") return;
+
+                    $.ajax({
+                        url: "/system/api/objectid",
+                        type: "get",
+                        success: function (response) {
+                            console.log(response);
+                            let id = response;
+
+                            newData.add(id);
+                            table.addData([{_id: id}], true);
+                            let cell = table.getRow(id).getCell("user");
+                            cell.setValue(user_name);
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * onclick handler tlačítka smazat. Odebere vybrané řádky z tabulky a jejich id přidá do deletedData.
+     */
+    function deleteUser() {
+        let selected = table.getSelectedRows();
+
+        for (let row of selected) {
+            deletedData.add(row.getIndex());
+            row.delete();
+        }
+    }
+
+    /**
+     * Resetuje tabulku. Znovu stáhne data ze serveru a zahodí neuložené změny.
+     */
+    function resetTable() {
+        table.replaceData();
+        originalData = {};
+        editedData = {};
+        newData = new Set();
+        deletedData = new Set();
+    }
+
+    /**
+     * Zobrazí kartu vybraného uživatele.
+     */
+    function showUserPage() {
+        let selected = table.getSelectedRows();
+        if (selected.length > 1) {
+            setMessage("Je vybráno více řádků");
+            return;
+        }
+        let row = selected[0];
+        let id = row.getIndex();
+        let url = `users/u/${id}`;
+        window.open(url, "_blank");
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
+    }
+</script>
+
+{% end %}{# block body#}

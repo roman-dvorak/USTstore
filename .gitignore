@@ -1,7 +1,7 @@
 *.pdf
-src/USTintranet/static/tmp/*
-src/USTintranet/static/barcode/*
-src/USTintranet/static/sestava.pdf
+src/OpenIntranet/static/tmp/*
+src/OpenIntranet/static/barcode/*
+src/OpenIntranet/static/sestava.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

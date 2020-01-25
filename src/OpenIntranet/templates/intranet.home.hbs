@@ -1,0 +1,23 @@
+{% extends "base.hbs" %}
+{% block title %} | Home{%end%}
+{% block body %}
+{% set plugins = parent.settings['plugins'] %}
+{% set keys = sorted(plugins.keys()) %}
+
+<style type="text/css">
+	.plugin_tab{float: left; padding: 1em;}
+</style>
+
+{% for e in err %}
+<p> Error: {{e}} </p>
+{% end %}
+<div class="row">
+	{% for plug in keys %}
+		{%if (len(plugins[plug].get('role', [])) is 0 or parent.is_authorized(plugins[plug].get('role', []))) and plugins[plug].get('display', True) %}
+		<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}" class="pr-1">{{plugins[plug]['name']}}</label></div></a>
+        {%end%}
+	{% end %}
+</div>
+{#{Repo()}#}
+
+{% end %}

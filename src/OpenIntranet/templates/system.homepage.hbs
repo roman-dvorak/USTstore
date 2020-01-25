@@ -1,0 +1,413 @@
+{% extends "base.hbs" %}
+{% block title %} | TME catalog{%end%}
+{% block body %}
+<div class="container-fluid">
+
+<div class="row">
+<div class="col-lg-3 col-sm-6">
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">Výběr skladu</h5>
+      <select class="" name="" id="select_actual_store" style="width: 100%">
+          <option selected disabled>-- Not changed --</option>
+          {% for warehouse in warehouses %}
+              <option value="{{warehouse['_id']}}">{{warehouse['name']}}, {{warehouse['_id']}}</option>
+          {% end %}
+      </select>
+      <button onclick="push_actual_store()">Nastav</button>
+    </div>
+  </div>
+  </div>
+
+<div class="col-lg-3 col-sm-6">
+    <div class="card" style="overflow: hidden">
+      <div class="card-body" style="overflow: hidden;">
+        <div class="card-title"><h5>Nastavení pozic</h5>  <a href="#" class="badge badge-secondary" onclick="new_position()">New</a> <a href="#" class="badge badge-info" onclick="do_print()">Print</a> <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('open_all')">Rozbalit vše</a> <a href="#" class="badge badge-primary" onclick="$('#positions-tree').jstree('close_all')">Sbalit vše</a></div>
+      </div>
+      <div id="positions-tree"></div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-sm-6">
+    <div class="card" style="overflow: hidden">
+      <div class="card-body" style="overflow: hidden;">
+        <div class="card-title"><h5>Kategorie skladových položek (jeste nefunguje)</h5>  <a href="#" class="badge badge-secondary" onclick="new_category()">New</a> <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('open_all')">Rozbalit vše</a> <a href="#" class="badge badge-primary" onclick="$('#categories-tree').jstree('close_all')">Sbalit vše</a></div>
+      </div>
+      <div id="categories-tree"></div>
+    </div>
+</div>
+</div>
+
+
+</div></div>
+<!-- Tady bude konec HTML -->
+
+
+<div class="modal" tabindex="-1" role="dialog" id="position_edit_modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Úprava pozice</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <small id="modal_pos_id"></small>
+      <div class="modal-body">
+
+        <form>
+          <div class="form-group form-group-sm">
+            <label for="position_name">ID</label>
+            <input type="text" class="form-control form-control-sm" id="position_id" disabled>
+          </div>
+          <div class="form-group form-group-sm">
+            <label for="position_name">Pozice</label>
+            <input type="text" class="form-control form-control-sm" id="position_name" aria-describedby="emailHelp" placeholder="Kód pozice">
+            <small class="form-text text-muted">Krátký kód skladové pozice</small>
+          </div>
+          <div class="form-group form-group-sm">
+            <label for="position_description">Popis</label>
+            <input type="text" class="form-control form-control-sm" id="position_description" placeholder="Popis">
+            <small class="form-text text-muted">Popis umístění pozice či obsahu</small>
+          </div>
+        </form>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="do_edit_position()">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<div class="modal" tabindex="-1" role="dialog" id="category_edit_modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Úprava kategorie</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <small id="modal_pos_id"></small>
+      <div class="modal-body">
+
+        <form>
+          <div class="form-group form-group-sm">
+            <label for="position_name">ID</label>
+            <input type="text" class="form-control form-control-sm" id="category_id" disabled>
+          </div>
+          <div class="form-group form-group-sm">
+            <label for="category_name">Kategorie</label>
+            <input type="text" class="form-control form-control-sm" id="category_name" aria-describedby="emailHelp" placeholder="Kód pozice">
+            <small class="form-text text-muted">Krátký název(kód) kategorie.</small>
+          </div>
+          <div class="form-group form-group-sm">
+            <label for="category_description">Popis</label>
+            <input type="text" class="form-control form-control-sm" id="category_description" placeholder="Popis">
+            <small class="form-text text-muted">Popis kategorie</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="do_edit_category()">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+//<!-- Prehled skladovych pozit -->
+
+
+$('#positions-tree').jstree({
+'core' : {
+  'data' : {
+    'type': "POST",
+    'url' : "/store/api/get_positions/list/?jstree=True"
+  },
+  "check_callback" : true
+},
+"plugins" : [
+  "checkbox",
+  "contextmenu",
+  "dnd",
+  "massload",
+  "search",
+  "sort",
+  "state",
+  "types",
+  "unique",
+],
+'dnd':{
+  'is_draggable': true,
+  'use_html5': true,
+},
+'checkbox':{
+  'whole_node': false,
+},
+'contextmenu':{
+  'items':{
+    'rename':{
+      'title': 'Edit',
+      'label': 'Edit',
+      'action': function (node) { return edit_position(node, $(node)); }
+    }
+  }
+}
+});
+
+$(document).bind("dnd_stop.vakata", function(e, data) {
+  console.log(this);
+    console.log("Move dnd", e, data);
+    console.log(data.event.target.parentNode);
+    var drag_id = data.element.parentNode.id;
+    var target_id = data.event.target.parentNode.getAttribute('id');
+    console.log("Presouvam", drag_id, target_id);
+
+    $.ajax({
+      type: "POST",
+      url: "/store/api/set_positions/move/",
+      data: {'id': drag_id, 'parent': target_id},
+      //success: success,
+      //dataType: dataType
+    });
+    $.ajax({
+      type: "POST",
+      url: "/store/api/set_categories/move/",
+      data: {'id': drag_id, 'parent': target_id},
+      //success: success,
+      //dataType: dataType
+    });
+})
+
+function load_position_modal(position){
+  console.log("POZICE", position);
+  $('#position_id').val(position.id);
+  $('#position_name').val(position.getAttribute("name"));
+  $('#position_description').val(position.getAttribute("text"));
+
+  $('#position_edit_modal').modal('show')
+
+}
+
+function new_position(){
+  $('#position_id').val('new');
+  $('#position_name').val(null);
+  $('#position_description').val(null);
+
+  $('#position_edit_modal').modal('show')
+}
+
+function edit_position(data, node){
+  load_position_modal(data.reference[0].parentNode)
+}
+
+function do_print(){
+  var id_list = window.btoa($('#positions-tree').jstree('get_selected'));
+  var id_list = $('#positions-tree').jstree('get_selected');
+  window.open('/printer/label?items='+id_list+'&type=positions&end=True', '_blank');
+}
+
+function do_edit_position(){
+
+    $.ajax({
+      type: "POST",
+      url: "/store/api/set_positions/update/",
+      data: {
+        'id': $("#position_id").val(),
+        'name': $("#position_name").val(),
+        'text': $("#position_description").val()
+      },
+      success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        Lobibox.notify('success', {msg: 'Pozice zaktualizována'});
+        $('#position_edit_modal').modal('hide')
+        $('#positions-tree').jstree("refresh");
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+        Lobibox.notify('success', {msg: 'Chyba...'});
+      }
+    });
+}
+
+// Nastavit aktualni sklad
+function push_actual_store() {
+    var store = $("#select_actual_store").val();
+    console.log(store);
+
+    $.ajax({
+      type: "POST",
+      url: "/system/",
+      data: {
+        'operation': 'set_warehouse',
+        'warehouse': store
+      },
+      success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        Lobibox.notify('success', {msg: 'Sklad nastaven'});
+        location.reload(); 
+
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+        Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
+
+      }
+    });
+
+}
+
+</script>
+
+
+
+
+<script>
+//<!-- Prehled skladovych pozit -->
+
+
+$('#categories-tree').jstree({
+'core' : {
+  'data' : {
+    'type': "POST",
+    'url' : "/store/api/get_categories/list/?jstree=True"
+  },
+  "check_callback" : true
+},
+"plugins" : [
+  "checkbox",
+  "contextmenu",
+  "dnd",
+  "massload",
+  "search",
+  "sort",
+  "state",
+  "types",
+  "unique",
+],
+'dnd':{
+  'is_draggable': true,
+  'use_html5': true,
+},
+'checkbox':{
+  'whole_node': false,
+},
+'contextmenu':{
+  'items':{
+    'rename':{
+      'title': 'Edit',
+      'label': 'Edit',
+      'action': function (node) { return edit_category(node, $(node)); }
+    }
+  }
+}
+});
+
+// Presunuti polozky z jedne do dalsi
+
+// $(document).bind("dnd_stop.vakata", function(e, data) {
+//     console.log("Move dnd", e, data);
+//     console.log(data.event.target.parentNode);
+//     var drag_id = data.element.parentNode.id;
+//     var target_id = data.event.target.parentNode.getAttribute('id');
+//     console.log("Presouvam", drag_id, target_id);
+
+//     $.ajax({
+//       type: "POST",
+//       url: "/store/api/set_positions/move/",
+//       data: {'id': drag_id, 'parent': target_id},
+//       //success: success,
+//       //dataType: dataType
+//     });
+// })
+
+function load_category_modal(position){
+  console.log("POZICE", position);
+  $('#category_id').val(position.id);
+  $('#category_name').val(position.getAttribute("name"));
+  $('#category_description').val(position.getAttribute("description"));
+
+  $('#category_edit_modal').modal('show')
+
+}
+
+function new_category(){
+  $('#category_id').val('new');
+  $('#category_name').val(null);
+  $('#category_description').val(null);
+
+  $('#category_edit_modal').modal('show')
+
+}
+
+function edit_category(data, node){
+  load_category_modal(data.reference[0].parentNode)
+}
+
+// function do_print(){
+//   var id_list = $('#positions-tree').jstree('get_selected');
+// }
+
+function do_edit_category(){
+
+    $.ajax({
+      type: "POST",
+      url: "/store/api/set_categories/update/",
+      data: {
+        'id': $("#category_id").val(),
+        'name': $("#category_name").val(),
+        'description': $("#category_description").val()
+      },
+      success: function( data, textStatus, jQxhr ){
+        $('#category_edit_modal').modal('hide')
+        $('#categories-tree').jstree("refresh");
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+        Lobibox.notify('success', {msg: 'Chyba...'});
+      }
+    });
+}
+
+// Nastavit aktualni sklad
+// function push_actual_store() {
+//     var store = $("#select_actual_store").val();
+//     console.log(store);
+
+//     $.ajax({
+//       type: "POST",
+//       url: "/system/",
+//       data: {
+//         'operation': 'set_warehouse',
+//         'warehouse': store
+//       },
+//       success: function( data, textStatus, jQxhr ){
+//         console.log(data);
+//         Lobibox.notify('success', {msg: 'Sklad nastaven'});
+//         location.reload(); 
+
+//       },
+//       error: function( jqXhr, textStatus, errorThrown ){
+//         console.log( errorThrown );
+//         Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
+
+//       }
+//     });
+
+// }
+
+</script>
+
+
+
+
+{% end %}
