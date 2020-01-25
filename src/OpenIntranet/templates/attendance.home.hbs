@@ -16,7 +16,7 @@
         text-align: center;
     }
 
-    #work-spans table td:nth-child(5) {
+    #workspans table td:nth-child(5) {
         text-align: center;
     }
 
@@ -79,11 +79,28 @@
         background: green;
     }
 
+    .close-month-alert {
+        background: none;
+        border-color: var(--dark);
+    }
 </style>
 
 
 <div class="container">
     <h1>Docházková karta: <a href="/users/u/{{_id}}">{{name}}</a></h1>
+
+    {% if not last_month_closed %}
+    <div class="row">
+        <div class="col col-12">
+            <div class="alert alert-secondary close-month-alert" role="alert">
+                Ještě nemáte uzavřený minulý měsíc.
+                <a href="/attendance/u/{{_id}}/date/{{last_month_date}}" class="alert-link">
+                    Zkontrolujte si prosím docházku a uzavřete ji
+                </a>.
+            </div>
+        </div>
+    </div>
+    {% end %}
 
     <div class="row">
         <div class="col col-12 col-lg-6">
@@ -182,7 +199,9 @@
                     </tr>
                     <tr>
                         <td colspan="2" class="text-center">
-                            <button class="btn btn-primary">Uzavřít měsíc</button>
+                            <button class="btn btn-primary" id="close-month-button" onclick="closeMonth()">
+                                Uzavřít měsíc
+                            </button>
                         </td>
                     </tr>
 
@@ -192,9 +211,11 @@
         </div>
     </div>
 
+    <!-- TODO Pozor hack! Pokud je uzavřený měsíc, celá tabulka je schovaná ve funkci updatu měsíční tabulky
+     (kde se schovává tlačítko uzavřít měsíc), je potřeba to dělat lépe -->
     <div class="row">
         <div class="col">
-            <div id="work-spans">
+            <div id="workspans">
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
@@ -599,6 +620,16 @@
             document.getElementById("month-info-year-available-hours-td").textContent =
                     data["year_available_hours"] ? data["year_available_hours"] : "-";
             document.getElementById("month-info-year-days-of-vacation-td").textContent = data["year_days_of_vacation"];
+
+            const closeMonthButton = $("#close-month-button");
+            const addWorkspansTable = $("#workspans");
+            if (data["month_closed"]) {
+                closeMonthButton.hide();
+                addWorkspansTable.hide();
+            } else {
+                closeMonthButton.show();
+                addWorkspansTable.show();
+            }
         }
     }
 
@@ -706,6 +737,21 @@
             url: "/attendance/api/u/{{_id}}/workspans/delete",
             type: "post",
             data: workspanId,
+            success: function (response) {
+                alert("Podařilo se!");
+                location.reload();
+            },
+            error: ajaxError,
+        });
+    }
+
+    function closeMonth() {
+        let monthIso = calendar.monthShown.format("YYYY-MM-DD");
+
+        $.ajax({
+            url: "/attendance/api/u/{{_id}}/close_month",
+            type: "post",
+            data: monthIso,
             success: function (response) {
                 alert("Podařilo se!");
                 location.reload();
