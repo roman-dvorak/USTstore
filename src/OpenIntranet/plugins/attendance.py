@@ -236,17 +236,15 @@ class ApiAdminMonthTableHandler(BaseHandler):
 
         users = udb.get_users(self.mdb.users)
         for user in users:
-            calculator = AttendanceCalculator(self.mdb, user["_id"], date)
+            user_id = user["_id"]
+            calculator = AttendanceCalculator(self.mdb, user_id, date)
 
             row = {
-                "id": user["_id"],
+                "id": str(user_id),
                 "name": user.get("name", {}),
                 "hours_worked": calculator.month_hours_worked,
                 "hour_rate": calculator.month_hour_rate,
-                "month_closed": user.get("month_closed", False),  # TODO tak jak nyní month_closed funguje nedává smysl,
-                # v db je reprezentován bool hodnotou, ale to znamená že ta bude skákat každý měsíc. Větší smysl dává
-                # mít pole months_closed or closed_months a do něj přidávat uzavřené měsíce (třeba data prvních dnů
-                # v měsíci v iso tvaru.
+                "month_closed": adb.is_month_closed(self.mdb, user_id, date),
                 "gross_wage": calculator.month_gross_wage,
                 "tax_amount": calculator.month_tax_amount,
                 "net_wage": calculator.month_net_wage,
@@ -268,7 +266,7 @@ class ApiAdminYearTableHandler(BaseHandler):
             calculator = AttendanceCalculator(self.mdb, user["_id"], date)
 
             row = {
-                "id": user["_id"],
+                "id": str(user["_id"]),
                 "name": user.get("name", {}),
                 "hours_worked": calculator.year_hours_worked,
                 "gross_wage": calculator.year_gross_wage,
