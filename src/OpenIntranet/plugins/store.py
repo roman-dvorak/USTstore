@@ -509,8 +509,15 @@ class api(BaseHandler):
 
 
             ## Pokud neni zarazen do zadne kategorie dat ho do Nezarazeno
+
+            print("KATEGORIE:", new_json['category'])
+            for i, cat in enumerate(new_json['category']):
+                print(cat, type(cat))
+                new_json['category'][i] = bson.ObjectId(cat)
+
             if len(new_json['category']) == 0:
-                new_json['category'] += ['Nezařazeno']
+                new_json['category'] += bson.ObjectId('5a68f0522208c4a21e2aa99c')
+
 
             if new_json.get('barcode', [False])[0] == "":
                 print("BARCODE id", id, str(int(str(id), 16)))
@@ -521,7 +528,7 @@ class api(BaseHandler):
 
 
             print("Update product with parameters:", ObjectId(id))
-            print(json.dumps(new_json, indent=4))
+            #print(json.dumps(new_json, indent=4))
             dout = self.mdb.stock.update(
                     {
                         "_id": ObjectId(id)

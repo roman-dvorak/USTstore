@@ -89,29 +89,29 @@ class generate_label(BaseHandler):
                 pdf.set_text_color(0)
                 
                 ir = i + skip
-                ip = ir%(3*8)
+                ip = ir%(3*7)
                 row  = ip//3
                 cell  = ip%3
                 print(i, ir, ip, row, cell)
-                if page != (ir//(3*8)):
-                    print("NOVA STRANKA", ir//(3*8))
+                if page != (ir//(3*7)):
+                    print("NOVA STRANKA", ir//(3*7))
                     pdf.add_page()
-                    page = ir//(3*8)
+                    page = ir//(3*7)
 
                 x0 = 70*cell
-                y0 = 37.125*row
+                y0 = (297/7)*row
 
                 #pdf.set_draw_color(231, 221, 25)
                 pdf.set_fill_color(231, 121, 25)
-                pdf.set_xy(x0, y0+2)
-                pdf.rect(x0, y0+10.5, w=70, h=8.4, style = 'F')
+                pdf.set_xy(x0, y0+4)
+                pdf.rect(x0, y0+12.5, w=70, h=8.4, style = 'F')
 
                 pdf.set_font('pt_sans-bold', '', 14)
-                pdf.set_xy(x0, y0+6.5)
+                pdf.set_xy(x0, y0+8.5)
                 pdf.cell(70, 0, position['name'][:25], align = 'C')
 
                 pdf.set_font('pt_sans', '', 11)
-                pdf.set_xy(x0+3.5, y0+11.5)
+                pdf.set_xy(x0+3.5, y0+13.5)
                 pdf.multi_cell(70-4, 3.4, position['text'], align='L')
 
                 pdf.set_text_color(100)
@@ -122,15 +122,15 @@ class generate_label(BaseHandler):
                 id = str(position['_id'])
                 barcode = "pos"+str(int(id, 16))
                 code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
-                pdf.set_xy(x0+2.5, y0+19)
+                pdf.set_xy(x0+2.5, y0+21)
                 pdf.image('static/tmp/barcode/%s.png'%(id), w = 70-5, h=7)
 
                 pdf.set_font('pt_sans', '', 7)
-                pdf.set_xy(x0, y0+28)
+                pdf.set_xy(x0, y0+30)
                 pdf.cell(70, 0, barcode, align = 'C')
 
                 pdf.set_font('pt_sans', '', 7)
-                pdf.set_xy(x0+3.5, y0+31)
+                pdf.set_xy(x0+3.5, y0+33)
                 pdf.cell(70, 0, "{} | {}".format(warehouse_name, datetime.datetime.now().strftime("%d. %m. %Y, %H:%M")))
             
 
