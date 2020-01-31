@@ -27,6 +27,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
+        (r'/{}/api/u/(.*)/close_month'.format(plugin_name), plugin_namespace.ApiCloseMonthHandler),
         (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
         (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -235,17 +236,15 @@ class ApiAdminMonthTableHandler(BaseHandler):
 
         users = udb.get_users(self.mdb.users)
         for user in users:
-            calculator = AttendanceCalculator(self.mdb, user["_id"], date)
+            user_id = user["_id"]
+            calculator = AttendanceCalculator(self.mdb, user_id, date)
 
             row = {
-                "id": user["_id"],
+                "id": str(user_id),
                 "name": user.get("name", {}),
                 "hours_worked": calculator.month_hours_worked,
                 "hour_rate": calculator.month_hour_rate,
-                "month_closed": user.get("month_closed", False),  # TODO tak jak nyní month_closed funguje nedává smysl,
-                # v db je reprezentován bool hodnotou, ale to znamená že ta bude skákat každý měsíc. Větší smysl dává
-                # mít pole months_closed or closed_months a do něj přidávat uzavřené měsíce (třeba data prvních dnů
-                # v měsíci v iso tvaru.
+                "month_closed": adb.is_month_closed(self.mdb, user_id, date),
                 "gross_wage": calculator.month_gross_wage,
                 "tax_amount": calculator.month_tax_amount,
                 "net_wage": calculator.month_net_wage,
@@ -267,7 +266,7 @@ class ApiAdminYearTableHandler(BaseHandler):
             calculator = AttendanceCalculator(self.mdb, user["_id"], date)
 
             row = {
-                "id": user["_id"],
+                "id": str(user["_id"]),
                 "name": user.get("name", {}),
                 "hours_worked": calculator.year_hours_worked,
                 "gross_wage": calculator.year_gross_wage,
@@ -304,6 +303,14 @@ class UserAttendanceHandler(BaseHandler):
             vacation["from"] = str_ops.date_to_str(vacation["from"])
             vacation["to"] = str_ops.date_to_str(vacation["to"])
 
+        # toto je rychlý hack jak rozumně zprovoznit uzavírání měsíců
+        # TODO popřemýšlet o tom víc (je potřeba být schopen odkázat v adrese na měsíc, aby se zobrazil v kalendáři)
+        this_month_date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_month_date = this_month_date + relativedelta(months=-1)
+
+        last_month_closed = adb.is_month_closed(self.mdb, user_id, last_month_date)
+        last_month_has_contract = udb.get_user_active_contracts(self.mdb, user_id, last_month_date, this_month_date)
+
         template_params = {
             "_id": str(user_id),
             "name": str_ops.name_to_str(user_document.get("name", {})),
@@ -312,6 +319,9 @@ class UserAttendanceHandler(BaseHandler):
             "workspans": day_workspans,
             "vacations": current_and_future_vacations,
             "is_vacation_day": is_vacation_day,
+            # aby to neupozorňovalo na neuzavřenost měsíce kdy uživatel neměl smlouvu
+            "last_month_closed": last_month_closed or not last_month_has_contract,
+            "last_month_date": str_ops.date_to_iso_str(last_month_date),
         }
 
         self.render("attendance.home.hbs", **template_params)
@@ -378,6 +388,7 @@ class ApiMonthInfoHandler(BaseHandler):
             "month_tax_amount": calculator.month_tax_amount,
             "month_net_wage": calculator.month_net_wage,
             "year_days_of_vacation": get_user_days_of_vacation_in_year(self.mdb, user_id, month),
+            "month_closed": adb.is_month_closed(self.mdb, user_id, month)
         }
 
         self.write(bson.json_util.dumps(data))
@@ -522,3 +533,12 @@ class ApiDeleteWorkspanHandler(BaseHandler):
 
         workspan_id = self.request.body.decode("utf-8")
         adb.delete_user_workspan(self.mdb, user_id, workspan_id)
+
+
+class ApiCloseMonthHandler(BaseHandler):
+
+    def post(self, user_id):
+        user_id = ObjectId(user_id)
+
+        month_date_iso = self.request.body.decode("utf-8")
+        adb.close_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))

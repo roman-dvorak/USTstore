@@ -95,3 +95,20 @@ def delete_user_workspan(database, user_id: ObjectId, workspan_id):
                                       "_id": workspan_id
                                   }
                               }})
+
+
+def is_month_closed(database, user_id: ObjectId, month_date: datetime):
+    month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    mdoc = database.users.find_one({"_id": user_id, "months_closed": month_date})
+
+    return bool(mdoc)
+
+
+def close_month(database, user_id: ObjectId, month_date: datetime):
+    month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    database.users.update_one({"_id": user_id},
+                        {
+                            "$addToSet": {"months_closed": month_date}
+                        })
