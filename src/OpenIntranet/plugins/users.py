@@ -530,17 +530,17 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         document["valid_from"] = str_ops.datetime_from_iso_str(document.get("valid_from", None))
         document["valid_until"] = str_ops.datetime_from_iso_str(document.get("valid_until", None))
 
-        local_path, = self.save_uploaded_files("file")
-        if not local_path:
-            raise BadInputHTTPError("Problém se souborem")
-
         user_mdoc = udb.get_user(self.mdb.users, user_id)
 
         owncloud_directory = generate_documents_directory_path(user_id, user_mdoc["user"], document["valid_from"])
-        owncloud_filename = f"contract_{document['type']}"
-        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
+        owncloud_filename = f"document_{document['type']}"
 
-        document["file"] = file_id
+        local_paths = self.save_uploaded_files("file")
+        if local_paths:
+            document["file"] = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_paths[0])
+        else:
+            document["file"] = self.create_empty_owncloud_record(owncloud_directory, owncloud_filename)
+
         udb.add_user_document(self.mdb.users, user_id, document)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)

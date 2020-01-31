@@ -629,6 +629,25 @@ class BaseHandlerOwnCloud(BaseHandler):
 
         super(BaseHandlerOwnCloud, self).prepare()
 
+    def create_empty_owncloud_record(self, oc_directory, oc_filename):
+        """
+        Vytvoří záznam o souboru v kolekci owncloud, ale nenahraje žádný soubor, záznam je připraven pro pozdější
+        nahrání.
+        Je to proto, aby dokumenty, které jsou vytvořené bez příslušného souboru, měly už od začátku přidělené id
+        owncloud souboru a aby pozdější nahrávání souboru bylo systematičtější (a nemuselo se řešit jestli už záznam o
+        souboru existuje nebo ne).
+        """
+        file_id = ObjectId()
+
+        self.mdb.owncloud.insert_one({
+            "_id": file_id,
+            "directory": oc_directory,
+            "filename": oc_filename,
+            "versions": {}
+        })
+
+        return file_id
+
     def upload_to_owncloud(self,
                            oc_directory,
                            oc_filename,

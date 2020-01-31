@@ -447,7 +447,7 @@
                     </button>
                     <div class="form-group">
                         <label for="document-valid-until-input">Soubor</label>
-                        <input type="file" class="form-control" id="document-file-input" name="file" required>
+                        <input type="file" class="form-control" id="document-file-input" name="file">
                     </div>
 
                     <div class="form-group">
@@ -916,9 +916,11 @@
         if (docData.hasOwnProperty("notes"))
             documentRows.appendChild(buildDocumentRow("Poznámka", docData["notes"]));
 
-        if (docData.hasOwnProperty("url"))
+        if (docData.hasOwnProperty("url") && docData["url"]) {
             documentRows.appendChild(buildShowFileRow(docData["url"]));
-
+        } else {
+            documentTitle.textContent = documentTitle.textContent + " !";
+        }
         if (!docData["is_valid"]) {
             documentTitleRow.style.color = "grey";
             documentContentRow.style.color = "grey";

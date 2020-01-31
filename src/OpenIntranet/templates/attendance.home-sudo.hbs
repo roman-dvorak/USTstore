@@ -30,6 +30,20 @@
     .table-icon {
         line-height: 0;
     }
+
+    #month-table-month-span {
+        text-transform: capitalize;
+    }
+
+    h2.collapse-toggle {
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .collapsible {
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
 </style>
 
 <div class="container">
@@ -38,34 +52,64 @@
     </div>
 
     <div class="row">
-        <div class="title-bar">
-            <div class="right-buttons">
-                <button type="button" class="btn btn-light" onclick="showAttendance()">Zobrazit docházku</button>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-light" onclick="previousMonth()">Předchozí měsíc</button>
-                    <button type="button" class="btn btn-light" onclick="nextMonth()">Následující měsíc</button>
-                </div>
-            </div>
-            <h2>
-                Měsíční přehled -
-                <span id="month-table-month-span"></span>
-                <span id="month-table-year-span"></span>
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#wages-collapse')">
+                Správa výplat
             </h2>
+            <div id="wages-collapse" class="collapsible">
+                <button type="button" class="btn btn-primary">Vygenerovat reporty</button>
+
+            </div>
         </div>
-        <div id="month-table"></div>
     </div>
+
     <div class="row">
-        <div class="title-bar">
-            <div class="btn-group right-buttons" role="group">
-                <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
-                <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
-            </div>
-            <h2>
-                Roční přehled -
-                <span id="year-table-year-span"></span>
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#month-table-collapse')">
+                Měsíční přehled
             </h2>
+            <div id="month-table-collapse" class="collapsible">
+                <div class="title-bar">
+                    <div class="right-buttons">
+                        <button type="button" class="btn btn-light" onclick="showAttendance()">
+                            Zobrazit docházku
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-light" onclick="previousMonth()">
+                                Předchozí měsíc
+                            </button>
+                            <button type="button" class="btn btn-light" onclick="nextMonth()">
+                                Následující měsíc
+                            </button>
+                        </div>
+                    </div>
+                    <h4>
+                        <span id="month-table-month-span"></span>
+                        <span id="month-table-year-span"></span>
+                    </h4>
+                </div>
+
+                <div id="month-table"></div>
+            </div>
         </div>
-        <div id="year-table"></div>
+    </div>
+
+    <div class="row">
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#year-table-collapse')">
+                Roční přehled
+            </h2>
+            <div id="year-table-collapse" class="collapsible">
+                <div class="title-bar">
+                    <div class="btn-group right-buttons" role="group">
+                        <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
+                        <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
+                    </div>
+                    <h4>Rok <span id="year-table-year-span"></span></h4>
+                </div>
+                <div id="year-table"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -75,6 +119,9 @@
     let yearDate = moment().startOf("year");
 
     $(document).ready(() => {
+        $("#wages-collapse").hide();
+        $("#year-table-collapse").hide();
+
         updateMonthDateSpans();
         updateYearDateSpan();
         updateMonthTable();
@@ -242,6 +289,10 @@
         const selectedIndex = selectedRows[0].getIndex();
         const url = `attendance/u/${selectedIndex}/date/${monthDate.format("YYYY-MM-DD")}`;
         window.open(url, "_blank");
+    }
+
+    function toggleCollapseTarget(target) {
+        $(target).toggle();
     }
 </script>
 
