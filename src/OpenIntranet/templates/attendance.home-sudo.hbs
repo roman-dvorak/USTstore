@@ -30,6 +30,20 @@
     .table-icon {
         line-height: 0;
     }
+
+    #month-table-month-span {
+        text-transform: capitalize;
+    }
+
+    h2.collapse-toggle {
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .collapsible {
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
 </style>
 
 <div class="container">
@@ -38,52 +52,90 @@
     </div>
 
     <div class="row">
-        <div class="title-bar">
-            <div class="btn-group right-buttons" role="group">
-                <button type="button" class="btn btn-light" onclick="previousMonth()">Předchozí měsíc</button>
-                <button type="button" class="btn btn-light" onclick="nextMonth()">Následující měsíc</button>
-            </div>
-            <h2>
-                Měsíční přehled -
-                <span id="month-table-month-span"></span>
-                <span id="month-table-year-span"></span>
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#wages-collapse')">
+                Správa výplat
             </h2>
+            <div id="wages-collapse" class="collapsible">
+                <button type="button" class="btn btn-primary" onclick="generateReports()">Vygenerovat reporty</button>
+
+            </div>
         </div>
-        <div id="month-table"></div>
     </div>
+
     <div class="row">
-        <div class="title-bar">
-            <div class="btn-group right-buttons" role="group">
-                <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
-                <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
-            </div>
-            <h2>
-                Roční přehled -
-                <span id="year-table-year-span"></span>
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#month-table-collapse')">
+                Měsíční přehled
             </h2>
+            <div id="month-table-collapse" class="collapsible">
+                <div class="title-bar">
+                    <div class="right-buttons">
+                        <button type="button" class="btn btn-light" onclick="showAttendance()">
+                            Zobrazit docházku
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-light" onclick="previousMonth()">
+                                Předchozí měsíc
+                            </button>
+                            <button type="button" class="btn btn-light" onclick="nextMonth()">
+                                Následující měsíc
+                            </button>
+                        </div>
+                    </div>
+                    <h4>
+                        <span id="month-table-month-span"></span>
+                        <span id="month-table-year-span"></span>
+                    </h4>
+                </div>
+
+                <div id="month-table"></div>
+            </div>
         </div>
-        <div id="year-table"></div>
+    </div>
+
+    <div class="row">
+        <div class="col col-12">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#year-table-collapse')">
+                Roční přehled
+            </h2>
+            <div id="year-table-collapse" class="collapsible">
+                <div class="title-bar">
+                    <div class="btn-group right-buttons" role="group">
+                        <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
+                        <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
+                    </div>
+                    <h4>Rok <span id="year-table-year-span"></span></h4>
+                </div>
+                <div id="year-table"></div>
+            </div>
+        </div>
     </div>
 </div>
 
 
 <script>
-    let month_date = moment().startOf("month");
-    let year_date = moment().startOf("year");
+    let monthDate = moment().startOf("month");
+    let yearDate = moment().startOf("year");
 
     $(document).ready(() => {
+        $("#wages-collapse").hide();
+        $("#year-table-collapse").hide();
+
         updateMonthDateSpans();
         updateYearDateSpan();
         updateMonthTable();
         updateYearTable();
 
-        console.log(month_date.format());
-        console.log(year_date.format());
+        console.log(monthDate.format());
+        console.log(yearDate.format());
     });
 
 
-    let month_table = new Tabulator("#month-table", {
+    let monthTable = new Tabulator("#month-table", {
         height: 600,
+        selectable: 1,
+        layout: "fitDataFill",
         columns: [
             {
                 title: "Příjmení",
@@ -100,21 +152,21 @@
                 field: "name.first_name"
             },
             {
-                title: "Odpracované hodiny",
+                title: "Odpracované<br>hodiny",
                 field: "hours_worked",
             },
             {
-                title: "Hodinová mzda",
+                title: "Hodinová<br>mzda",
                 field: "hour_rate",
             },
             {
-                title: "Měsíc uzavřen",
+                title: "Měsíc<br>uzavřen",
                 field: "month_closed",
                 formatter: "tickCross",
                 align: "center"
             },
             {
-                title: "Hroubá mzda",
+                title: "Hroubá<br>mzda",
                 field: "gross_wage",
             },
             {
@@ -122,7 +174,7 @@
                 field: "tax_amount",
             },
             {
-                title: "Čistá mzda",
+                title: "Čistá<br>mzda",
                 field: "net_wage",
             },
             {
@@ -134,11 +186,26 @@
                 cellClick: function (e, cell) {
                     alert(`click on ${cell.getRow().getIndex()}`)
                 }
+            },
+            {
+                title: "Report",
+                field: "report",
+                formatter: function (cell, formatterParams, onRendered) {
+                    if (cell.getValue()) {
+                        return "<span class='material-icons table-icon'>cloud_download</span>"
+                    } else {
+                        return "<span></span>"
+                    }
+                },
+                align: "center",
+                cellClick: function (e, cell) {
+                    if (cell.getValue()) window.open(cell.getValue(), "_blank");
+                }
             }
         ]
     });
 
-    let year_table = new Tabulator("#year-table", {
+    let yearTable = new Tabulator("#year-table", {
         layout: "fitDataFill",
         height: 600,
         columns: [
@@ -183,50 +250,89 @@
         let month_table_month_span = document.getElementById("month-table-month-span");
         let month_table_year_span = document.getElementById("month-table-year-span");
 
-        month_table_month_span.innerHTML = month_date.format("MMMM");
-        month_table_year_span.innerHTML = month_date.format("YYYY");
+        month_table_month_span.innerHTML = monthDate.format("MMMM");
+        month_table_year_span.innerHTML = monthDate.format("YYYY");
     }
 
     function updateYearDateSpan() {
         let year_table_year_span = document.getElementById("year-table-year-span");
 
-        year_table_year_span.innerHTML = year_date.format("YYYY");
+        year_table_year_span.innerHTML = yearDate.format("YYYY");
     }
 
     function nextMonth() {
-        month_date.add(1, "months");
+        monthDate.add(1, "months");
         updateMonthDateSpans();
-        console.log(month_date.format());
+        console.log(monthDate.format());
         updateMonthTable();
     }
 
     function previousMonth() {
-        month_date.subtract(1, "months");
+        monthDate.subtract(1, "months");
         updateMonthDateSpans();
-        console.log(month_date.format());
+        console.log(monthDate.format());
         updateMonthTable();
     }
 
     function nextYear() {
-        year_date.add(1, "years");
+        yearDate.add(1, "years");
         updateYearDateSpan();
-        console.log(year_date.format());
+        console.log(yearDate.format());
         updateYearTable();
     }
 
     function previousYear() {
-        year_date.subtract(1, "years");
+        yearDate.subtract(1, "years");
         updateYearDateSpan();
-        console.log(year_date.format());
+        console.log(yearDate.format());
         updateYearTable();
     }
 
     function updateMonthTable() {
-        month_table.setData(`/attendance/api/month_table/${month_date.format("YYYY-MM-DD")}`)
+        monthTable.setData(`/attendance/api/month_table/${monthDate.format("YYYY-MM-DD")}`)
     }
 
     function updateYearTable() {
-        year_table.setData(`/attendance/api/year_table/${year_date.format("YYYY-MM-DD")}`)
+        yearTable.setData(`/attendance/api/year_table/${yearDate.format("YYYY-MM-DD")}`)
+    }
+
+    function showAttendance() {
+        const selectedRows = monthTable.getSelectedRows();
+
+        if (!selectedRows.length) return;
+
+        const selectedIndex = selectedRows[0].getIndex();
+        const url = `attendance/u/${selectedIndex}/date/${monthDate.format("YYYY-MM-DD")}`;
+        window.open(url, "_blank");
+    }
+
+    function toggleCollapseTarget(target) {
+        $(target).toggle();
+    }
+
+    function generateReports() {
+        const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+
+        let result = confirm("Generovat reporty pro měsíc " + lastMonth + "?");
+
+        if (result) {
+            $.ajax({
+                url: "/attendance/api/generate_reports",
+                type: "post",
+                data: lastMonth,
+                success: function (response) {
+                    alert("Podařilo se!");
+                    console.log(response);
+                },
+                error: ajaxError,
+            });
+        }
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
     }
 </script>
 

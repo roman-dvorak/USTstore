@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pymongo
+from bson.objectid import ObjectId
 from dateutil.relativedelta import relativedelta
 from plugins.helpers import database_attendance as adb
 from plugins.helpers import database_user as udb
@@ -15,7 +16,7 @@ def find_type_in_addresses(addresses: list, addr_type: str):
     return next((a for a in addresses if a.get("type", "residence") == addr_type), None)
 
 
-def get_user_days_of_vacation_in_year(database, user_id: str, date: datetime):
+def get_user_days_of_vacation_in_year(database, user_id, date: datetime):
     start_of_year = date.replace(day=1, month=1)
     end_of_year = start_of_year + relativedelta(years=1) - relativedelta(days=1)
     vacations = adb.get_user_vacations(database, user_id, start_of_year)
@@ -28,3 +29,20 @@ def get_user_days_of_vacation_in_year(database, user_id: str, date: datetime):
         days += (vac_to - vac_from).days
 
     return days
+
+
+def update_workspans_contract_id(database, user_id: ObjectId, from_date: datetime, to_date: datetime, contract_id):
+    database.users.update_one(
+        {
+            "_id": user_id,
+        },
+        {
+            "$set": {"workspans.$[elem].contract": contract_id}
+        },
+        array_filters=[
+            {"elem.from": {
+                "$gte": from_date,
+                "$lt": to_date,
+            }}
+        ]
+    )
