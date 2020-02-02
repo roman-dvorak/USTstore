@@ -57,7 +57,7 @@
                 Správa výplat
             </h2>
             <div id="wages-collapse" class="collapsible">
-                <button type="button" class="btn btn-primary">Vygenerovat reporty</button>
+                <button type="button" class="btn btn-primary" onclick="generateReports()">Vygenerovat reporty</button>
 
             </div>
         </div>
@@ -186,6 +186,21 @@
                 cellClick: function (e, cell) {
                     alert(`click on ${cell.getRow().getIndex()}`)
                 }
+            },
+            {
+                title: "Report",
+                field: "report",
+                formatter: function (cell, formatterParams, onRendered) {
+                    if (cell.getValue()) {
+                        return "<span class='material-icons table-icon'>cloud_download</span>"
+                    } else {
+                        return "<span></span>"
+                    }
+                },
+                align: "center",
+                cellClick: function (e, cell) {
+                    if (cell.getValue()) window.open(cell.getValue(), "_blank");
+                }
             }
         ]
     });
@@ -293,6 +308,31 @@
 
     function toggleCollapseTarget(target) {
         $(target).toggle();
+    }
+
+    function generateReports() {
+        const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+
+        let result = confirm("Generovat reporty pro měsíc " + lastMonth + "?");
+
+        if (result) {
+            $.ajax({
+                url: "/attendance/api/generate_reports",
+                type: "post",
+                data: lastMonth,
+                success: function (response) {
+                    alert("Podařilo se!");
+                    console.log(response);
+                },
+                error: ajaxError,
+            });
+        }
+    }
+
+    function ajaxError(jqXHR, textStatus, errorThrown) {
+        let legibleError = decodeURIComponent(escape(errorThrown));
+        console.log(textStatus, legibleError);
+        Lobibox.alert("error", {msg: legibleError, title: "Chyba"})
     }
 </script>
 

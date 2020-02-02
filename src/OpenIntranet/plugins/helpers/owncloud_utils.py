@@ -59,3 +59,13 @@ def generate_contracts_directory_path(user_id: ObjectId, user_name: str, year_da
 
 def generate_documents_directory_path(user_id: ObjectId, user_name: str, year_date):
     return os.path.join(generate_user_directory_path(user_id, user_name, year_date), "documents")
+
+
+def generate_accountant_reports_directory_path(month_date: datetime):
+    year = str(month_date.year)
+    month = str(month_date.month)
+    return os.path.join("accounting", year, "reports", month)
+
+
+def generate_hours_worked_reports_directory_path(user_id: ObjectId, user_name: str, year_date):
+    return os.path.join(generate_user_directory_path(user_id, user_name, year_date), "reports")
