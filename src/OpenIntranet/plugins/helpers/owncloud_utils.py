@@ -17,15 +17,31 @@ def generate_actual_owncloud_path(file_id: ObjectId,
 def get_file_url(database, file_id, version=-1):
     file_mdoc = database.owncloud.find_one({"_id": file_id})
 
-    index = list(file_mdoc["versions"].keys())[version]
+    version_indices = list(file_mdoc["versions"].keys())
+    if not version_indices:
+        return ""
+
+    index = version_indices[version]
     return file_mdoc["versions"][index]["url"]
 
 
 def get_file_last_version_index(file_mdoc: dict):
+    """
+    Vrací key poslední verze souboru (str) nebo None když soubor ještě nemá verzi.
+    """
+    versions_keys = list(file_mdoc["versions"].keys())
+    if not versions_keys:
+        return None
     return list(file_mdoc["versions"].keys())[-1]
 
 
 def get_file_last_version_number(file_mdoc: dict):
+    """
+    Vrací číslo poslední verze nebo -1 když soubor ještě nemá verzi.
+    """
+    index = get_file_last_version_index(file_mdoc)
+    if not index:
+        return -1
     return int(get_file_last_version_index(file_mdoc))
 
 
