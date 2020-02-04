@@ -3,6 +3,7 @@ from datetime import datetime
 import pymongo
 from bson import ObjectId
 
+from plugins.helpers import str_ops
 from plugins.helpers.assertions import assert_isinstance
 from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_user_embedded_mdoc_by_id
 
@@ -109,6 +110,25 @@ def close_month(database, user_id: ObjectId, month_date: datetime):
     month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     database.users.update_one({"_id": user_id},
-                        {
-                            "$addToSet": {"months_closed": month_date}
-                        })
+                              {
+                                  "$addToSet": {"months_closed": month_date}
+                              })
+
+
+def add_user_hours_report(database, user_id, month_date, owncloud_id):
+    month_date_iso = str_ops.date_to_iso_str(month_date)
+    database.users.update_one({"_id": user_id},
+                              {
+                                  "$push": {"reports_hours_worked": {"month": month_date_iso, "file": owncloud_id}}
+                              })
+
+
+def get_user_hours_report_file_id(database, user_id, month_date):
+    month_date_iso = str_ops.date_to_iso_str(month_date)
+    user_mdoc = database.users.find_one({"_id": user_id, "reports_hours_worked.month": month_date_iso},
+                                        {"reports_hours_worked.$": 1})
+
+    if user_mdoc and user_mdoc["reports_hours_worked"]:
+        return user_mdoc["reports_hours_worked"][0]["file"]
+    else:
+        return None
