@@ -151,7 +151,10 @@
                 title: "Příjmení",
                 field: "name.surname",
                 frozen: true,
-                width: 150
+                width: 150,
+                topCalc: function(values, data, calcParams) {
+                    return "Celkem";
+                }
             },
             {
                 field: "id",
@@ -164,6 +167,7 @@
             {
                 title: "Odpracované<br>hodiny",
                 field: "hours_worked",
+                topCalc: "sum",
             },
             {
                 title: "Hodinová<br>mzda",
@@ -179,14 +183,17 @@
             {
                 title: "Hrubá<br>mzda",
                 field: "gross_wage",
+                topCalc: "sum",
             },
             {
                 title: "Daň",
                 field: "tax_amount",
+                topCalc: "sum",
             },
             {
                 title: "Čistá<br>mzda",
                 field: "net_wage",
+                topCalc: "sum",
             },
             {
                 title: "Zaplatit",
@@ -264,7 +271,10 @@
                 title: "Příjmení",
                 field: "name.surname",
                 frozen: true,
-                width: 150
+                width: 150,
+                topCalc: function(values, data, calcParams) {
+                    return "Celkem";
+                }
             },
             {
                 field: "id",
@@ -277,6 +287,7 @@
             {
                 title: "Odpracované hodiny",
                 field: "hours_worked",
+                topCalc: "sum",
             },
             {
                 title: "Hodinová mzda",
@@ -285,14 +296,17 @@
             {
                 title: "Hrubá mzda",
                 field: "gross_wage",
+                topCalc: "sum",
             },
             {
                 title: "Daň",
                 field: "tax_amount",
+                topCalc: "sum",
             },
             {
                 title: "Čistá mzda",
                 field: "net_wage",
+                topCalc: "sum",
             }
         ]
     });
