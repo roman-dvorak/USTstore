@@ -132,3 +132,12 @@ def get_user_hours_report_file_id(database, user_id, month_date):
         return user_mdoc["reports_hours_worked"][0]["file"]
     else:
         return None
+
+
+def reopen_month(database, user_id, month_date: datetime):
+    month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    database.users.update_one({"_id": user_id},
+                              {
+                                  "$pull": {"months_closed": month_date}
+                              })

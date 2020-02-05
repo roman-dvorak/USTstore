@@ -32,6 +32,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
         (r'/{}/api/u/(.*)/close_month'.format(plugin_name), plugin_namespace.ApiCloseMonthHandler),
+        (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), plugin_namespace.ApiReopenMonthHandler),
         (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
         (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
         (r'/{}/api/generate_reports'.format(plugin_name), plugin_namespace.ApiGenerateReportsHandler),
@@ -551,6 +552,15 @@ class ApiCloseMonthHandler(BaseHandler):
 
         month_date_iso = self.request.body.decode("utf-8")
         adb.close_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))
+
+
+class ApiReopenMonthHandler(BaseHandler):
+
+    def post(self, user_id):
+        user_id = ObjectId(user_id)
+
+        month_date_iso = self.request.body.decode("utf-8")
+        adb.reopen_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))
 
 
 class ApiGenerateReportsHandler(BaseHandlerOwnCloud):

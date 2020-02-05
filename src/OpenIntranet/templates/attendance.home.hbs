@@ -748,15 +748,34 @@
     function closeMonth() {
         let monthIso = calendar.monthShown.format("YYYY-MM-DD");
 
-        $.ajax({
-            url: "/attendance/api/u/{{_id}}/close_month",
-            type: "post",
-            data: monthIso,
-            success: function (response) {
-                alert("Podařilo se!");
-                location.reload();
+        Lobibox.alert("info", {
+            msg: 'Uzavřít měsíc?',
+            buttons: {
+                yes: {
+                    class: "btn",
+                    text: "Ano",
+                    closeOnClick: true,
+                },
+                no: {
+                    class: "btn",
+                    text: "Ne",
+                    closeOnClick: true,
+                }
             },
-            error: ajaxError,
+            callback: function (lobibox, type) {
+                if (type === "yes") {
+                    $.ajax({
+                        url: "/attendance/api/u/{{_id}}/close_month",
+                        type: "post",
+                        data: monthIso,
+                        success: function (response) {
+                            alert("Podařilo se!");
+                            location.reload();
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
         });
     }
 
