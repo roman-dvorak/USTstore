@@ -116,16 +116,14 @@ def close_month(database, user_id: ObjectId, month_date: datetime):
 
 
 def add_user_hours_report(database, user_id, month_date, owncloud_id):
-    month_date_iso = str_ops.date_to_iso_str(month_date)
     database.users.update_one({"_id": user_id},
                               {
-                                  "$push": {"reports_hours_worked": {"month": month_date_iso, "file": owncloud_id}}
+                                  "$push": {"reports_hours_worked": {"month": month_date, "file": owncloud_id}}
                               })
 
 
 def get_user_hours_report_file_id(database, user_id, month_date):
-    month_date_iso = str_ops.date_to_iso_str(month_date)
-    user_mdoc = database.users.find_one({"_id": user_id, "reports_hours_worked.month": month_date_iso},
+    user_mdoc = database.users.find_one({"_id": user_id, "reports_hours_worked.month": month_date},
                                         {"reports_hours_worked.$": 1})
 
     if user_mdoc and user_mdoc["reports_hours_worked"]:
@@ -139,5 +137,8 @@ def reopen_month(database, user_id, month_date: datetime):
 
     database.users.update_one({"_id": user_id},
                               {
-                                  "$pull": {"months_closed": month_date}
+                                  "$pull": {
+                                      "months_closed": month_date,
+                                      "reports_hours_worked": {"month": month_date}
+                                  },
                               })

@@ -61,7 +61,12 @@
                 Správa výplat
             </h2>
             <div id="wages-collapse" class="collapsible">
-                <button type="button" class="btn btn-primary" onclick="generateReports()">Vygenerovat reporty</button>
+                <button type="button" class="btn btn-primary" onclick="generateAccountantReport()">
+                    Vygenerovat report pro účetní
+                </button>
+                <button type="button" class="btn btn-primary" onclick="generateHoursWorkedReports()">
+                    Vygenerovat reporty odpracovaných hodin
+                </button>
 
             </div>
         </div>
@@ -152,7 +157,7 @@
                 field: "name.surname",
                 frozen: true,
                 width: 150,
-                topCalc: function(values, data, calcParams) {
+                topCalc: function (values, data, calcParams) {
                     return "Celkem";
                 }
             },
@@ -212,13 +217,21 @@
                     if (cell.getValue()) {
                         return "<span class='material-icons table-icon'>cloud_download</span>"
                     } else {
-                        return "<span></span>"
+                        return "<span class='material-icons table-icon'>build</span>"
                     }
                 },
                 align: "center",
                 cellDblClick: function (e, cell) {
-                    if (cell.getValue()) window.open(cell.getValue(), "_blank");
-                }
+                    if (cell.getValue()) {
+                        window.open(cell.getValue(), "_blank");
+                    } else {
+                        let result = confirm("Generovat report hodin uživatele?");
+
+                        if (result) {
+                            generateUserHoursWorkedReport(cell.getRow().getIndex());
+                        }
+                    }
+                },
             }
         ]
     });
@@ -272,7 +285,7 @@
                 field: "name.surname",
                 frozen: true,
                 width: 150,
-                topCalc: function(values, data, calcParams) {
+                topCalc: function (values, data, calcParams) {
                     return "Celkem";
                 }
             },
@@ -353,14 +366,14 @@
         updateYearTable();
     }
 
-    function updateMonthTable(updateHidden=false) {
+    function updateMonthTable(updateHidden = false) {
         if (updateHidden || $(monthTable.element).is(":visible")) {
             monthTable.setData(`/attendance/api/month_table/${monthDate.format("YYYY-MM-DD")}`);
             console.log("Updating monthTable");
         }
     }
 
-    function updateYearTable(updateHidden=false) {
+    function updateYearTable(updateHidden = false) {
         if (updateHidden || $(yearTable.element).is(":visible")) {
             yearTable.setData(`/attendance/api/year_table/${yearDate.format("YYYY-MM-DD")}`);
             console.log("Updating yearTable");
@@ -381,23 +394,58 @@
         $(target).toggle();
     }
 
-    function generateReports() {
+    function generateAccountantReport() {
         const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
 
-        let result = confirm("Generovat reporty pro měsíc " + lastMonth + "?");
+        let result = confirm("Generovat report pro účetní pro měsíc " + lastMonth + "?");
 
         if (result) {
             $.ajax({
-                url: "/attendance/api/generate_reports",
+                url: "/attendance/api/generate_accountant_report",
                 type: "post",
                 data: lastMonth,
                 success: function (response) {
                     alert("Podařilo se!");
                     console.log(response);
+                    updateMonthTable();
                 },
                 error: ajaxError,
             });
         }
+    }
+
+    function generateHoursWorkedReports() {
+        const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+
+        let result = confirm("Generovat reporty hodin uživatelů pro měsíc " + lastMonth + "?");
+
+        if (result) {
+            $.ajax({
+                url: "/attendance/api/generate_hours_worked_reports",
+                type: "post",
+                data: lastMonth,
+                success: function (response) {
+                    alert("Podařilo se!");
+                    console.log(response);
+                    updateMonthTable();
+                },
+                error: ajaxError,
+            });
+        }
+    }
+
+    function generateUserHoursWorkedReport(userId) {
+        $.ajax({
+            url: `/attendance/api/u/${userId}/generate_hours_worked_report`,
+            type: "post",
+            data: monthDate.format("YYYY-MM-DD"),
+            success: function (response) {
+                alert("Podařilo se!");
+                console.log(response);
+                updateMonthTable();
+            },
+            error: ajaxError,
+        });
     }
 
     function ajaxError(jqXHR, textStatus, errorThrown) {
