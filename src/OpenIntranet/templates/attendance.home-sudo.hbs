@@ -44,6 +44,10 @@
         margin-top: 15px;
         margin-bottom: 15px;
     }
+
+    .tabulator {
+        user-select: none;
+    }
 </style>
 
 <div class="container">
@@ -124,11 +128,17 @@
 
         updateMonthDateSpans();
         updateYearDateSpan();
-        updateMonthTable();
-        updateYearTable();
+        updateMonthTable(true);
+        updateYearTable(true);
 
-        console.log(monthDate.format());
-        console.log(yearDate.format());
+        document.addEventListener("visibilitychange", () => {
+            console.log("visibilitychange");
+            if (!document.hidden) {
+                console.log("visible");
+                updateMonthTable();
+                updateYearTable();
+            }
+        }, false);
     });
 
 
@@ -163,10 +173,11 @@
                 title: "Měsíc<br>uzavřen",
                 field: "month_closed",
                 formatter: "tickCross",
-                align: "center"
+                align: "center",
+                cellDblClick: monthClosedDblClickHandler,
             },
             {
-                title: "Hroubá<br>mzda",
+                title: "Hrubá<br>mzda",
                 field: "gross_wage",
             },
             {
@@ -183,7 +194,7 @@
                     return "<span class='material-icons table-icon'>payment</span>"
                 },
                 align: "center",
-                cellClick: function (e, cell) {
+                cellDblClick: function (e, cell) {
                     alert(`click on ${cell.getRow().getIndex()}`)
                 }
             },
@@ -198,12 +209,52 @@
                     }
                 },
                 align: "center",
-                cellClick: function (e, cell) {
+                cellDblClick: function (e, cell) {
                     if (cell.getValue()) window.open(cell.getValue(), "_blank");
                 }
             }
         ]
     });
+
+    function monthClosedDblClickHandler(e, cell) {
+        const monthClosed = cell.getValue();
+        const buttonCaption = monthClosed ? "Otevřít měsíc" : "Uzavřít měsíc";
+
+        const baseLink = `/attendance/api/u/${cell.getRow().getIndex()}/`;
+        const targetLink = monthClosed ? "reopen_month" : "close_month";
+
+        const fullLink = baseLink + targetLink;
+
+        Lobibox.alert('info', {
+            msg: 'Zvolte akci:',
+            buttons: {
+                close_reopen_month: {
+                    class: "btn",
+                    text: buttonCaption,
+                    closeOnClick: true,
+                },
+                close: {
+                    class: "btn",
+                    text: "Zrušit",
+                    closeOnClick: true,
+                }
+            },
+            callback: function (lobibox, type) {
+                if (type === "close_reopen_month") {
+                    $.ajax({
+                        url: fullLink,
+                        type: "post",
+                        data: monthDate.format("YYYY-MM-DD"),
+                        success: function (response) {
+                            cell.getTable().setData();
+                            console.log(response);
+                        },
+                        error: ajaxError,
+                    });
+                }
+            }
+        });
+    }
 
     let yearTable = new Tabulator("#year-table", {
         layout: "fitDataFill",
@@ -232,7 +283,7 @@
                 field: "hour_rate",
             },
             {
-                title: "Hroubá mzda",
+                title: "Hrubá mzda",
                 field: "gross_wage",
             },
             {
@@ -288,12 +339,18 @@
         updateYearTable();
     }
 
-    function updateMonthTable() {
-        monthTable.setData(`/attendance/api/month_table/${monthDate.format("YYYY-MM-DD")}`)
+    function updateMonthTable(updateHidden=false) {
+        if (updateHidden || $(monthTable.element).is(":visible")) {
+            monthTable.setData(`/attendance/api/month_table/${monthDate.format("YYYY-MM-DD")}`);
+            console.log("Updating monthTable");
+        }
     }
 
-    function updateYearTable() {
-        yearTable.setData(`/attendance/api/year_table/${yearDate.format("YYYY-MM-DD")}`)
+    function updateYearTable(updateHidden=false) {
+        if (updateHidden || $(yearTable.element).is(":visible")) {
+            yearTable.setData(`/attendance/api/year_table/${yearDate.format("YYYY-MM-DD")}`);
+            console.log("Updating yearTable");
+        }
     }
 
     function showAttendance() {
