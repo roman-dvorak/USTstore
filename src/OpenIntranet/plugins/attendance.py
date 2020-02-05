@@ -551,7 +551,15 @@ class ApiCloseMonthHandler(BaseHandler):
         user_id = ObjectId(user_id)
 
         month_date_iso = self.request.body.decode("utf-8")
-        adb.close_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))
+        month_date = str_ops.datetime_from_iso_str(month_date_iso)
+
+        workspans = adb.get_user_workspans(self.mdb, user_id, month_date, month_date + relativedelta(months=1))
+        for workspan in workspans:
+            if not workspan["contract"]:
+                raise MissingInfoHTTPError(f"Práce ve dni {str_ops.date_to_str(workspan['from'])} nemá "
+                                           f"odpovídající smlouvu.")
+
+        adb.close_month(self.mdb, user_id, month_date)
 
 
 class ApiReopenMonthHandler(BaseHandler):
