@@ -575,8 +575,7 @@ class ApiGenerateReportsHandler(BaseHandlerOwnCloud):
     def accountant_report(self, month_date):
         owncloud_directory = generate_accountant_reports_directory_path(month_date)
 
-        pdf_file = report_generation.accountant_report_init(self.company_info["name"], month_date)
-        output_file = os.path.join("static", "tmp", f"accountant_report_{month_date.month}-{month_date.year}.pdf")
+        report = report_generation.AccountantReport(self.company_info["name"], month_date)
 
         users = udb.get_users(self.mdb.users)
 
@@ -590,17 +589,17 @@ class ApiGenerateReportsHandler(BaseHandlerOwnCloud):
             if not adb.is_month_closed(self.mdb, user_id, month_date):
                 raise MissingInfoHTTPError(f"{str_ops.name_to_str(user_mdoc['name'])} nemá uzavřený měsíc.")
 
-            report_generation.accountant_report_add_row(pdf_file,
-                                                        str_ops.name_to_str(user_mdoc["name"]),
-                                                        ac.month_hours_worked,
-                                                        ac.month_hour_rate,
-                                                        ac.month_gross_wage,
-                                                        ac.month_net_wage,
-                                                        ac.month_tax_amount)
+            report.add_row(str_ops.name_to_str(user_mdoc["name"]),
+                           ac.month_hours_worked,
+                           ac.month_hour_rate,
+                           ac.month_gross_wage,
+                           ac.month_net_wage,
+                           ac.month_tax_amount)
 
-        pdf_file.output(output_file)
+        report.add_sums()
+        file_path = report.save()
 
-        self.upload_to_owncloud(owncloud_directory, "accountant_report", output_file)
+        self.upload_to_owncloud(owncloud_directory, "accountant_report", file_path)
 
     def hours_worked_reports(self, month_date):
         users = udb.get_users(self.mdb.users)
@@ -609,14 +608,13 @@ class ApiGenerateReportsHandler(BaseHandlerOwnCloud):
             user_id = user_mdoc["_id"]
             workspans = adb.get_user_workspans(self.mdb, user_id, month_date, month_date + relativedelta(months=1))
 
+            # TODO to že má uživatel workspany neznamená že má smlouvu! Kontrolovat před uzavřením měsíce
             if not workspans:
                 continue
 
-            pdf = report_generation.hours_worked_report_init(self.company_info["name"],
-                                                             str_ops.name_to_str(user_mdoc["name"]),
-                                                             month_date)
-            output_file = os.path.join("static", "tmp",
-                                       f"hours_report_{month_date.month}-{month_date.year}_{user_mdoc['user']}.pdf")
+            report = report_generation.HoursWorkedReport(self.company_info["name"],
+                                                         str_ops.name_to_str(user_mdoc["name"]),
+                                                         month_date)
 
             hours_in_day = {}
             for workspan in workspans:
@@ -629,20 +627,20 @@ class ApiGenerateReportsHandler(BaseHandlerOwnCloud):
 
             total_hours = 0
             for date, hours in hours_in_day.items():
-                report_generation.hours_worked_report_add_row(pdf, date, hours)
+                report.add_row(date, hours)
                 total_hours += hours
 
-            report_generation.hours_worked_report_finish(pdf, total_hours)
-            pdf.output(output_file)
+            report.add_sums_and_end()
+            file_path = report.save()
 
             owncloud_directory = generate_hours_worked_reports_directory_path(user_id, user_mdoc["user"], month_date)
 
             existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date)
 
             if existing_report_file_id:
-                self.update_owncloud_file(existing_report_file_id, output_file)
+                self.update_owncloud_file(existing_report_file_id, file_path)
             else:
                 owncloud_id = self.upload_to_owncloud(owncloud_directory,
                                                       f"hours_worked_report_{month_date.month}-{month_date.year}",
-                                                      output_file)
+                                                      file_path)
                 adb.add_user_hours_report(self.mdb, user_id, month_date, owncloud_id)
