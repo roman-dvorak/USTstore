@@ -831,7 +831,7 @@
         Čt
     </div>
     <div class="form-group col-3">
-        <input type="number" min="0" max="12" step="0.5" name="hours" class="form-control form-control-sm">
+        <input type="number" min="0" max="12" step="0.5" name="hours" class="form-control form-control-sm hours">
     </div>
     <div class="form-group col-7">
         <select class="form-control form-control-sm" name="assignment">
@@ -840,6 +840,17 @@
     </div>
 </div>
 `;
+
+    const monthFormTotalRowHtmlStr = `
+<div class="form-row">
+    <div class="col-2">
+        Celkem
+    </div>
+    <div class="col-10 total-hours">
+
+    </div>
+</div>
+    `
 
     // https://stackoverflow.com/questions/494143/creating-a-new-dom-element-from-an-html-string-using-built-in-dom-methods-or-pro/35385518#35385518
     function htmlToElement(html) {
@@ -885,7 +896,27 @@
             let isVacation = vacations.indexOf(rowDateIsoStr) >= 0;
             form.appendChild(buildMonthFormRow(rowDate, hoursWorked, isVacation));
         }
+
+        form.appendChild(htmlToElement(monthFormTotalRowHtmlStr));
+
+        $(form).find("input").change(inputsChangeTotalHoursHandler);
+
         return form;
+    }
+
+    function inputsChangeTotalHoursHandler() {
+        console.log("change");
+        // TODO rozmyslet si jestli to nejde dělat aniž by při každé změně znovu běžela query
+        let inputs = Array.from(document.querySelectorAll("div.modal input.hours"));
+        let sum = inputs.reduce((accumulator, currentValue) => {
+            if (currentValue.value) {
+                return accumulator + Number(currentValue.value);
+            } else {
+                return accumulator + Number(currentValue.placeholder);
+            }
+        }, 0);
+
+        $("div.modal div.total-hours").text(sum);
     }
 
     function showMonthModal() {
@@ -915,6 +946,7 @@
         });
 
         $modal.modal("show");
+        inputsChangeTotalHoursHandler();
     }
 
     function saveMonthForm(form) {
