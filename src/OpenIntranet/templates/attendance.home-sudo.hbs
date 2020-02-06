@@ -339,14 +339,15 @@
     }
 
     function nextMonth() {
-        monthDate.add(1, "months");
-        updateMonthDateSpans();
-        console.log(monthDate.format());
-        updateMonthTable();
+        showMonth(monthDate.add(1, "months"));
     }
 
     function previousMonth() {
-        monthDate.subtract(1, "months");
+        showMonth(monthDate.subtract(1, "months"));
+    }
+
+    function showMonth(month) {
+        monthDate = moment(month).startOf("month");
         updateMonthDateSpans();
         console.log(monthDate.format());
         updateMonthTable();
@@ -407,7 +408,7 @@
                 success: function (response) {
                     alert("Podařilo se!");
                     console.log(response);
-                    updateMonthTable();
+                    showMonth(lastMonth);
                 },
                 error: ajaxError,
             });
@@ -427,7 +428,7 @@
                 success: function (response) {
                     alert("Podařilo se!");
                     console.log(response);
-                    updateMonthTable();
+                    showMonth(lastMonth);
                 },
                 error: ajaxError,
             });
