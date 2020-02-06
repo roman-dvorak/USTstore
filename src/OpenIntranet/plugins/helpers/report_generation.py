@@ -34,8 +34,8 @@ class AccountantReport:
         self.sum_net_wage = 0
         self.sum_tax = 0
 
-        self.output_name = os.path.join("static", "tmp",
-                                        f"accountant_report_{month_date.month}-{month_date.year}_{str(ObjectId())}.pdf")
+        file_name = f"accountant_report_{month_date.month}-{month_date.year}_{str(ObjectId())}.pdf"
+        self.output_path = os.path.join("static", "tmp", file_name)
 
         self.pdf = fpdf.FPDF("L", "mm", "A4")
         self.pdf.add_font(FONT, '', os.path.join(FONT_DIR, 'DejaVuSerif.ttf'), uni=True)
@@ -82,9 +82,9 @@ class AccountantReport:
             self.pdf.cell(w=spacing, txt=formatter.format(data) if data is not None else "")
 
     def save(self):
-        self.pdf.output(self.output_name)
+        self.pdf.output(self.output_path)
 
-        return self.output_name
+        return self.output_path
 
 
 def accountant_report_init(company_name: str, month_date: datetime):

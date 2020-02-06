@@ -122,9 +122,23 @@ def add_user_hours_report(database, user_id, month_date, owncloud_id):
                               })
 
 
-def get_user_hours_report_file_id(database, user_id, month_date):
-    user_mdoc = database.users.find_one({"_id": user_id, "reports_hours_worked.month": month_date},
-                                        {"reports_hours_worked.$": 1})
+def change_user_hours_report_up_to_date_status(database, user_id, month_date, up_to_date):
+    month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    database.users.update_one({"_id": user_id, "reports_hours_worked.month": month_date},
+                              {"$set": {
+                                  "reports_hours_worked.$.up_to_date": bool(up_to_date),
+                              }})
+
+
+def get_user_hours_report_file_id(database, user_id, month_date, up_to_date_only=True):
+    find_dict = {"_id": user_id, "reports_hours_worked.month": month_date}
+
+    if up_to_date_only:
+        # field nemusí existovat (což je jako True), tzn. nestačí ... = True
+        find_dict["reports_hours_worked.up_to_date"] = {"$not": {"$eq": False}}
+
+    user_mdoc = database.users.find_one(find_dict, {"reports_hours_worked.$": 1})
 
     if user_mdoc and user_mdoc["reports_hours_worked"]:
         return user_mdoc["reports_hours_worked"][0]["file"]
@@ -136,9 +150,8 @@ def reopen_month(database, user_id, month_date: datetime):
     month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     database.users.update_one({"_id": user_id},
-                              {
-                                  "$pull": {
-                                      "months_closed": month_date,
-                                      "reports_hours_worked": {"month": month_date}
-                                  },
-                              })
+                              {"$pull": {
+                                  "months_closed": month_date,
+                              }})
+
+    change_user_hours_report_up_to_date_status(database, user_id, month_date, up_to_date=False)

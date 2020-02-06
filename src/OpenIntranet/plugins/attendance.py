@@ -2,11 +2,13 @@ import calendar
 import json
 import os
 from datetime import datetime, timedelta
+from time import sleep
 
 import bson.json_util
 import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
+from tornado.ioloop import IOLoop
 
 from plugins import BaseHandler, get_dpp_params, BaseHandlerOwnCloud
 from plugins.helpers import database_attendance as adb, report_generation
@@ -22,6 +24,7 @@ from plugins.helpers.owncloud_utils import generate_accountant_reports_directory
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
+        (r'/{}/pokus'.format(plugin_name), plugin_namespace.PokusHandler),
         (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
         (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
@@ -53,6 +56,21 @@ def plug_info():
         "icon": 'icon_users.svg',
         # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
+
+
+class PokusHandler(BaseHandler):
+
+    async def get(self):
+        await IOLoop.current().run_in_executor(None, self.func, 0, 15)
+        self.write("pokus")
+
+    def func(self, a, b, text):
+
+        for i in range(a, b):
+            if i == 5:
+                raise ValueError("Je to pět")
+            print(text)
+            sleep(1)
 
 
 class HomeHandler(BaseHandler):
@@ -573,12 +591,14 @@ class ApiReopenMonthHandler(BaseHandler):
         user_id = ObjectId(user_id)
 
         month_date_iso = self.request.body.decode("utf-8")
-        adb.reopen_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))
+        month_date = str_ops.datetime_from_iso_str(month_date_iso)
+
+        adb.reopen_month(self.mdb, user_id, month_date)
 
 
 class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
 
-    def post(self):
+    async def post(self):
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
@@ -609,28 +629,30 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
         report.add_sums()
         file_path = report.save()
 
-        self.upload_to_owncloud(owncloud_directory, "accountant_report", file_path)
+        company_name_no_spaces = self.company_info["name"].replace(" ", "_")
+        owncloud_name = f"accountant_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
+        await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
 
 class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id=None):
+    async def post(self, user_id=None):
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
         if user_id:
             user_id = ObjectId(user_id)
             user_mdoc = udb.get_user(self.mdb.users, user_id)
-            self.generate_report_for_user(user_id, user_mdoc, month_date)
+            await self.generate_report_for_user(user_id, user_mdoc, month_date)
 
         else:
             users = udb.get_users(self.mdb.users)
 
             for user_mdoc in users:
                 user_id = user_mdoc["_id"]
-                self.generate_report_for_user(user_id, user_mdoc, month_date)
+                await self.generate_report_for_user(user_id, user_mdoc, month_date)
 
-    def generate_report_for_user(self, user_id, user_mdoc, month_date):
+    async def generate_report_for_user(self, user_id, user_mdoc, month_date):
         workspans = adb.get_user_workspans(self.mdb, user_id, month_date, month_date + relativedelta(months=1))
 
         if not workspans:
@@ -661,12 +683,13 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
         owncloud_directory = generate_hours_worked_reports_directory_path(user_id, user_mdoc["user"], month_date)
 
-        existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date)
+        existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date,
+                                                                    up_to_date_only=False)
 
         if existing_report_file_id:
-            self.update_owncloud_file(existing_report_file_id, file_path)
+            await self.update_owncloud_file(existing_report_file_id, file_path)
+            adb.change_user_hours_report_up_to_date_status(self.mdb, user_id, month_date, up_to_date=True)
         else:
-            owncloud_id = self.upload_to_owncloud(owncloud_directory,
-                                                  f"hours_worked_report_{month_date.month}-{month_date.year}",
-                                                  file_path)
+            owncloud_name = f"hours_worked_report_{user_mdoc['user']}_{month_date.month}-{month_date.year}"
+            owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
             adb.add_user_hours_report(self.mdb, user_id, month_date, owncloud_id)
