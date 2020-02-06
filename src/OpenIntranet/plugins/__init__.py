@@ -19,6 +19,7 @@ from hashlib import blake2s
 
 from bson import ObjectId
 from owncloud import HTTPResponseError
+from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
@@ -645,12 +646,14 @@ class BaseHandlerOwnCloud(BaseHandler):
 
         return file_id
 
-    def upload_to_owncloud(self,
+    async def upload_to_owncloud(self,
                            oc_directory,
                            oc_filename,
                            local_path,
                            delete_local=True):
         """
+        Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
+
         Nahraje lokální soubor na owncloud.
         :param oc_directory: Složka na owncloudu, do které se soubor uloží. Je relativní vůči owncloud_root
         :param oc_filename: Jméno souboru BEZ přípony (z tohoto jména se vytváří skutečná jména jednotlivých verzí
@@ -672,7 +675,7 @@ class BaseHandlerOwnCloud(BaseHandler):
                                                 0,
                                                 tornado.options.options.owncloud_root)
 
-        self.put_file(oc_path, local_path)
+        await self.put_file(oc_path, local_path)
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll: pymongo.collection.Collection = self.mdb.owncloud
@@ -695,37 +698,47 @@ class BaseHandlerOwnCloud(BaseHandler):
 
         return file_id
 
-    def put_file(self, oc_path, local_path):
+    async def put_file(self, oc_path, local_path):
         """
+        Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
+
         Obaluje owncloud Client.put_file(), přidává logování
         """
         oc_directory_path = os.path.split(oc_path)[0]
 
         start_time = time.time()
         print("-> zajišťuji existenci složky na owncloudu")
-        self.ensure_owncloud_directory_exists(oc_directory_path)
+        await self.ensure_owncloud_directory_exists(oc_directory_path)
         print(f"-> hotovo za {(time.time() - start_time):.2f} sekund")
 
         start_time = time.time()
         print("-> nahrávám soubor na owncloud")
-        self.oc.put_file(oc_path, local_path)
+        await IOLoop.current().run_in_executor(None, self.oc.put_file, oc_path, local_path)
         print(f"-> soubor nahrán za {(time.time() - start_time):.2f} sekund")
 
-    def ensure_owncloud_directory_exists(self, directory):
+    async def ensure_owncloud_directory_exists(self, directory):
+        """
+        Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
+
+        Zajišťuje existenci složky v owncloudu.
+        :param directory: Kompletní cesta (tzn. včetně owncloud_root)
+        """
         incomplete_path = ""
         for path_element in os.path.normpath(directory).split(os.sep):
             incomplete_path = os.path.join(incomplete_path, path_element)
 
             try:
-                self.oc.mkdir(incomplete_path)
+                await IOLoop.current().run_in_executor(None, self.oc.mkdir, incomplete_path)
             except HTTPResponseError as e:
                 pass
 
-    def update_owncloud_file(self,
+    async def update_owncloud_file(self,
                              file_id: ObjectId,
                              local_path: str,
                              delete_local=True):
         """
+        Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
+
         Nahraje novou verzi souboru na owncloud.
         :param file_id: Id mdokumentu souboru v kolekci owncloud (vráceno metodou upload_to_owncloud).
         :param local_path: Cesta k lokálnímu souboru.
@@ -743,7 +756,7 @@ class BaseHandlerOwnCloud(BaseHandler):
                                                 version_number,
                                                 tornado.options.options.owncloud_root)
 
-        self.put_file(oc_path, local_path)
+        await self.put_file(oc_path, local_path)
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll.update_one({"_id": file_id},

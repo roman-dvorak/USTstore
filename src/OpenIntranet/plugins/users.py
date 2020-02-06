@@ -372,7 +372,7 @@ class UserPageHandler(BaseHandler):
 
 class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):
+    async def post(self, user_id):
         user_id = ObjectId(user_id)
 
         req = self.request.body.decode("utf-8")
@@ -403,7 +403,7 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
         owncloud_directory = generate_contracts_directory_path(user_id, user_mdoc["user"], contract["valid_from"])
         owncloud_filename = f"contract_{contract['type']}"
 
-        file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
+        file_id = await self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
 
         contract["file"] = file_id
 
@@ -485,7 +485,7 @@ class ApiUserInvalidateContractHandler(BaseHandler):
 
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):
+    async def post(self, user_id):
         user_id = ObjectId(user_id)
 
         contract_id = self.get_argument("_id")
@@ -497,7 +497,7 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
         contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
         if "scan_file" in contract_mdoc:
-            self.update_owncloud_file(contract_mdoc["scan_file"], local_path)
+            await self.update_owncloud_file(contract_mdoc["scan_file"], local_path)
         else:
             user_mdoc = udb.get_user(self.mdb.users, user_id)
             owncloud_directory = generate_contracts_directory_path(user_id,
@@ -505,7 +505,7 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
                                                                    contract_mdoc["valid_from"])
             owncloud_filename = f"contract_scan_{contract_mdoc['type']}"
 
-            file_id = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
+            file_id = await self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_path)
             udb.add_user_contract_scan(self.mdb.users, user_id, contract_id, file_id)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
@@ -513,7 +513,7 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
 class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):
+    async def post(self, user_id):
         user_id = ObjectId(user_id)
 
         document = {
@@ -537,7 +537,7 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
         local_paths = self.save_uploaded_files("file")
         if local_paths:
-            document["file"] = self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_paths[0])
+            document["file"] = await self.upload_to_owncloud(owncloud_directory, owncloud_filename, local_paths[0])
         else:
             document["file"] = self.create_empty_owncloud_record(owncloud_directory, owncloud_filename)
 
@@ -548,7 +548,7 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 
-    def post(self, user_id):
+    async def post(self, user_id):
         user_id = ObjectId(user_id)
 
         document_id = self.get_argument("_id")
@@ -556,7 +556,7 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
         local_path, = self.save_uploaded_files("file")
 
         owncloud_id = udb.get_user_document_owncloud_id(self.mdb.users, user_id, document_id)
-        self.update_owncloud_file(owncloud_id, local_path)
+        await self.update_owncloud_file(owncloud_id, local_path)
 
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
