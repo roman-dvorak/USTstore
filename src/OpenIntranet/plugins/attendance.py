@@ -591,7 +591,9 @@ class ApiReopenMonthHandler(BaseHandler):
         user_id = ObjectId(user_id)
 
         month_date_iso = self.request.body.decode("utf-8")
-        adb.reopen_month(self.mdb, user_id, str_ops.datetime_from_iso_str(month_date_iso))
+        month_date = str_ops.datetime_from_iso_str(month_date_iso)
+
+        adb.reopen_month(self.mdb, user_id, month_date)
 
 
 class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
@@ -627,7 +629,9 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
         report.add_sums()
         file_path = report.save()
 
-        await self.upload_to_owncloud(owncloud_directory, "accountant_report", file_path)
+        company_name_no_spaces = self.company_info["name"].replace(" ", "_")
+        owncloud_name = f"accountant_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
+        await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
 
 class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
@@ -679,12 +683,13 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
         owncloud_directory = generate_hours_worked_reports_directory_path(user_id, user_mdoc["user"], month_date)
 
-        existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date)
+        existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date,
+                                                                    up_to_date_only=False)
 
         if existing_report_file_id:
             await self.update_owncloud_file(existing_report_file_id, file_path)
+            adb.change_user_hours_report_up_to_date_status(self.mdb, user_id, month_date, up_to_date=True)
         else:
-            owncloud_id = await self.upload_to_owncloud(owncloud_directory,
-                                                  f"hours_worked_report_{month_date.month}-{month_date.year}",
-                                                  file_path)
+            owncloud_name = f"hours_worked_report_{user_mdoc['user']}_{month_date.month}-{month_date.year}"
+            owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
             adb.add_user_hours_report(self.mdb, user_id, month_date, owncloud_id)
