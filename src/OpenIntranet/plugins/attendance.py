@@ -632,7 +632,8 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
     def generate_report_for_user(self, user_id, user_mdoc, month_date):
         if not adb.is_month_closed(self.mdb, user_id, month_date):
-            raise MissingInfoHTTPError(f"{str_ops.name_to_str(user_mdoc['name'])} nemá uzavřený měsíc.")
+            raise MissingInfoHTTPError(f"{str_ops.name_to_str(user_mdoc.get('name'))} ({user_mdoc['user']}) "
+                                       f"nemá uzavřený měsíc.")
 
         workspans = adb.get_user_workspans(self.mdb, user_id, month_date, month_date + relativedelta(months=1))
 
