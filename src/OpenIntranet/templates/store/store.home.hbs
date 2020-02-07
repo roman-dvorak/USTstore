@@ -581,7 +581,7 @@ $(document).ready(function() {
     update_list();
     var hash = location.hash.substr(1);
     if(hash.length>2){
-	    load_product(hash);
+	    load_product(hash, open = true);
 	}
 
 });
@@ -810,13 +810,18 @@ function getUnitLabel(unit){
 }
 
 
-function load_product(id){
+function load_product(id, open = false){
 	$('.product_list_element').css('background-color', 'white');
 	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, "")).css("background-color", "yellow");
 
 	if (current_detail != id){
 		console.log("měl bych nacit produkc s id", id);
 		window.location.hash = '#'+id;
+
+    if(open){
+      OpenArticleEdit(id);
+    }
+
 		try {
 			$.ajax({
 				type: "POST",

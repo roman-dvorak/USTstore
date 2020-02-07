@@ -101,6 +101,9 @@ class view_positions(BaseHandler):
         #     data[i]['cat_elements'] = cat_elements
         #     data[i]['cat_inventura'] = inventura
 
+    # Zobrazit pouze primarni pozice
+        only_primary = False
+
     # Ziskej ID aktualni inventury
         current_inventory = get_current_inventory(self.mdb)
 
@@ -129,7 +132,7 @@ class view_positions(BaseHandler):
             for article_position in article.get('position', []):
                 if article_position['posid'] in positions_id:
                     #print("article_position", article_position)
-                    if article_position['primary']:
+                    if article_position['primary'] or not only_primary:
                         data[article_position['posid']]['list'].append(article)
                         position = True
 
@@ -146,5 +149,5 @@ class view_positions(BaseHandler):
 
 
 
-        self.render("stocktaking.view.positions.hbs", data=data, positions = positions, warehouse = warehouse, get_warehouse_count = get_warehouse_count)
+        self.render("stocktaking.view.positions.hbs", data=data, positions = positions, warehouse = warehouse, get_warehouse_count = get_warehouse_count, inventory =current_inventory)
         #self.write("TEST")

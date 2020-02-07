@@ -3,6 +3,11 @@
 {% block body %}
 
 <style type="text/css">
+
+
+.view-row{
+	height: 2em;
+}
 	
 .cat-title{
 	width: 100%;
@@ -53,33 +58,40 @@
 
 </style>
 
-<div>
+<div class="container">
 
 	<div class="card">
-		<div class="card-header">
+		<h3 class="card-header">
 			Přehled skladu
-		</div>
+		</h3>
 		<div class="card-body">
-			
+			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>. 
 		</div>
-
 	</div>
 
-	<div>
 		
 		{%for position in data %}
-			<h2>{{data[position]['name']}}</h2>
-				{{data[position]['info']}}<br>
+		<div class="card">
+		<h3 class="card-header"> {{data[position]['name']}}</h3>
+		<div class="card-body">
+			{{data[position]['info']}}
+		</div>
+		<div class="card-text">
 
-				<table style="width: 100%" class="table-sm">	
+				<table style="width: 100%" class="table-sm table-striped">
+				<thead>	
+					<tr>
 				<th>Nazev</th>
 				<th>Pocet celkem</th>
 				<th>Pocet skladem</th>
 				<th>Nakupni cena za ks</th>
+					</tr>
+				</thead>
+				<tbody>
 				{%for article in data[position]['list'] %}
-						<tr class="{%if article['has_inventory']%}bg-success{%end%}">
+						<tr class="view-row {%if article['has_inventory']%}bg-success{%end%}">
 							<td>
-                            	<a class="btn btn-outline-secondary material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="__blank__">open_in_new</a>
+                            	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
                             	{{article['name']}}
                             </td>
 							<td>{{article['overview']['count']['onstock']}}</td>
@@ -89,14 +101,16 @@
 							<!-- <small>{{article}}</small><br> -->
 						</tr>
 					
-				{% end %}</table>
-			<hr>
+				{% end %}</tbody></table>
+			</div>
+			</div>
 
 		{%end%}
 
 
 	</div>
-	
+
+
 
 
 <script type="text/javascript">
