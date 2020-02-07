@@ -327,6 +327,7 @@ class api_move_category(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         parent = self.get_argument('parent', '#')
+        cid = bson.ObjectId(self.get_argument("id", None))
 
         if parent == '':
             print("CHYBA neni nastaven rodic")
@@ -337,13 +338,17 @@ class api_move_category(BaseHandler):
 
 
         data = {'$set': {'parent': parent} }
-        self.mdb.category.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        if parent != cid:
+            self.mdb.category.update({'_id': cid}, data, upsert=False)
+        else:
+            print("CHYBA")
         self.write("OK")
 
 class api_move_position(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         parent = self.get_argument('parent', '#')
+        cid = bson.ObjectId(self.get_argument("id", None))
 
         if parent == '':
             print("CHYBA neni nastaven rodic")
@@ -352,9 +357,11 @@ class api_move_position(BaseHandler):
         print("new parent", parent)
         print("Object", self.get_argument("id", None))
 
-
         data = {'$set': {'parent': parent} }
-        self.mdb.store_positions.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        if parent != cid:
+            self.mdb.store_positions.update({'_id': cid}, data, upsert=False)
+        else:
+            print("CHYBA")
         self.write("OK")
 
 class api_update_position(BaseHandler):
@@ -365,15 +372,22 @@ class api_update_position(BaseHandler):
             cid = bson.ObjectId()
         else:
             cid = bson.ObjectId(cid)
+    
+        parent = self.get_argument('parent', '#')
+        if parent != '#':
+            parent = bson.ObjectId(parent)
 
-        data = {'_id': cid,
-                'name': self.get_argument('name'),
-                'text': self.get_argument('text', 'not_set'),
-                'parent': self.get_argument('parent', '#'),
-                'position': '#',
-                'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
+        print(parent, cid)
 
-        self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
+        if cid != parent:
+            data = {'_id': cid,
+                    'name': self.get_argument('name'),
+                    'text': self.get_argument('text', 'not_set'),
+                    'parent': parent,
+                    'position': '#',
+                    'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
+
+            self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
         self.write("OK")
 
 class api_update_category(BaseHandler):
@@ -385,12 +399,19 @@ class api_update_category(BaseHandler):
         else:
             cid = bson.ObjectId(cid)
 
-        data = {'_id': cid,
-                'name': self.get_argument('name'),
-                'description': self.get_argument('description', ''),
-                'parent': self.get_argument('parent', '#')}
+        parent = self.get_argument('parent', '#')
+        if parent != '#':
+            parent = bson.ObjectId(parent)
 
-        self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
+        print(parent, cid)
+
+        if cid != parent:
+            data = {'_id': cid,
+                    'name': self.get_argument('name'),
+                    'description': self.get_argument('description', ''),
+                    'parent': parent}
+
+            self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
         self.write("OK")
 
 

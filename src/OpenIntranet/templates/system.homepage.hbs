@@ -247,6 +247,7 @@ function do_edit_position(){
       error: function( jqXhr, textStatus, errorThrown ){
         console.log( errorThrown );
         Lobibox.notify('success', {msg: 'Chyba...'});
+        $('#positions-tree').jstree("refresh");
       }
     });
 }
@@ -386,6 +387,7 @@ function do_edit_category(){
       error: function( jqXhr, textStatus, errorThrown ){
         console.log( errorThrown );
         Lobibox.notify('success', {msg: 'Chyba...'});
+        $('#categories-tree').jstree("refresh");
       }
     });
 }
