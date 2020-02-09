@@ -154,7 +154,7 @@
 
 		{% for module in cat['modules'] %}
 			<div class="{% if module['count'] == 0%}not-in-stock{%end%} d-flex flex-row justify-content-between row module-row {% if module['price_sum'] == 0 %}text-muted small{%end%} {%if cat['cat_inventura']%}done{%end%} {%if module['count'] and module['warehouse_unit_price'] == 0%}warning{%end%}">
-				<div class="col">{{module['name']}}</div>
+				<div class="col"> <a href="/store#{{module['_id']}}" id="id_stock_link" target="_blank">{{module['name']}}</a></div>
 				<div class="col" style="">{{"{:d}".format(len(module.get('history', [])))}}</div>
 
 <!-- Pocty KS -->
