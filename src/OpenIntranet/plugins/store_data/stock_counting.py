@@ -29,6 +29,15 @@ def getInventory(component, fro = None, to = None, use_count = False):
 
     return (count, price)
 
+def getInventoryRecord(component, inventory, stock):
+    count = 0
+    price = 0    
+    for x in reversed(component.get('history', [])):
+        if x.get('operation', None) == 'inventory' and x.get('inventory', None) == inventory and x.get('stock', None) == stock['_id']:
+            price = x.get('price', None)
+            count = x.get('bilance', None)
+            return(x)
+    return None
 
 def getPrice(component):
     count = component['count']
