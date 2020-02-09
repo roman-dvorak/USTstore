@@ -21,7 +21,7 @@ import sys
 from plugins.helpers.warehouse import *
 
 sys.path.append("..")
-from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory
+from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory, getInventoryRecord
 
 
 def make_handlers(module, plugin):
@@ -72,10 +72,11 @@ class view_categories(BaseHandler):
         warehouses = self.get_warehouseses()
 
         # seradit kategorie tak, aby to odpovidalo adresarove strukture
-        paths = set()
-        for x in categories:
-            paths.add(x['path']+x['name'])
-        paths = sorted(list(paths))
+        # paths = set()
+        # for x in categories:
+        #     paths.add(x)
+        # paths = sorted(list(paths))
+        paths = categories
 
         data = []
         data = list(data)
@@ -84,13 +85,17 @@ class view_categories(BaseHandler):
         for i, path in enumerate(paths):
             data += [{}]
             data[i]['path'] = path
-            print(path.split('/')[-1])
-            data[i]['level'] = len(path.split('/'))-2
+            print(path)
+            data[i]['level'] = 0
             data[i]['category'] = path
+            #data[i]['category_name'] = path['_id']
+
+        # ID aktualni inventury
+            current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
 
         # Vyhledat artikly ve vybrane katerogii 
             cat_modules = self.mdb.stock.aggregate([
-                {'$match': {'category.0': path.split('/')[-1]}},
+                {'$match': {'category.0': path['_id']}},
                 {'$addFields': {'count': {'$sum': '$history.bilance'}}},
                 {'$sort': {'name': 1}}
             ])
@@ -113,10 +118,11 @@ class view_categories(BaseHandler):
                 module['price_warehouse'] = module['count']*module['warehouse_unit_price']
 
 
-                module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
+                #module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
+                module['inventory'] = getInventoryRecord(module, current, self.get_warehouse())
                 #if module['inventory']:
                 #    module['count'] = module['inventory']
-                module['inventory'] = bool(module['inventory'])
+                #module['inventory'] = bool(module['inventory'])
                 
                 #module['price_sum'] = getPrice(module)
                 #if module['count'] > 0:
@@ -133,7 +139,7 @@ class view_categories(BaseHandler):
                 cat_sum += module['price_sum']
                 cat_elements += module['count']
                 cat_sum_bilance += module['inventory_2018']['bilance_price']
-                inventura &= (module['inventory'] or (module['count']==0))
+                inventura &= (bool(module['inventory']) or (module['count']==0))
 
 
             data[i]['cat_sum'] = cat_sum
