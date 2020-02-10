@@ -990,7 +990,8 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice
         #pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos) + " | " + ','.join(component['category']))
 
         pdf.set_xy(cell_x+3, cell_y+12)
-        pdf.cell(cell_w-10, 10, str(datetime.date.today()) + " | " + ','.join(component['category']))
+        #pdf.cell(cell_w-10, 10, str(datetime.date.today()) + " | " + ','.join(component['category']))
+        pdf.cell(cell_w-10, 10, str(datetime.date.today()))
 
         pdf.set_xy(cell_x+3, cell_y+15)
         pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos))
