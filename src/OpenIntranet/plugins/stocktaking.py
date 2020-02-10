@@ -202,7 +202,7 @@ class save_stocktaking(BaseHandler):
     def post(self):
         self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
-        stock = self.get_argument('stock', 'pha01')
+        #stock = self.get_argument('stock', self.get_warehouse()['_id'])
         description = self.get_argument('description', None)
         bilance = self.get_argument('bilance')
         absolute = self.get_argument('absolute')
@@ -214,7 +214,7 @@ class save_stocktaking(BaseHandler):
         else:
 
             current_st = self.mdb.stock_taking.find_one({'_id': current})
-            print("service_push >>", item, stock, description, bilance, absolute)
+            print("service_push >>", item, description, bilance, absolute)
             data = {
                     '_id': bson.ObjectId(),
                     'stock': self.get_warehouse()['_id'],
@@ -230,14 +230,6 @@ class save_stocktaking(BaseHandler):
                     {'_id': bson.ObjectId(item)},
                     {
                         '$push': {'history':data}
-                    }
-                )
-            
-            #TODO: remove TAG creation
-            out = self.mdb.stock.update(
-                    {'_id': bson.ObjectId(item)},
-                    {
-                        '$push': {"tags": {'id': 'inventura2019', 'date': datetime.datetime.utcnow()}}
                     }
                 )
             

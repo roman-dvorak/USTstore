@@ -85,20 +85,30 @@
 				<th>Pocet celkem</th>
 				<th>Pocet skladem</th>
 				<th>Nakupni cena za ks</th>
+				<th></th>
 					</tr>
 				</thead>
 				<tbody>
 				{%for article in data[position]['list'] %}
 						<tr class="view-row {%if article['has_inventory']%}bg-success{%end%}">
+							{% set count_stock = get_warehouse_count(article, warehouse["_id"]) %}
 							<td>
                             	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
                             	{{article['name']}}
                             </td>
 							<td>{{article['overview']['count']['onstock']}}</td>
-							<td> {{get_warehouse_count(article, warehouse["_id"])}}</td>
+							<td> {{count_stock}}</td>
 							<td>{{article['warehouse_unit_price']}} Czk/unit</td>
 							<td>{{article['has_inventory']}}</td>
 							<!-- <small>{{article}}</small><br> -->
+							<td>
+								<div class="input-group input-group-sm">
+								  	<input type="number" class="form-control" id="inventory_count_{{article['_id']}}" input-component="{{article['_id']}}" old={{count_stock}} value={{count_stock}}>
+								  	<div class="input-group-append" value="{{count_stock}}">
+								    	<button class="btn btn-outline-secondary" type="button" id="inventory_btn_{{article['_id']}}" component="{{article['_id']}}" onclick="doStockTaking(this)">Inv</button>
+								  	</div>
+								</div>
+							</td>
 						</tr>
 					
 				{% end %}</tbody></table>
