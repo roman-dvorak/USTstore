@@ -27,11 +27,11 @@ def make_handlers(plugin_name, plugin_namespace):
     return [
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
-        (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiUserAddContractHandler),
         (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiUserFinalizeContractHandler),
-        (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
+        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiUserAddDocumentHandler),
         (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
         (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
         (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
@@ -51,6 +51,7 @@ def plug_info():
     }
 
 
+# TODO zkontrolovat práva
 class HomeHandler(BaseHandler):
     # role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
@@ -65,6 +66,8 @@ class HomeHandler(BaseHandler):
             self.redirect(f"/users/u/{me['_id']}")
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiAdminTableHandler(BaseHandler):
 
     def get(self, uid=None):
@@ -167,6 +170,8 @@ class ApiAdminTableHandler(BaseHandler):
                 raise BadInputHTTPError("Uživatel s tímto přihlašovacím jménem již existuje.")
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
 
     def post(self, user_id):
@@ -201,6 +206,7 @@ class ApiEditUserHandler(BaseHandler):
             udb.update_user_address(self.mdb.users, user_id, contact_address)
 
 
+# TODO doplnit práva
 class UserPageHandler(BaseHandler):
 
     def get(self, user_id):
@@ -370,7 +376,9 @@ class UserPageHandler(BaseHandler):
         return json.dumps(final_structure)
 
 
-class ApiUserContractsHandler(BaseHandlerOwnCloud):
+# TODO doplnit práva
+# TODO validovat vstup
+class ApiUserAddContractHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -445,6 +453,7 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
         return True
 
 
+# TODO doplnit práva
 class ApiUserFinalizeContractHandler(BaseHandler):
 
     def post(self, user_id):
@@ -461,6 +470,8 @@ class ApiUserFinalizeContractHandler(BaseHandler):
         udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiUserInvalidateContractHandler(BaseHandler):
 
     def post(self, user_id):
@@ -483,6 +494,7 @@ class ApiUserInvalidateContractHandler(BaseHandler):
         udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
+# TODO doplnit práva
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id):
@@ -511,7 +523,9 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
+# TODO doplnit práva
+# TODO validovat vstup
+class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -546,6 +560,7 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
+# TODO doplnit práva
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id):
@@ -561,6 +576,7 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
+# TODO doplnit práva
 class ApiUserInvalidateDocumentHandler(BaseHandler):
 
     def post(self, user_id):
@@ -578,6 +594,7 @@ class ApiUserInvalidateDocumentHandler(BaseHandler):
         udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
+# TODO doplnit práva
 class ApiUserValidateEmail(BaseHandler):
 
     def get(self, user_id, token):

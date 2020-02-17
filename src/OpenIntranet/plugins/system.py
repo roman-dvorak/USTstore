@@ -32,6 +32,8 @@ class SystemHandler(BaseHandler):
             print("Nastaveno cookie pro vybrany warehouse")
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ParametersHandler(BaseHandler):
 
     def get(self):

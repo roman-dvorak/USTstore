@@ -437,7 +437,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form name="document-editor-form" action="/users/api/u/{{_id}}/documents"
+                <form name="document-editor-form" action="/users/api/u/{{_id}}/documents/add"
                       method="post" enctype="multipart/form-data" novalidate>
                     <input type="hidden" id="document-id-input" name="_id">
 
@@ -1095,7 +1095,7 @@
         data["assignment"] = $("#contract-assignment-input").val();
 
         $.ajax({
-            url: "/users/api/u/{{_id}}/contracts",
+            url: "/users/api/u/{{_id}}/contracts/add",
             type: "post",
             data: JSON.stringify(data),
             success: function (responseJson) {

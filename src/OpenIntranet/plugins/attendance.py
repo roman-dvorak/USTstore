@@ -24,9 +24,8 @@ from plugins.helpers.owncloud_utils import generate_accountant_reports_directory
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
-        (r'/{}/pokus'.format(plugin_name), plugin_namespace.PokusHandler),
-        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
-        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
+        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
+        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
         (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
         (r'/{}/api/u/(.*)/workspans/month'.format(plugin_name), plugin_namespace.ApiMonthWorkspansHandler),
         (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
@@ -58,21 +57,7 @@ def plug_info():
     }
 
 
-class PokusHandler(BaseHandler):
-
-    async def get(self):
-        await IOLoop.current().run_in_executor(None, self.func, 0, 15)
-        self.write("pokus")
-
-    def func(self, a, b, text):
-
-        for i in range(a, b):
-            if i == 5:
-                raise ValueError("Je to pět")
-            print(text)
-            sleep(1)
-
-
+# TODO zkontrolovat práva
 class HomeHandler(BaseHandler):
 
     def get(self):
@@ -257,6 +242,7 @@ class AttendanceCalculator:
         return self.year_max_hours - self.year_hours_worked
 
 
+# TODO doplnit práva
 class ApiAdminMonthTableHandler(BaseHandler):
 
     def get(self, date):
@@ -287,6 +273,7 @@ class ApiAdminMonthTableHandler(BaseHandler):
         self.write(bson.json_util.dumps(rows))
 
 
+# TODO doplnit práva
 class ApiAdminYearTableHandler(BaseHandler):
 
     def get(self, date):
@@ -311,7 +298,8 @@ class ApiAdminYearTableHandler(BaseHandler):
         self.write(bson.json_util.dumps(rows))
 
 
-class UserAttendanceHandler(BaseHandler):
+# TODO doplnit práva
+class UserAttendancePageHandler(BaseHandler):
 
     def get(self, user_id, date_str=None):
         user_id = ObjectId(user_id)
@@ -360,8 +348,10 @@ class UserAttendanceHandler(BaseHandler):
         self.render("attendance.home.hbs", **template_params)
 
 
+# TODO doplnit práva
 class ApiCalendarHandler(BaseHandler):
 
+    # TODO nemělo by toto být get?
     def post(self, user_id, date):
         user_id = ObjectId(user_id)
         # TODO je potřeba v kalendáři mít přístup i k assignmentům
@@ -402,6 +392,7 @@ class ApiCalendarHandler(BaseHandler):
 
 class ApiMonthInfoHandler(BaseHandler):
 
+    # TODO nemělo by toto být get?
     def post(self, user_id, date):
         user_id = ObjectId(user_id)
 
@@ -457,6 +448,8 @@ class WorkspanBaseHandler(BaseHandler):
         return True
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiAddWorkspanHandler(WorkspanBaseHandler):
 
     def post(self, user_id):
@@ -486,6 +479,8 @@ class ApiAddWorkspanHandler(WorkspanBaseHandler):
         adb.add_user_workspan(self.mdb, user_id, workspan)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiMonthWorkspansHandler(BaseHandler):
 
     def post(self, user_id):
@@ -515,6 +510,8 @@ class ApiMonthWorkspansHandler(BaseHandler):
                 adb.add_user_workspan(self.mdb, user_id, workspan)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
@@ -542,6 +539,8 @@ class ApiAddVacationHandler(BaseHandler):
         adb.add_user_vacation(self.mdb, user_id, vacation)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiInterruptVacationHandler(BaseHandler):
 
     def post(self, user_id):
@@ -559,6 +558,7 @@ class ApiInterruptVacationHandler(BaseHandler):
         adb.interrupt_user_vacation(self.mdb, user_id, data["_id"], interruption_date)
 
 
+# TODO doplnit práva
 class ApiDeleteWorkspanHandler(BaseHandler):
 
     def post(self, user_id):
@@ -568,6 +568,8 @@ class ApiDeleteWorkspanHandler(BaseHandler):
         adb.delete_user_workspan(self.mdb, user_id, workspan_id)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiCloseMonthHandler(BaseHandler):
 
     def post(self, user_id):
@@ -585,6 +587,8 @@ class ApiCloseMonthHandler(BaseHandler):
         adb.close_month(self.mdb, user_id, month_date)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiReopenMonthHandler(BaseHandler):
 
     def post(self, user_id):
@@ -596,6 +600,8 @@ class ApiReopenMonthHandler(BaseHandler):
         adb.reopen_month(self.mdb, user_id, month_date)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
 
     async def post(self):
@@ -634,6 +640,8 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
         await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id=None):
