@@ -8,7 +8,7 @@
 .view-row{
 	height: 2em;
 }
-	
+
 .cat-title{
 	width: 100%;
 	border-bottom: 2pt black solid;
@@ -65,11 +65,11 @@
 			Přehled skladu
 		</h3>
 		<div class="card-body">
-			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>. 
+			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>.
 		</div>
 	</div>
 
-		
+
 		{%for position in data %}
 		<div class="card">
 		<h3 class="card-header"> {{data[position]['name']}}</h3>
@@ -79,7 +79,7 @@
 		<div class="card-text">
 
 				<table style="width: 100%" class="table-sm table-striped">
-				<thead>	
+				<thead>
 					<tr>
 				<th>Nazev</th>
 				<th>Pocet celkem</th>
@@ -90,10 +90,12 @@
 				</thead>
 				<tbody>
 				{%for article in data[position]['list'] %}
+					{%if article['in_stock']%}
 						<tr class="view-row {%if article['has_inventory']%}bg-success{%end%}">
 							{% set count_stock = get_warehouse_count(article, warehouse["_id"]) %}
 							<td>
                             	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
+                            	<a class="material-icons" type="button" href="#" onclick="copyToClipboard('{{article['_id']}}')">share</a>
                             	{{article['name']}}
                             </td>
 							<td>{{article['overview']['count']['onstock']}}</td>
@@ -102,15 +104,10 @@
 							<td>{{article['has_inventory']}}</td>
 							<!-- <small>{{article}}</small><br> -->
 							<td>
-								<div class="input-group input-group-sm">
-								  	<input type="number" class="form-control" id="inventory_count_{{article['_id']}}" input-component="{{article['_id']}}" old={{count_stock}} value={{count_stock}}>
-								  	<div class="input-group-append" value="{{count_stock}}">
-								    	<button class="btn btn-outline-secondary" type="button" id="inventory_btn_{{article['_id']}}" component="{{article['_id']}}" onclick="doStockTaking(this)">Inv</button>
-								  	</div>
-								</div>
 							</td>
 						</tr>
-					
+					{%end%}
+
 				{% end %}</tbody></table>
 			</div>
 			</div>
@@ -124,7 +121,18 @@
 
 
 <script type="text/javascript">
-	
+
+	function copyToClipboard(text) {
+	    var dummy = document.createElement("textarea");
+	    // dummy.style.display = 'none'
+	    document.body.appendChild(dummy);
+	    dummy.value = text;
+	    dummy.select();
+		console.log(dummy);
+	    document.execCommand("copy");
+	    document.body.removeChild(dummy);
+	}
+
 	function doStockTaking(e) {
 		console.log(e);
 		var id = $(e).attr('component');
