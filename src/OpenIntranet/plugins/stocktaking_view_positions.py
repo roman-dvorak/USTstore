@@ -44,63 +44,6 @@ class view_positions(BaseHandler):
         print("TEST...")
         self.authorized(['inventory'])
 
-        # categories = list(self.mdb.category.aggregate([]))
-
-        # # seradit kategorie tak, aby to odpovidalo adresarove strukture
-        # paths = set()
-        # for x in categories:
-        #     paths.add(x['path']+x['name'])
-        # paths = sorted(list(paths))
-
-        # data = []
-        # data = list(data)
-        
-        # for i, path in enumerate(paths):
-        #     data += [{}]
-        #     data[i]['path'] = path
-        #     print(path.split('/')[-1])
-        #     data[i]['level'] = len(path.split('/'))-2
-        #     data[i]['category'] = path
-
-        #     cat_modules = self.mdb.stock.aggregate([
-        #         {'$match': {'category.0': path.split('/')[-1]}},
-        #         {'$addFields': {'count': {'$sum': '$history.bilance'}}},
-        #         {'$sort': {'name': 1}}
-        #     ])
-        #     data[i]['modules'] = list(cat_modules)
-        #     cat_elements = 0
-        #     cat_sum = 0
-        #     cat_sum_bilance = 0
-        #     inventura = True
-
-        #     for module in data[i]['modules']:
-        #         #module['inventory'] = getInventory(module, datetime.datetime(2018, 10, 1), None, False)
-        #         module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
-        #         if module['inventory']:
-        #             module['count'] = module['inventory']
-        #         module['inventory'] = bool(module['inventory'])
-        #         module['price_sum'] = getPrice(module)
-        #         if module['count'] > 0:
-        #             module['price'] = module['price_sum']/module['count']
-        #         else:
-        #             module['price'] = 0
-
-        #         module['inventory_2018'] = {'bilance_count': None, 'bilance_price': None}
-        #         (module['inventory_2018']['count'], module['inventory_2018']['price']) = getInventory(module, datetime.datetime(2018, 1, 1), datetime.datetime(2018, 10, 1), False)
-        #         module['inventory_2018']['bilance_count'] = module['count'] - module['inventory_2018']['count']
-        #         module['inventory_2018']['bilance_price'] = module['price_sum'] - module['inventory_2018']['price']*module['inventory_2018']['count']
-
-        #         cat_sum += module['price_sum']
-        #         cat_elements += module['count']
-        #         cat_sum_bilance += module['inventory_2018']['bilance_price']
-        #         inventura &= (module['inventory'] or (module['count']==0))
-
-
-        #     data[i]['cat_sum'] = cat_sum
-        #     data[i]['cat_sum_bilance'] = cat_sum_bilance
-        #     data[i]['cat_elements'] = cat_elements
-        #     data[i]['cat_inventura'] = inventura
-
     # Zobrazit pouze primarni pozice
         only_primary = False
 
@@ -114,7 +57,7 @@ class view_positions(BaseHandler):
         positions = self.warehouse_get_positions(warehouse['_id'])
         positions_id = set([ pos['_id'] for pos in positions ])
         print(positions_id)
-    # 
+    #
         data = {None:{'name': "Bez pozice", "list": []}}
 
         for position in positions:
@@ -129,6 +72,7 @@ class view_positions(BaseHandler):
             article['warehouse_unit_price'] = update_article_price(self.mdb.stock, article['_id'])
             article['has_inventory'] = has_article_inventory(article, current_inventory['_id']).get(warehouse['_id'], False)
             position = False
+            article['in_stock'] = False
             for article_position in article.get('position', []):
                 if article_position['posid'] in positions_id:
                     #print("article_position", article_position)
@@ -141,12 +85,14 @@ class view_positions(BaseHandler):
 
             #print(data)
             #position in positions()
+            for history in article.get('history', []):
+                if history.get('stock', 'None') == warehouse['_id']:
+                    article['in_stock'] = True
+                    continue
 
         for position_id in data:
             data[position_id]['info'] = {}
             data[position_id]['info']['count'] = len(data[position_id]['list'])
-
-
 
 
         self.render("stocktaking.view.positions.hbs", data=data, positions = positions, warehouse = warehouse, get_warehouse_count = get_warehouse_count, inventory =current_inventory)
