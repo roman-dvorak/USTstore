@@ -220,7 +220,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
             self.role = set(user_db['role'])
             if not self.is_authorized(self.role_module) and len(self.role_module) > 0:
-                raise tornado.web.HTTPError(401)
+                raise tornado.web.HTTPError(403)
 
             cart = self.get_cookie('cart', None)
             # print("Nakupni kosik", bson.ObjectId(cart))
