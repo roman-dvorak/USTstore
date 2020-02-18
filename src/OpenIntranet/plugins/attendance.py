@@ -57,6 +57,7 @@ def plug_info():
     }
 
 
+
 # TODO zkontrolovat práva
 class HomeHandler(BaseHandler):
 
@@ -418,6 +419,7 @@ class ApiMonthInfoHandler(BaseHandler):
         self.write(bson.json_util.dumps(data))
 
 
+# TODO max 12 hodin denně
 class WorkspanBaseHandler(BaseHandler):
 
     def check_vacations_conflicts(self, user_id, workspan):

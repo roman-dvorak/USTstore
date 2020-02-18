@@ -14,7 +14,6 @@ from plugins import BaseHandler, password_hash
 from plugins import BaseHandlerOwnCloud
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.assertions import assert_isinstance
 from plugins.helpers.contract_generation import generate_contract
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email

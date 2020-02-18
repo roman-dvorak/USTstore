@@ -23,7 +23,7 @@ FONT_DIR = os.path.join("static", "dejavu")
 ACCOUNT_REPORT_COLUMN_SPACING = [80, 35, 35, 35, 35, 35]
 ACCOUNT_REPORT_COLUMN_FORMATTERS = ["{}", "{}", "{} Kč/h", "{} Kč", "{} Kč", "{} Kč"]
 
-
+# TODO ztučnit název firmy a datum a jméno
 class AccountantReport:
     COLUMN_SPACING = [80, 35, 35, 35, 35, 35]
     COLUMN_FORMATTERS = ["{}", "{}", "{} Kč/h", "{} Kč", "{} Kč", "{} Kč"]

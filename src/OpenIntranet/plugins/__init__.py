@@ -24,7 +24,6 @@ from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
 
-from plugins.helpers.assertions import assert_true
 from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
     get_file_last_version_number
 
@@ -218,6 +217,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
+
             self.role = set(user_db['role'])
             if not self.is_authorized(self.role_module) and len(self.role_module) > 0:
                 raise tornado.web.HTTPError(401)
