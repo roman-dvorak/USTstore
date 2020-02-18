@@ -26,22 +26,20 @@ def make_handlers(plugin_name, plugin_namespace):
     return [
         (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
-        (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
-        (r'/{}/api/u/(.*)/workspans/month'.format(plugin_name), plugin_namespace.ApiMonthWorkspansHandler),
+        (r'/{}/api/u/(.*)/workspans/add'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
+        (r'/{}/api/u/(.*)/workspans/edit_month'.format(plugin_name), plugin_namespace.ApiMonthWorkspansHandler),
+        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
         (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
-        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
-        (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
+        (r'/{}/api/u/(.*)/vacations/add'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
         (r'/{}/api/u/(.*)/close_month'.format(plugin_name), plugin_namespace.ApiCloseMonthHandler),
         (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), plugin_namespace.ApiReopenMonthHandler),
-        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
-        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
-        (r'/{}/api/generate_accountant_report'.format(plugin_name),
+        (r'/{}/api/month_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
+        (r'/{}/api/year_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
+        (r'/{}/api/reports/accountant/generate'.format(plugin_name),
          plugin_namespace.ApiGenerateAccountantReportHandler),
-        (r'/{}/api/generate_hours_worked_reports'.format(plugin_name),
-         plugin_namespace.ApiGenerateHoursWorkedReportHandler),
-        (r'/{}/api/u/(.*)/generate_hours_worked_report'.format(plugin_name),
+        (r'/{}/api/reports/hours_worked/generate'.format(plugin_name),
          plugin_namespace.ApiGenerateHoursWorkedReportHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -55,7 +53,6 @@ def plug_info():
         "icon": 'icon_users.svg',
         # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
-
 
 
 # TODO zkontrolovat práva
@@ -483,7 +480,7 @@ class ApiAddWorkspanHandler(WorkspanBaseHandler):
 
 # TODO doplnit práva
 # TODO validovat vstup
-class ApiMonthWorkspansHandler(BaseHandler):
+class ApiEditMonthWorkspansHandler(BaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)

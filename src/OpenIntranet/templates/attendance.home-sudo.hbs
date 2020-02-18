@@ -369,14 +369,14 @@
 
     function updateMonthTable(updateHidden = false) {
         if (updateHidden || $(monthTable.element).is(":visible")) {
-            monthTable.setData(`/attendance/api/month_table/${monthDate.format("YYYY-MM-DD")}`);
+            monthTable.setData(`/attendance/api/month_table/date/${monthDate.format("YYYY-MM-DD")}`);
             console.log("Updating monthTable");
         }
     }
 
     function updateYearTable(updateHidden = false) {
         if (updateHidden || $(yearTable.element).is(":visible")) {
-            yearTable.setData(`/attendance/api/year_table/${yearDate.format("YYYY-MM-DD")}`);
+            yearTable.setData(`/attendance/api/year_table/date/${yearDate.format("YYYY-MM-DD")}`);
             console.log("Updating yearTable");
         }
     }
@@ -402,7 +402,7 @@
 
         if (result) {
             $.ajax({
-                url: "/attendance/api/generate_accountant_report",
+                url: "/attendance/api/reports/accountant/generate",
                 type: "post",
                 data: lastMonth,
                 success: function (response) {
@@ -422,7 +422,7 @@
 
         if (result) {
             $.ajax({
-                url: "/attendance/api/generate_hours_worked_reports",
+                url: "/attendance/api/reports/hours_worked/generate",
                 type: "post",
                 data: lastMonth,
                 success: function (response) {
