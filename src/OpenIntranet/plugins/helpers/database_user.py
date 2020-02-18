@@ -353,11 +353,11 @@ def get_user_active_study_certificate(coll: pymongo.collection.Collection, user_
     return get_user_active_document(coll, user_id, "study_certificate", date)
 
 
-def update_email_is_validated_status(coll: pymongo.collection.Collection,
-                                     user_id: ObjectId,
-                                     yes=False,
-                                     no=False,
-                                     token=""):
+def update_user_email_is_validated_status(coll: pymongo.collection.Collection,
+                                          user_id: ObjectId,
+                                          yes=False,
+                                          no=False,
+                                          token=""):
     assert_isinstance(user_id, ObjectId)
 
     if token:
@@ -398,3 +398,21 @@ def get_user_document_by_id(database, user_id: ObjectId, document_id: str):
     assert_isinstance(user_id, ObjectId)
 
     return get_user_embedded_mdoc_by_id(database, user_id, "documents", document_id)
+
+
+def user_set_password_change_token(coll: pymongo.collection.Collection, user_id, token):
+    coll.update_one({"_id": user_id},
+                    {
+                        "$set": {
+                            "password_change_token": token,
+                        }
+                    })
+
+
+def user_unset_password_change_token(coll: pymongo.collection.Collection, user_id):
+    coll.update_one({"_id": user_id},
+                    {
+                        "$unset": {
+                            "password_change_token": "",
+                        }
+                    })

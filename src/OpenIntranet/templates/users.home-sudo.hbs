@@ -164,7 +164,7 @@
         setMessage("Posílám email");
 
         $.ajax({
-            url: `/users/api/u/${user_id}/validateemail`,
+            url: `/users/api/u/${user_id}/email/validate`,
             type: "post",
             data: "",
             success: function (response) {
@@ -572,8 +572,7 @@
             let value = cell.getValue();
             let user_id = cell.getRow().getIndex();
 
-            if (value === "yes") setMessage("Není dostupná žádná akce");
-            else if (value === "no" || value === "pending") {
+            if (value === "no" || value === "pending" || value === "yes") {
                 if ($.isEmptyObject(editedData) && newData.size === 0 && deletedData.size === 0) {
                     Lobibox.alert('info', {
                         msg: 'Zvolte akci:',
@@ -586,6 +585,11 @@
                             set_validated: {
                                 class: "btn",
                                 text: "Nastavit jako ověřený",
+                                closeOnClick: true,
+                            },
+                            set_not_validated: {
+                                class: "btn",
+                                text: "Zrušit ověření",
                                 closeOnClick: true,
                             },
                             close: {
@@ -602,6 +606,13 @@
 
                                 if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
                                 editedData[user_id]["email_validated"] = "yes";
+
+                                saveUsersEdits();
+                            } else if (type === "set_not_validated") {
+                                setMessage("Ukládám");
+
+                                if (!editedData.hasOwnProperty(user_id)) editedData[user_id] = {};
+                                editedData[user_id]["email_validated"] = "no";
 
                                 saveUsersEdits();
                             }

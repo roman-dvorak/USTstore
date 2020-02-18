@@ -12,7 +12,7 @@ def send_email(message, options):
 
 
 def generate_validation_message(address, user_id, token, options):
-    link = f"{options['intranet_url']}/users/api/u/{user_id}/validateemail/{token}"
+    link = f"{options['intranet_url']}/users/api/u/{user_id}/email/validate/{token}"
 
     msg = MIMEMultipart("alternative")
 

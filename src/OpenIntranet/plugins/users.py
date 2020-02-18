@@ -8,8 +8,9 @@ import tornado
 import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
+from tornado.web import HTTPError
 
-from plugins import BaseHandler
+from plugins import BaseHandler, password_hash
 from plugins import BaseHandlerOwnCloud
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
@@ -17,7 +18,7 @@ from plugins.helpers.assertions import assert_isinstance
 from plugins.helpers.contract_generation import generate_contract
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
-from plugins.helpers.exceptions import BadInputHTTPError
+from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
@@ -34,8 +35,11 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiUserAddDocumentHandler),
         (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
         (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
-        (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
-        (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), plugin_namespace.ApiUserChangePasswordHandler),
+        (r'/{}/api/u/(.*)/password/change/token/(.*)'.format(plugin_name),
+         plugin_namespace.ApiUserChangePasswordHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -525,6 +529,7 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
 # TODO doplnit práva
 # TODO validovat vstup
+# TODO potvrzení o studiu nelze přidat bez existujícího prohlášení o dani
 class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
 
     async def post(self, user_id):
@@ -604,19 +609,23 @@ class ApiUserValidateEmail(BaseHandler):
 
         user_mdoc = udb.get_user(self.mdb.users, user_id)
 
-        if not user_mdoc["email_validated"] == "pending":
-            self.render("users.email_validation.hbs", success=False)
-            return
-
-        token_in_db = user_mdoc["email_validation_token"]
-        if token == token_in_db:
+        if user_mdoc["email_validated"] == "yes":
             if "pass" in user_mdoc:
-                udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+                self.render("users.email_validation.hbs", success=True, message="Email již byl ověřen.")
+                return
+            else:
+                self.redirect(f"/users/api/u/{user_id}/password/change/token/{token}")
+
+        token_in_db = user_mdoc.get("email_validation_token", None)
+        if user_mdoc["email_validated"] == "pending" and token == token_in_db:
+            udb.update_user_email_is_validated_status(self.mdb.users, user_id, yes=True)
+            if "pass" in user_mdoc:
                 self.render("users.email_validation.hbs", success=True)
             else:
-                self.render("_registration.hbs", msg=None, token=token, user_id=str(user_id))
-        else:
-            self.render("users.email_validation.hbs", success=False)
+                udb.user_set_password_change_token(self.mdb.users, user_id, token)
+                self.redirect(f"/users/api/u/{user_id}/password/change/token/{token}")
+
+        self.render("users.email_validation.hbs", success=False, message="Ověření se nezdařilo.")
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -632,4 +641,60 @@ class ApiUserValidateEmail(BaseHandler):
         message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)
         send_email(message, tornado.options.options)
 
-        udb.update_email_is_validated_status(self.mdb.users, user_id, token=token)
+        udb.update_user_email_is_validated_status(self.mdb.users, user_id, token=token)
+
+
+class ApiUserChangePasswordHandler(BaseHandler):
+
+    def get(self, user_id, token=None):
+        self.render("users.change_password.hbs", _id=user_id, token=token)
+
+    def post(self, user_id):
+        user_id = ObjectId(user_id)
+
+        req = self.request.body.decode("utf-8")
+        fields = json.loads(req)
+
+        if "new_password" not in fields or not fields["new_password"]:
+            raise MissingInfoHTTPError("Je nutné vyplnit nové heslo.")
+
+        if "new_password_check" not in fields or not fields["new_password_check"]:
+            raise MissingInfoHTTPError("Je nutné vyplnit kontrolu hesla.")
+
+        if fields["new_password"] != fields["new_password_check"]:
+            raise BadInputHTTPError("Nová hesla se musejí shodovat.")
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if "token" in fields:
+            token_in_db = user_mdoc.get("password_change_token", None)
+            if token_in_db != fields["token"]:
+                raise BadInputHTTPError("Ověření pomocí tokenu se nezdařilo.")
+
+            udb.user_unset_password_change_token(self.mdb.users, user_id)
+
+        else:
+            if user_id != self.actual_user["_id"]:
+                raise HTTPError(status_code=403, log_message="Heslo můžete změnit jen sobě.")
+
+            if "old_password" not in fields or not fields["old_password"]:
+                raise MissingInfoHTTPError("Je nutné vyplnit stávající heslo.")
+
+            password_hash_in_db = user_mdoc["pass"]
+            given_old_password_hash = password_hash(user_mdoc["user"], fields["old_password"])
+
+            if password_hash_in_db != given_old_password_hash:
+                raise BadInputHTTPError("Bylo zadáno špatné stávající heslo.")
+
+        new_password_hash = password_hash(user_mdoc["user"], fields["new_password"])
+
+        self.mdb.users.update_one({"_id": user_id},
+                                  {
+                                      "$set": {"pass": new_password_hash},
+                                  })
+
+
+
+
+
+
