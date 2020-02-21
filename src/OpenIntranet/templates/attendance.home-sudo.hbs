@@ -57,10 +57,11 @@
 
     <div class="row">
         <div class="col col-12">
-            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#wages-collapse')">
+            <h2 class="collapse-toggle" onclick="toggleCollapseTarget('#reports-collapse')">
                 Správa výplat
             </h2>
-            <div id="wages-collapse" class="collapsible">
+            <div id="reports-collapse" class="collapsible">
+                <div id="reports-table"></div>
                 <button type="button" class="btn btn-primary" onclick="generateAccountantReport()">
                     Vygenerovat report pro účetní
                 </button>
@@ -128,7 +129,7 @@
     let yearDate = moment().startOf("year");
 
     $(document).ready(() => {
-        $("#wages-collapse").hide();
+        $("#reports-collapse").hide();
         $("#year-table-collapse").hide();
 
         updateMonthDateSpans();
@@ -145,6 +146,8 @@
             }
         }, false);
     });
+
+    let reportsTable = new Tabulator("#reports-table");
 
 
     let monthTable = new Tabulator("#month-table", {

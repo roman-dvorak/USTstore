@@ -23,6 +23,13 @@ from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_dire
     generate_documents_directory_path
 
 
+"""
+Role:
+základní uživatel nemá speciální roli jelikož všichni jsou základními uživateli
+users-accountant - Účetní
+users-sudo - Admin
+"""
+
 def make_handlers(plugin_name, plugin_namespace):
     return [
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
@@ -50,28 +57,23 @@ def plug_info():
         "module": "users",
         "name": "Uživatelé",
         "icon": 'icon_users.svg',
-        # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
 
 
-# TODO zkontrolovat práva
 class HomeHandler(BaseHandler):
-    # role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
-    def get(self, data=None):
-        me = self.actual_user
-        my_activity = list(self.mdb.operation_log.find({'user': me['user']}))
+    def get(self):
+        current_user_id = self.actual_user["_id"]
 
-        if self.is_authorized(['users-editor', 'sudo-users']):
-            users = self.mdb.users.find()
-            self.render('users.home-sudo.hbs', title="TITLE", parent=self, users=users, me=me, my_activity=my_activity)
+        if self.is_authorized(["users-sudo"]):
+            self.render('users.home-sudo.hbs')
         else:
-            self.redirect(f"/users/u/{me['_id']}")
+            self.redirect(f"/users/u/{current_user_id}")
 
 
-# TODO doplnit práva
 # TODO validovat vstup
 class ApiAdminTableHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def get(self, uid=None):
         data = udb.get_users(self.mdb.users)
@@ -177,6 +179,7 @@ class ApiAdminTableHandler(BaseHandler):
 # TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
 
+
     def post(self, user_id):
         user_id = ObjectId(user_id)
 
@@ -209,7 +212,7 @@ class ApiEditUserHandler(BaseHandler):
             udb.update_user_address(self.mdb.users, user_id, contact_address)
 
 
-# TODO doplnit práva
+# TODO uživatel má přístup jen ke své stránce
 class UserPageHandler(BaseHandler):
 
     def get(self, user_id):
@@ -379,9 +382,9 @@ class UserPageHandler(BaseHandler):
         return json.dumps(final_structure)
 
 
-# TODO doplnit práva
 # TODO validovat vstup
 class ApiUserAddContractHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -456,8 +459,8 @@ class ApiUserAddContractHandler(BaseHandlerOwnCloud):
         return True
 
 
-# TODO doplnit práva
 class ApiUserFinalizeContractHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -473,9 +476,9 @@ class ApiUserFinalizeContractHandler(BaseHandler):
         udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
 
 
-# TODO doplnit práva
 # TODO validovat vstup
 class ApiUserInvalidateContractHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -497,8 +500,8 @@ class ApiUserInvalidateContractHandler(BaseHandler):
         udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
-# TODO doplnit práva
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -526,10 +529,10 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-# TODO doplnit práva
 # TODO validovat vstup
 # TODO potvrzení o studiu nelze přidat bez existujícího prohlášení o dani
 class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -564,8 +567,8 @@ class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-# TODO doplnit práva
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -580,8 +583,8 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-# TODO doplnit práva
 class ApiUserInvalidateDocumentHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)

@@ -14,8 +14,15 @@ def generate_actual_owncloud_path(file_id: ObjectId,
     return os.path.join(oc_root, oc_directory, oc_filename_with_metadata)
 
 
+def get_file_mdoc(database, file_id):
+    if not file_id:
+        return None
+
+    return database.owncloud.find_one({"_id": file_id})
+
+
 def get_file_url(database, file_id, version=-1):
-    file_mdoc = database.owncloud.find_one({"_id": file_id})
+    file_mdoc = get_file_mdoc(database, file_id)
 
     version_indices = list(file_mdoc["versions"].keys())
     if not version_indices:
@@ -29,6 +36,8 @@ def get_file_last_version_index(file_mdoc: dict):
     """
     Vrací key poslední verze souboru (str) nebo None když soubor ještě nemá verzi.
     """
+    if not file_mdoc:
+        return None
     versions_keys = list(file_mdoc["versions"].keys())
     if not versions_keys:
         return None
@@ -42,7 +51,7 @@ def get_file_last_version_number(file_mdoc: dict):
     index = get_file_last_version_index(file_mdoc)
     if not index:
         return -1
-    return int(get_file_last_version_index(file_mdoc))
+    return int(index)
 
 
 def generate_user_directory_path(user_id: ObjectId, user_name: str, year_date):
@@ -61,11 +70,7 @@ def generate_documents_directory_path(user_id: ObjectId, user_name: str, year_da
     return os.path.join(generate_user_directory_path(user_id, user_name, year_date), "documents")
 
 
-def generate_accountant_reports_directory_path(month_date: datetime):
+def generate_reports_directory_path(month_date: datetime):
     year = str(month_date.year)
     month = str(month_date.month)
     return os.path.join("accounting", year, "reports", month)
-
-
-def generate_hours_worked_reports_directory_path(user_id: ObjectId, user_name: str, year_date):
-    return os.path.join(generate_user_directory_path(user_id, user_name, year_date), "reports")

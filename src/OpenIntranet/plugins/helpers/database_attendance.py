@@ -152,5 +152,3 @@ def reopen_month(database, user_id, month_date: datetime):
                               {"$pull": {
                                   "months_closed": month_date,
                               }})
-
-    change_user_hours_report_up_to_date_status(database, user_id, month_date, up_to_date=False)
