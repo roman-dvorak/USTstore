@@ -7,12 +7,12 @@
             </a>
 
             <span>
-                  <span class="current_cart"></span>
-                <i class="material-icons">account_circle</i>user
+                <span class="current_cart"/>
+                <i class="material-icons">account_circle</i>admin
                 <a href="/logout">Odhlásit</a>
                 <br> Sklad: Nic
-                <a href="/login">přihlásit se</a>
-                      <i class="material-icons barcode-icon">remove</i>
+<!--                <a href="/login">přihlásit se</a>-->
+                <i class="material-icons barcode-icon">remove</i>
               </span>
 
         </nav>
@@ -21,8 +21,9 @@
 </template>
 
 <script>
+
     export default {
-        name: "HeaderBar"
+        name: "HeaderBar",
     }
 </script>
 

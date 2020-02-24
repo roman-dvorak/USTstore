@@ -22,7 +22,7 @@
 
 <style>
     body {
-        margin: 0;
+        margin-top: 5em;
     }
     #app {
         font-family: Avenir, Helvetica, Arial, sans-serif;
