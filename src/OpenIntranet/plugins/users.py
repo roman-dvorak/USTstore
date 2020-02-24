@@ -8,7 +8,7 @@ import tornado
 import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
-from tornado.web import HTTPError
+from tornado.web import HTTPError, StaticFileHandler
 
 from plugins import BaseHandler, password_hash
 from plugins import BaseHandlerOwnCloud
@@ -22,7 +22,6 @@ from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_co
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
 
-
 """
 Role:
 základní uživatel nemá speciální roli jelikož všichni jsou základními uživateli
@@ -30,8 +29,13 @@ users-accountant - Účetní
 users-sudo - Admin
 """
 
+
 def make_handlers(plugin_name, plugin_namespace):
     return [
+        (r'/{}/vue/?(.*)'.format(plugin_name), VueStaticFileHandler, {
+            "path": "vue_frontend/users-attendance/dist",
+            "default_filename": "index.html"
+        }),
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiUserAddContractHandler),
@@ -58,6 +62,18 @@ def plug_info():
         "name": "Uživatelé",
         "icon": 'icon_users.svg',
     }
+
+
+class VueStaticFileHandler(StaticFileHandler):
+
+    def validate_absolute_path(self, root: str, absolute_path: str):
+        try:
+            return super().validate_absolute_path(root, absolute_path)
+        except HTTPError as e:
+            if e.status_code == 404:
+                return self.get_absolute_path(root, "index.html")
+            else:
+                raise e
 
 
 class HomeHandler(BaseHandler):
@@ -178,7 +194,6 @@ class ApiAdminTableHandler(BaseHandler):
 # TODO doplnit práva
 # TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
-
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -694,9 +709,3 @@ class ApiUserChangePasswordHandler(BaseHandler):
                                   {
                                       "$set": {"pass": new_password_hash},
                                   })
-
-
-
-
-
-
