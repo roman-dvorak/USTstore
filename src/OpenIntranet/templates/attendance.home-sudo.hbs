@@ -31,10 +31,6 @@
         line-height: 0;
     }
 
-    #month-table-month-span {
-        text-transform: capitalize;
-    }
-
     h2.collapse-toggle {
         user-select: none;
         cursor: pointer;
@@ -62,12 +58,12 @@
             </h2>
             <div id="reports-collapse" class="collapsible">
                 <div id="reports-table"></div>
-                <button type="button" class="btn btn-primary" onclick="generateAccountantReport()">
-                    Vygenerovat report pro účetní
-                </button>
-                <button type="button" class="btn btn-primary" onclick="generateHoursWorkedReports()">
-                    Vygenerovat reporty odpracovaných hodin
-                </button>
+                <!--                <button type="button" class="btn btn-primary" onclick="generateAccountantReport()">-->
+                <!--                    Vygenerovat report pro účetní-->
+                <!--                </button>-->
+                <!--                <button type="button" class="btn btn-primary" onclick="generateHoursWorkedReports()">-->
+                <!--                    Vygenerovat reporty odpracovaných hodin-->
+                <!--                </button>-->
 
             </div>
         </div>
@@ -94,7 +90,7 @@
                         </div>
                     </div>
                     <h4>
-                        <span id="month-table-month-span"></span>
+                        <span id="month-table-month-span" class="text-capitalize"></span>
                         <span id="month-table-year-span"></span>
                     </h4>
                 </div>
@@ -136,6 +132,7 @@
         updateYearDateSpan();
         updateMonthTable(true);
         updateYearTable(true);
+        updateReportsTable();
 
         document.addEventListener("visibilitychange", () => {
             console.log("visibilitychange");
@@ -147,7 +144,85 @@
         }, false);
     });
 
-    let reportsTable = new Tabulator("#reports-table");
+    let reportsTable = new Tabulator("#reports-table", {
+        height: 650,
+        layout: "fitDataFill",
+        columns: [
+            {
+                title: "Měsíc",
+                field: "month",
+                formatter: function (cell, formatterParams, onRendered) {
+                    return `<span class='text-capitalize'>${moment(cell.getValue()).format("MMMM")}</span>`
+                },
+            },
+            {
+                title: "Report pro účetní",
+                field: "accountant_report",
+                align: "center",
+                formatter: function (cell, formatterParams, onRendered) {
+                    const icon = cell.getValue() ? "cloud_download" : "close";
+
+                    const next_month = moment(cell.getData()["month"]).add(1, "months");
+                    if (moment().isBefore(next_month)) return "";
+
+                    return `<span class='material-icons table-icon'>${icon}</span>`
+                },
+                cellDblClick: function (e, cell) {
+                    if (cell.getValue()) {
+                        window.open(cell.getValue(), "_blank");
+                    }
+                },
+            },
+            {
+                title: "Report odpracovaných hodin",
+                field: "hours_worked_report",
+                align: "center",
+                formatter: function (cell, formatterParams, onRendered) {
+                    const icon = cell.getValue() ? "cloud_download" : "close";
+
+                    const next_month = moment(cell.getData()["month"]).add(1, "months");
+                    if (moment().isBefore(next_month)) return "";
+
+                    return `<span class='material-icons table-icon'>${icon}</span>`
+                },
+                cellDblClick: function (e, cell) {
+                    if (cell.getValue()) {
+                        window.open(cell.getValue(), "_blank");
+                    }
+                },
+            },
+            {
+                title: "Jsou aktuální?",
+                field: "hours_worked_report_up_to_date",
+                formatter: function (cell, formatterParams, onRendered) {
+                    const icon = cell.getValue() ? "check" : "close";
+
+                    const has_reports = cell.getData()["hours_worked_report"] && cell.getData()["accountant_report"];
+                    if (!has_reports) return "";
+
+                    return `<span class='material-icons table-icon'>${icon}</span>`
+                },
+                align: "center",
+            },
+            {
+                title: "Generovat",
+                align: "center",
+                formatter: function (cell, formatterParams, onRendered) {
+                    const next_month = moment(cell.getData()["month"]).add(1, "months");
+                    if (moment().isBefore(next_month)) return "";
+
+                    return `<span class='material-icons table-icon'>build</span>`
+                },
+                cellDblClick: function (e, cell) {
+                    const next_month = moment(cell.getData()["month"]).add(1, "months");
+                    if (moment().isBefore(next_month)) return;
+
+                    generateAccountantReport();
+                    generateHoursWorkedReport();
+                }
+            }
+        ]
+    });
 
 
     let monthTable = new Tabulator("#month-table", {
@@ -384,6 +459,10 @@
         }
     }
 
+    function updateReportsTable() {
+        reportsTable.setData(`/attendance/api/reports_table/date/2020-01-01`);
+    }
+
     function showAttendance() {
         const selectedRows = monthTable.getSelectedRows();
 
@@ -409,19 +488,18 @@
                 type: "post",
                 data: lastMonth,
                 success: function (response) {
-                    alert("Podařilo se!");
                     console.log(response);
-                    showMonth(lastMonth);
+                    updateReportsTable();
                 },
                 error: ajaxError,
             });
         }
     }
 
-    function generateHoursWorkedReports() {
+    function generateHoursWorkedReport() {
         const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
 
-        let result = confirm("Generovat reporty hodin uživatelů pro měsíc " + lastMonth + "?");
+        let result = confirm("Generovat report hodin uživatelů pro měsíc " + lastMonth + "?");
 
         if (result) {
             $.ajax({
@@ -429,27 +507,12 @@
                 type: "post",
                 data: lastMonth,
                 success: function (response) {
-                    alert("Podařilo se!");
                     console.log(response);
-                    showMonth(lastMonth);
+                    updateReportsTable();
                 },
                 error: ajaxError,
             });
         }
-    }
-
-    function generateUserHoursWorkedReport(userId) {
-        $.ajax({
-            url: `/attendance/api/u/${userId}/generate_hours_worked_report`,
-            type: "post",
-            data: monthDate.format("YYYY-MM-DD"),
-            success: function (response) {
-                alert("Podařilo se!");
-                console.log(response);
-                updateMonthTable();
-            },
-            error: ajaxError,
-        });
     }
 
     function ajaxError(jqXHR, textStatus, errorThrown) {

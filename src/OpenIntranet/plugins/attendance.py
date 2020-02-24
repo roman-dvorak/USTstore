@@ -7,10 +7,9 @@ from bson import ObjectId
 from dateutil.relativedelta import relativedelta
 
 from plugins import BaseHandler, get_dpp_params, BaseHandlerOwnCloud
-from plugins.helpers import database_attendance as adb, report_generation, database_reports, owncloud_utils
+from plugins.helpers import database_attendance as adb, report_generation, database_reports as rdb, owncloud_utils
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.database_reports import ACCOUNTANT_REPORT, HOURS_WORKED_REPORT
 from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError
 from plugins.helpers.finance import calculate_tax
 from plugins.helpers.math_utils import floor_to_half
@@ -33,6 +32,7 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), plugin_namespace.ApiReopenMonthHandler),
         (r'/{}/api/month_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
         (r'/{}/api/year_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
+        (r'/{}/api/reports_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminReportsTableHandler),
         (r'/{}/api/reports/accountant/generate'.format(plugin_name),
          plugin_namespace.ApiGenerateAccountantReportHandler),
         (r'/{}/api/reports/hours_worked/generate'.format(plugin_name),
@@ -287,6 +287,34 @@ class ApiAdminYearTableHandler(BaseHandler):
                 "tax_amount": calculator.year_tax_amount,
                 "net_wage": calculator.year_net_wage,
             }
+            rows.append(row)
+
+        self.write(bson.json_util.dumps(rows))
+
+
+# TODO doplnit práva
+class ApiAdminReportsTableHandler(BaseHandler):
+
+    def get(self, date):
+        date = str_ops.datetime_from_iso_str(date).replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        rows = []
+
+        for month in range(1, 13):
+            month_date = date.replace(month=month)
+
+            accountant_report_owncloud_id = rdb.get_report_file_id(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+            hours_worked_report_owncloud_id = rdb.get_report_file_id(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
+
+            row = {
+                "month": str_ops.date_to_iso_str(month_date),
+                "accountant_report": owncloud_utils.get_file_url(self.mdb, accountant_report_owncloud_id),
+                "accountant_report_up_to_date": rdb.is_report_up_to_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT),
+                "hours_worked_report": owncloud_utils.get_file_url(self.mdb, hours_worked_report_owncloud_id),
+                "hours_worked_report_up_to_date": rdb.is_report_up_to_date(self.mdb, month_date,
+                                                                           rdb.HOURS_WORKED_REPORT)
+            }
+
             rows.append(row)
 
         self.write(bson.json_util.dumps(rows))
@@ -593,8 +621,8 @@ class ApiReopenMonthHandler(BaseHandler):
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
         adb.reopen_month(self.mdb, user_id, month_date)
-        database_reports.set_report_out_of_date(self.mdb, month_date, ACCOUNTANT_REPORT)
-        database_reports.set_report_out_of_date(self.mdb, month_date, HOURS_WORKED_REPORT)
+        rdb.set_report_out_of_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+        rdb.set_report_out_of_date(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
 
 
 # TODO doplnit práva
@@ -605,7 +633,7 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
-        existing_report_file_id = database_reports.get_report_file_id(self.mdb, month_date, ACCOUNTANT_REPORT)
+        existing_report_file_id = rdb.get_report_file_id(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
         existing_report_mdoc = owncloud_utils.get_file_mdoc(self.mdb, existing_report_file_id)
         existing_report_version = owncloud_utils.get_file_last_version_number(existing_report_mdoc)
 
@@ -636,6 +664,7 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
 
         if existing_report_file_id:
             await self.update_owncloud_file(existing_report_file_id, file_path)
+            rdb.set_report_up_to_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
         else:
             owncloud_directory = generate_reports_directory_path(month_date)
 
@@ -643,7 +672,7 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
             owncloud_name = f"accountant_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
             owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
-            database_reports.save_report_file_id(self.mdb, month_date, owncloud_id, ACCOUNTANT_REPORT)
+            rdb.save_report_file_id(self.mdb, month_date, owncloud_id, rdb.ACCOUNTANT_REPORT)
 
 
 # TODO doplnit práva
@@ -656,7 +685,7 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
         users = udb.get_users(self.mdb.users)
 
-        existing_report_file_id = database_reports.get_report_file_id(self.mdb, month_date, HOURS_WORKED_REPORT)
+        existing_report_file_id = rdb.get_report_file_id(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
         existing_report_mdoc = owncloud_utils.get_file_mdoc(self.mdb, existing_report_file_id)
         existing_report_version = owncloud_utils.get_file_last_version_number(existing_report_mdoc)
 
@@ -669,6 +698,7 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
 
         if existing_report_file_id:
             await self.update_owncloud_file(existing_report_file_id, file_path)
+            rdb.set_report_up_to_date(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
         else:
             owncloud_directory = generate_reports_directory_path(month_date)
 
@@ -676,7 +706,7 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
             owncloud_name = f"hours_worked_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
             owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
-            database_reports.save_report_file_id(self.mdb, month_date, owncloud_id, HOURS_WORKED_REPORT)
+            rdb.save_report_file_id(self.mdb, month_date, owncloud_id, rdb.HOURS_WORKED_REPORT)
 
     def make_user_page(self, report, user_mdoc, month_date):
 

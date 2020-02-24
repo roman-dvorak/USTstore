@@ -22,6 +22,9 @@ def get_file_mdoc(database, file_id):
 
 
 def get_file_url(database, file_id, version=-1):
+    if not file_id:
+        return None
+
     file_mdoc = get_file_mdoc(database, file_id)
 
     version_indices = list(file_mdoc["versions"].keys())

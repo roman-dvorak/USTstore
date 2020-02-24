@@ -43,3 +43,11 @@ def is_report_up_to_date(database, month_date, report_type):
         return None
 
     return report_mdoc.get("up_to_date", None)
+
+
+def set_report_up_to_date(database, month_date, report_type):
+    month_date = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    database.users_reports.update_one({"month": month_date, "type": report_type},
+                                      {
+                                          "$set": {"up_to_date": True}
+                                      })
