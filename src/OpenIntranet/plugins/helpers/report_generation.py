@@ -111,6 +111,7 @@ class HoursWorkedReport:
 
     def init_page(self, name):
         self.pdf.add_page()
+        self.sum_hours = 0
 
         self.pdf.set_font(FONT, "B", FONT_SIZE)
 
