@@ -36,6 +36,7 @@ def make_handlers(plugin_name, plugin_namespace):
             "path": "vue_frontend/users-attendance/dist",
             "default_filename": "index.html"
         }),
+        (r'/{}/api/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiUserAddContractHandler),
@@ -76,9 +77,31 @@ class VueStaticFileHandler(StaticFileHandler):
                 raise e
 
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
+
+class ApiCurrentUserHandler(BaseHandler):
+
+    def get(self):
+        print(self.current_user)
+
+        data = {
+            "_id": str(self.current_user["_id"]),
+            "user": self.current_user["user"],
+            "param": self.current_user["param"]
+        }
+
+        self.write(JSONEncoder().encode(data))
+
+
 class HomeHandler(BaseHandler):
 
     def get(self):
+        print("-> current_user", self.current_user)
         current_user_id = self.actual_user["_id"]
 
         if self.is_authorized(["users-sudo"]):
