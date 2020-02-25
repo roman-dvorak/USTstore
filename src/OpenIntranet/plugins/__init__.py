@@ -24,7 +24,6 @@ from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
 
-from plugins.helpers.assertions import assert_true
 from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
     get_file_last_version_number
 
@@ -218,9 +217,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
         if login and user_db.get('user', False) == login:
             self.actual_user = user_db
+
             self.role = set(user_db['role'])
             if not self.is_authorized(self.role_module) and len(self.role_module) > 0:
-                raise tornado.web.HTTPError(401)
+                raise tornado.web.HTTPError(403)
 
             cart = self.get_cookie('cart', None)
             # print("Nakupni kosik", bson.ObjectId(cart))
@@ -837,11 +837,9 @@ class LogoutHandler(BaseHandler):
 
 class RegistrationHandler(BaseHandler):
     def get(self):
-        self.render('_registration.hbs', msg="", token="", user_id="")
+        self.render('_registration.hbs', msg="")
 
     def post(self):
-        token = self.get_argument('token')
-        user_id = self.get_argument('user_id')
         email = self.get_argument('email')
         user_name = self.get_argument('user')
         password = self.get_argument('password')
@@ -849,26 +847,21 @@ class RegistrationHandler(BaseHandler):
         agree = self.get_argument('agree')
 
         if agree != 'agree':
-            self.render('_registration.hbs', msg='Musíte souhlasit s ...', token=token, user_id=user_id)
+            self.render('_registration.hbs', msg='Musíte souhlasit s ...')
             return
 
         if not password:
-            self.render('_registration.hbs', msg='Musíte vyplnit heslo.', token=token, user_id=user_id)
+            self.render('_registration.hbs', msg='Musíte vyplnit heslo.')
 
         if password != password_check:
-            self.render('_registration.hbs', msg='Hesla se neshodují', token=token, user_id=user_id)
-            return
-
-        if token:
-            self.validate_user_email_and_set_password(user_id, token, password)
+            self.render('_registration.hbs', msg='Hesla se neshodují')
             return
 
         matching_users_in_db = list(self.mdb.users.find({'$or': [{'user': user_name}, {'email': email}]}))
 
         if matching_users_in_db:
             self.render('_registration.hbs',
-                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.',
-                        token=token, user_id=user_id)
+                        msg='Tato <b>přezdívka</b> nebo <b>email</b> jsou již zaregistrované.')
             return
 
         if not self.mdb.users.find_one({"type": "user"}):
@@ -891,25 +884,6 @@ class RegistrationHandler(BaseHandler):
 
         print("Registrován email", email)
         self.redirect('/')
-
-    def validate_user_email_and_set_password(self, user_id, token, password):
-        user_id = ObjectId(user_id)
-
-        from plugins.helpers import database_user as udb
-
-        user_mdoc = udb.get_user(self.mdb.users, user_id)
-
-        if "pass" not in user_mdoc and user_mdoc["email_validated"] == "pending" \
-                and user_mdoc["email_validation_token"] == token:
-            new_password_hash = password_hash(user_mdoc["user"], password)
-
-            self.mdb.users.update_one({"_id": user_id},
-                                      {"$set": {
-                                          "pass": new_password_hash,
-                                      }})
-            udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
-
-            self.redirect('/')
 
 
 class doBackup(BaseHandlerOwnCloud):

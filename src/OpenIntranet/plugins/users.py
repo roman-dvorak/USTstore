@@ -8,34 +8,49 @@ import tornado
 import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
+from tornado.web import HTTPError, StaticFileHandler
 
-from plugins import BaseHandler
+from plugins import BaseHandler, password_hash
 from plugins import BaseHandlerOwnCloud
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.assertions import assert_isinstance
 from plugins.helpers.contract_generation import generate_contract
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
-from plugins.helpers.exceptions import BadInputHTTPError
+from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
 
+"""
+Role:
+základní uživatel nemá speciální roli jelikož všichni jsou základními uživateli
+users-accountant - Účetní
+users-sudo - Admin
+"""
+
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
+        (r'/{}/vue/?(.*)'.format(plugin_name), VueStaticFileHandler, {
+            "path": "vue_frontend/users-attendance/dist",
+            "default_filename": "index.html"
+        }),
+        (r'/{}/api/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
-        (r'/{}/api/u/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiUserContractsHandler),
+        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiUserAddContractHandler),
         (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
         (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
         (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiUserFinalizeContractHandler),
-        (r'/{}/api/u/(.*)/documents'.format(plugin_name), plugin_namespace.ApiUserDocumentsHandler),
+        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiUserAddDocumentHandler),
         (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
         (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
-        (r'/{}/api/u/(.*)/validateemail/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
-        (r'/{}/api/u/(.*)/validateemail'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
+        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), plugin_namespace.ApiUserChangePasswordHandler),
+        (r'/{}/api/u/(.*)/password/change/token/(.*)'.format(plugin_name),
+         plugin_namespace.ApiUserChangePasswordHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -47,25 +62,57 @@ def plug_info():
         "module": "users",
         "name": "Uživatelé",
         "icon": 'icon_users.svg',
-        # "role": ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit'],
     }
 
 
+class VueStaticFileHandler(StaticFileHandler):
+
+    def validate_absolute_path(self, root: str, absolute_path: str):
+        try:
+            return super().validate_absolute_path(root, absolute_path)
+        except HTTPError as e:
+            if e.status_code == 404:
+                return self.get_absolute_path(root, "index.html")
+            else:
+                raise e
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
+
+class ApiCurrentUserHandler(BaseHandler):
+
+    def get(self):
+        print(self.current_user)
+
+        data = {
+            "_id": str(self.current_user["_id"]),
+            "user": self.current_user["user"],
+            "param": self.current_user["param"]
+        }
+
+        self.write(JSONEncoder().encode(data))
+
+
 class HomeHandler(BaseHandler):
-    # role_module = ['user-sudo', 'user-access', 'user-read', 'economy-read', 'economy-edit']
 
-    def get(self, data=None):
-        me = self.actual_user
-        my_activity = list(self.mdb.operation_log.find({'user': me['user']}))
+    def get(self):
+        print("-> current_user", self.current_user)
+        current_user_id = self.actual_user["_id"]
 
-        if self.is_authorized(['users-editor', 'sudo-users']):
-            users = self.mdb.users.find()
-            self.render('users.home-sudo.hbs', title="TITLE", parent=self, users=users, me=me, my_activity=my_activity)
+        if self.is_authorized(["users-sudo"]):
+            self.render('users.home-sudo.hbs')
         else:
-            self.redirect(f"/users/u/{me['_id']}")
+            self.redirect(f"/users/u/{current_user_id}")
 
 
+# TODO validovat vstup
 class ApiAdminTableHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def get(self, uid=None):
         data = udb.get_users(self.mdb.users)
@@ -167,6 +214,8 @@ class ApiAdminTableHandler(BaseHandler):
                 raise BadInputHTTPError("Uživatel s tímto přihlašovacím jménem již existuje.")
 
 
+# TODO doplnit práva
+# TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
 
     def post(self, user_id):
@@ -201,6 +250,7 @@ class ApiEditUserHandler(BaseHandler):
             udb.update_user_address(self.mdb.users, user_id, contact_address)
 
 
+# TODO uživatel má přístup jen ke své stránce
 class UserPageHandler(BaseHandler):
 
     def get(self, user_id):
@@ -370,7 +420,9 @@ class UserPageHandler(BaseHandler):
         return json.dumps(final_structure)
 
 
-class ApiUserContractsHandler(BaseHandlerOwnCloud):
+# TODO validovat vstup
+class ApiUserAddContractHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -446,6 +498,7 @@ class ApiUserContractsHandler(BaseHandlerOwnCloud):
 
 
 class ApiUserFinalizeContractHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -461,7 +514,9 @@ class ApiUserFinalizeContractHandler(BaseHandler):
         udb.unmark_user_contract_as_preview(self.mdb, user_id, contract_id)
 
 
+# TODO validovat vstup
 class ApiUserInvalidateContractHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -484,6 +539,7 @@ class ApiUserInvalidateContractHandler(BaseHandler):
 
 
 class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -511,7 +567,10 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
+# TODO validovat vstup
+# TODO potvrzení o studiu nelze přidat bez existujícího prohlášení o dani
+class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -547,6 +606,7 @@ class ApiUserDocumentsHandler(BaseHandlerOwnCloud):
 
 
 class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
+    role_module = ["users-sudo"]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -562,6 +622,7 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
 
 
 class ApiUserInvalidateDocumentHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -578,6 +639,7 @@ class ApiUserInvalidateDocumentHandler(BaseHandler):
         udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
+# TODO doplnit práva
 class ApiUserValidateEmail(BaseHandler):
 
     def get(self, user_id, token):
@@ -587,19 +649,23 @@ class ApiUserValidateEmail(BaseHandler):
 
         user_mdoc = udb.get_user(self.mdb.users, user_id)
 
-        if not user_mdoc["email_validated"] == "pending":
-            self.render("users.email_validation.hbs", success=False)
-            return
-
-        token_in_db = user_mdoc["email_validation_token"]
-        if token == token_in_db:
+        if user_mdoc["email_validated"] == "yes":
             if "pass" in user_mdoc:
-                udb.update_email_is_validated_status(self.mdb.users, user_id, yes=True)
+                self.render("users.email_validation.hbs", success=True, message="Email již byl ověřen.")
+                return
+            else:
+                self.redirect(f"/users/api/u/{user_id}/password/change/token/{token}")
+
+        token_in_db = user_mdoc.get("email_validation_token", None)
+        if user_mdoc["email_validated"] == "pending" and token == token_in_db:
+            udb.update_user_email_is_validated_status(self.mdb.users, user_id, yes=True)
+            if "pass" in user_mdoc:
                 self.render("users.email_validation.hbs", success=True)
             else:
-                self.render("_registration.hbs", msg=None, token=token, user_id=str(user_id))
-        else:
-            self.render("users.email_validation.hbs", success=False)
+                udb.user_set_password_change_token(self.mdb.users, user_id, token)
+                self.redirect(f"/users/api/u/{user_id}/password/change/token/{token}")
+
+        self.render("users.email_validation.hbs", success=False, message="Ověření se nezdařilo.")
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -615,4 +681,54 @@ class ApiUserValidateEmail(BaseHandler):
         message = generate_validation_message(user_mdoc["email"], user_id, token, tornado.options.options)
         send_email(message, tornado.options.options)
 
-        udb.update_email_is_validated_status(self.mdb.users, user_id, token=token)
+        udb.update_user_email_is_validated_status(self.mdb.users, user_id, token=token)
+
+
+class ApiUserChangePasswordHandler(BaseHandler):
+
+    def get(self, user_id, token=None):
+        self.render("users.change_password.hbs", _id=user_id, token=token)
+
+    def post(self, user_id):
+        user_id = ObjectId(user_id)
+
+        req = self.request.body.decode("utf-8")
+        fields = json.loads(req)
+
+        if "new_password" not in fields or not fields["new_password"]:
+            raise MissingInfoHTTPError("Je nutné vyplnit nové heslo.")
+
+        if "new_password_check" not in fields or not fields["new_password_check"]:
+            raise MissingInfoHTTPError("Je nutné vyplnit kontrolu hesla.")
+
+        if fields["new_password"] != fields["new_password_check"]:
+            raise BadInputHTTPError("Nová hesla se musejí shodovat.")
+
+        user_mdoc = udb.get_user(self.mdb.users, user_id)
+
+        if "token" in fields:
+            token_in_db = user_mdoc.get("password_change_token", None)
+            if token_in_db != fields["token"]:
+                raise BadInputHTTPError("Ověření pomocí tokenu se nezdařilo.")
+
+            udb.user_unset_password_change_token(self.mdb.users, user_id)
+
+        else:
+            if user_id != self.actual_user["_id"]:
+                raise HTTPError(status_code=403, log_message="Heslo můžete změnit jen sobě.")
+
+            if "old_password" not in fields or not fields["old_password"]:
+                raise MissingInfoHTTPError("Je nutné vyplnit stávající heslo.")
+
+            password_hash_in_db = user_mdoc["pass"]
+            given_old_password_hash = password_hash(user_mdoc["user"], fields["old_password"])
+
+            if password_hash_in_db != given_old_password_hash:
+                raise BadInputHTTPError("Bylo zadáno špatné stávající heslo.")
+
+        new_password_hash = password_hash(user_mdoc["user"], fields["new_password"])
+
+        self.mdb.users.update_one({"_id": user_id},
+                                  {
+                                      "$set": {"pass": new_password_hash},
+                                  })
