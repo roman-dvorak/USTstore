@@ -24,7 +24,6 @@
             }
         },
         async created() {
-            await new Promise(resolve => setTimeout(resolve, 2000));
             Axios.get("/users/api/current")
                 .then(res => console.log(this.currentUser = res.data))
                 .catch(err => console.log(err))
