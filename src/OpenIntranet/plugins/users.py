@@ -42,18 +42,18 @@ def make_handlers(plugin_name, plugin_namespace):
         (r'/{}/api/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
-        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiUserAddContractHandler),
-        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateContractHandler),
-        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUserUploadContractScanHandler),
-        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiUserFinalizeContractHandler),
-        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiUserAddDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiUserInvalidateDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiUserReuploadDocumentHandler),
-        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
-        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), plugin_namespace.ApiUserValidateEmail),
-        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), plugin_namespace.ApiUserChangePasswordHandler),
+        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiAddContractHandler),
+        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiInvalidateContractHandler),
+        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUploadContractScanHandler),
+        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiFinalizeContractHandler),
+        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiAddDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiInvalidateDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiReuploadDocumentHandler),
+        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), plugin_namespace.ApiValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), plugin_namespace.ApiValidateEmail),
+        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), plugin_namespace.ApiChangePasswordHandler),
         (r'/{}/api/u/(.*)/password/change/token/(.*)'.format(plugin_name),
-         plugin_namespace.ApiUserChangePasswordHandler),
+         plugin_namespace.ApiChangePasswordHandler),
         (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -111,7 +111,7 @@ class HomeHandler(BaseHandler):
         print("-> current_user", self.current_user)
         current_user_id = self.actual_user["_id"]
 
-        if self.is_authorized(["users-sudo"]):
+        if self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT]):
             self.render('users.home-sudo.hbs')
         else:
             self.redirect(f"/users/u/{current_user_id}")
@@ -119,9 +119,11 @@ class HomeHandler(BaseHandler):
 
 # TODO validovat vstup
 class ApiAdminTableHandler(BaseHandler):
-    role_module = ["users-sudo"]
 
-    def get(self, uid=None):
+    def get(self):
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT]):
+            raise ForbiddenHTTPError("zobrazení tabulky uživatelů")
+
         data = udb.get_users(self.mdb.users)
 
         for item in data:
@@ -161,6 +163,9 @@ class ApiAdminTableHandler(BaseHandler):
             "deleted": [<id 3>, <další id smazaných uživatelů>],
         }
         """
+        if not self.is_authorized([ROLE_SUDO]):
+            raise ForbiddenHTTPError("úprava tabulky uživatelů")
+
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
         print(data)
@@ -223,7 +228,7 @@ class ApiAdminTableHandler(BaseHandler):
 
 # TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
-    role_module = ["users-sudo"]
+    role_module = [ROLE_SUDO]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -262,7 +267,7 @@ class UserPageHandler(BaseHandler):
     def get(self, user_id):
         user_id = ObjectId(user_id)
 
-        if not self.is_authorized(specific_users=[user_id]):
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
             raise ForbiddenHTTPError(operation="zobrazení karty jiného uživatele")
 
         user_document = udb.get_user(self.mdb.users, user_id)
@@ -430,8 +435,8 @@ class UserPageHandler(BaseHandler):
 
 
 # TODO validovat vstup
-class ApiUserAddContractHandler(BaseHandlerOwnCloud):
-    role_module = ["users-sudo"]
+class ApiAddContractHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -506,8 +511,8 @@ class ApiUserAddContractHandler(BaseHandlerOwnCloud):
         return True
 
 
-class ApiUserFinalizeContractHandler(BaseHandler):
-    role_module = ["users-sudo"]
+class ApiFinalizeContractHandler(BaseHandler):
+    role_module = [ROLE_SUDO]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -524,8 +529,8 @@ class ApiUserFinalizeContractHandler(BaseHandler):
 
 
 # TODO validovat vstup
-class ApiUserInvalidateContractHandler(BaseHandler):
-    role_module = ["users-sudo"]
+class ApiInvalidateContractHandler(BaseHandler):
+    role_module = [ROLE_SUDO]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -547,8 +552,8 @@ class ApiUserInvalidateContractHandler(BaseHandler):
         udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
-class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
-    role_module = ["users-sudo"]
+class ApiUploadContractScanHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -578,8 +583,8 @@ class ApiUserUploadContractScanHandler(BaseHandlerOwnCloud):
 
 # TODO validovat vstup
 # TODO potvrzení o studiu nelze přidat bez existujícího prohlášení o dani
-class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
-    role_module = ["users-sudo"]
+class ApiAddDocumentHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -614,8 +619,8 @@ class ApiUserAddDocumentHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
-    role_module = ["users-sudo"]
+class ApiReuploadDocumentHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     async def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -630,8 +635,8 @@ class ApiUserReuploadDocumentHandler(BaseHandlerOwnCloud):
         self.redirect(f"/users/u/{user_id}", permanent=True)
 
 
-class ApiUserInvalidateDocumentHandler(BaseHandler):
-    role_module = ["users-sudo"]
+class ApiInvalidateDocumentHandler(BaseHandler):
+    role_module = [ROLE_SUDO]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -648,7 +653,7 @@ class ApiUserInvalidateDocumentHandler(BaseHandler):
         udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
-class ApiUserValidateEmail(BaseHandler):
+class ApiValidateEmail(BaseHandler):
 
     def get(self, user_id, token):
         user_id = ObjectId(user_id)
@@ -676,7 +681,7 @@ class ApiUserValidateEmail(BaseHandler):
         self.render("users.email_validation.hbs", success=False, message="Ověření se nezdařilo.")
 
     def post(self, user_id):
-        if not self.is_authorized(["users-sudo"]):
+        if not self.is_authorized([ROLE_SUDO]):
             raise ForbiddenHTTPError(operation="zaslání ověřovacího emailu")
 
         user_id = ObjectId(user_id)
@@ -695,7 +700,7 @@ class ApiUserValidateEmail(BaseHandler):
         udb.update_user_email_is_validated_status(self.mdb.users, user_id, token=token)
 
 
-class ApiUserChangePasswordHandler(BaseHandler):
+class ApiChangePasswordHandler(BaseHandler):
 
     def get(self, user_id, token=None):
         if not self.is_authorized(specific_users=[ObjectId(user_id)]):
