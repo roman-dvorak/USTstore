@@ -659,8 +659,8 @@ class hand_bi_home(BaseHandler):
     def get(self, data=None):
         cat = list(self.mdb.category.find({}))
         cat = sorted(cat, key = lambda x: x.get('path', '/')+x['name'])
-        permis = self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin'])
-        if permis:
+
+        if self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']):
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
         else:
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)

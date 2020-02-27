@@ -108,7 +108,7 @@ def perm_validator(method, permissions=[], sudo=True):
 
 
 def database_init():
-    #print(options.as_dict())
+    # print(options.as_dict())
     return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[
         tornado.options.options.mdb_database]
 
@@ -209,7 +209,7 @@ class BaseHandler(tornado.web.RequestHandler):
         login = self.get_secure_cookie("user")
         if login:
             login = str(login, encoding="utf-8")
-        
+
         self.mdb = database_init()
         user_db = self.mdb.users.find_one({'user': login})
         self.company_info = get_company_info(self.mdb)
@@ -219,7 +219,7 @@ class BaseHandler(tornado.web.RequestHandler):
             self.actual_user = user_db
 
             self.role = set(user_db['role'])
-            if not self.is_authorized(self.role_module) and len(self.role_module) > 0:
+            if self.role_module and not self.is_authorized(self.role_module):
                 raise tornado.web.HTTPError(403)
 
             cart = self.get_cookie('cart', None)
@@ -515,7 +515,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 x['full_url'] = x.get('url', '')
 
                 if x['supplier'].lower() == 'tme':
-                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'].replace('/','_'))
+                    x['full_url'] = "https://www.tme.eu/cz/details/{}".format(x['symbol'].replace('/', '_'))
 
                 elif x['supplier'].lower() == 'mouser':
                     x['full_url'] = "https://cz.mouser.com/ProductDetail/{}".format(x['symbol'])
@@ -552,7 +552,7 @@ class BaseHandler(tornado.web.RequestHandler):
         if not login:
             return None
         login = str(login, encoding="utf-8")
-        #print(login)
+        # print(login)
         user_db = self.mdb.users.find_one({'user': login})
 
         if not user_db:
@@ -565,7 +565,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return user_db
 
     def authorized(self, required=[], sudo=True):
-       # print("Authorized.....", required)
+        # print("Authorized.....", required)
         if self.get_current_user():
             if sudo:
                 required = required + ['sudo']
@@ -582,19 +582,33 @@ class BaseHandler(tornado.web.RequestHandler):
             print("REDIRECT na LOGIN")
             self.redirect('/login')
 
-    def is_authorized(self, required=[], sudo=True):
-        print("AUTHORIZATION.....")
-        if self.get_current_user():
-            if sudo:
-                required = required + ['sudo']
-            req = set(required)
-            intersection = list(self.role & req)
-            if bool(intersection):
-                return intersection
-            else:
-                return False
-        else:
+    def is_authorized(self, required=(), sudo=True, specific_users=()):
+        """
+        Zjistí, zda má přihlášený uživatel požadovaná oprávnění.
+        Není-li žádný uživatel přihlášen, přesměruje na přihášení.
+        :param required: Iterable možných rolí, které uživatele opravňují k dané akci (uživateli stačí jedna z těchto)
+        :param sudo: Je-li True, uživatel s rolí sudo je automaticky oprávněn
+        :param specific_users: Iterable id uživatelů, kteří jsou oprávněni nehledě na jejich role
+        :return: True je-li uživatel oprávněn, False jinak
+        """
+        print("AUTHORIZATION...")
+
+        current_user = self.get_current_user()
+
+        if not current_user:
             self.redirect('/login')
+            return False
+
+        if current_user['_id'] in specific_users:
+            return True
+
+        if sudo:
+            required = list(required) + ['sudo']
+
+        req = set(required)
+        intersection = list(self.role & req)
+
+        return bool(intersection)
 
     def getComponentById(self, id):
         return (self.mdb.stock.find_one({'_id': id}))
@@ -647,10 +661,10 @@ class BaseHandlerOwnCloud(BaseHandler):
         return file_id
 
     async def upload_to_owncloud(self,
-                           oc_directory,
-                           oc_filename,
-                           local_path,
-                           delete_local=True):
+                                 oc_directory,
+                                 oc_filename,
+                                 local_path,
+                                 delete_local=True):
         """
         Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
 
@@ -733,9 +747,9 @@ class BaseHandlerOwnCloud(BaseHandler):
                 pass
 
     async def update_owncloud_file(self,
-                             file_id: ObjectId,
-                             local_path: str,
-                             delete_local=True):
+                                   file_id: ObjectId,
+                                   local_path: str,
+                                   delete_local=True):
         """
         Pozor, toto je async funkce a celý call stack až po handler musí být awaited!
 
