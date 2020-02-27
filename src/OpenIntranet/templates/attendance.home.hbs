@@ -404,7 +404,7 @@
             $.ajax({
                 context: this,
                 url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
-                type: "post",
+                type: "get",
                 success: function (response) {
                     let parsedResponse = JSON.parse(response);
                     this.workdays = parsedResponse["workdays"];
@@ -593,7 +593,7 @@
             console.log("ajaxing month table");
             $.ajax({
                 url: "/attendance/api/u/{{_id}}/monthinfo/date/" + calendar.monthShown.format("YYYY-MM-DD"),
-                type: "post",
+                type: "get",
                 success: function (response) {
                     updateMonthInfoTable(JSON.parse(response));
                 },

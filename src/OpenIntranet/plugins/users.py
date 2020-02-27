@@ -17,7 +17,7 @@ from plugins.helpers import str_ops
 from plugins.helpers.contract_generation import generate_contract
 from plugins.helpers.doc_keys import CONTRACT_DOC_KEYS
 from plugins.helpers.emails import generate_validation_token, generate_validation_message, send_email
-from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError
+from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError, ForbiddenHTTPError
 from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
@@ -28,6 +28,9 @@ základní uživatel nemá speciální roli jelikož všichni jsou základními 
 users-accountant - Účetní
 users-sudo - Admin
 """
+
+ROLE_SUDO = "users-sudo"
+ROLE_ACCOUNTANT = "users-accountant"
 
 
 def make_handlers(plugin_name, plugin_namespace):
@@ -65,6 +68,8 @@ def plug_info():
     }
 
 
+# region Vue stuff
+
 class VueStaticFileHandler(StaticFileHandler):
 
     def validate_absolute_path(self, root: str, absolute_path: str):
@@ -97,6 +102,8 @@ class ApiCurrentUserHandler(BaseHandler):
 
         self.write(JSONEncoder().encode(data))
 
+
+# endregion
 
 class HomeHandler(BaseHandler):
 
@@ -214,9 +221,9 @@ class ApiAdminTableHandler(BaseHandler):
                 raise BadInputHTTPError("Uživatel s tímto přihlašovacím jménem již existuje.")
 
 
-# TODO doplnit práva
 # TODO validovat vstup
 class ApiEditUserHandler(BaseHandler):
+    role_module = ["users-sudo"]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -250,11 +257,13 @@ class ApiEditUserHandler(BaseHandler):
             udb.update_user_address(self.mdb.users, user_id, contact_address)
 
 
-# TODO uživatel má přístup jen ke své stránce
 class UserPageHandler(BaseHandler):
 
     def get(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized(specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="zobrazení karty jiného uživatele")
 
         user_document = udb.get_user(self.mdb.users, user_id)
 
@@ -639,7 +648,6 @@ class ApiUserInvalidateDocumentHandler(BaseHandler):
         udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
 
 
-# TODO doplnit práva
 class ApiUserValidateEmail(BaseHandler):
 
     def get(self, user_id, token):
@@ -668,6 +676,9 @@ class ApiUserValidateEmail(BaseHandler):
         self.render("users.email_validation.hbs", success=False, message="Ověření se nezdařilo.")
 
     def post(self, user_id):
+        if not self.is_authorized(["users-sudo"]):
+            raise ForbiddenHTTPError(operation="zaslání ověřovacího emailu")
+
         user_id = ObjectId(user_id)
 
         print(f"validate_email pro {user_id}")
@@ -687,10 +698,16 @@ class ApiUserValidateEmail(BaseHandler):
 class ApiUserChangePasswordHandler(BaseHandler):
 
     def get(self, user_id, token=None):
+        if not self.is_authorized(specific_users=[ObjectId(user_id)]):
+            raise ForbiddenHTTPError("změna hesla jiného uživatele")
+
         self.render("users.change_password.hbs", _id=user_id, token=token)
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized(specific_users=[user_id]):
+            raise ForbiddenHTTPError("změna hesla jiného uživatele")
 
         req = self.request.body.decode("utf-8")
         fields = json.loads(req)

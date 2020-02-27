@@ -1,4 +1,5 @@
 from tornado.web import HTTPError
+from unidecode import unidecode
 
 
 class BadInputHTTPError(HTTPError):
@@ -13,17 +14,14 @@ class MissingInfoHTTPError(HTTPError):
         super().__init__(reason=f"Chybí informace: {message}")
 
 
-class AssertionHTTPError(HTTPError):
+class ForbiddenHTTPError(HTTPError):
 
-    def __init__(self, message, file_name=None, function_name=None, line_number=None):
-        resulting_message = ""
-        if file_name:
-            resulting_message += f"file: {file_name}, "
-        if function_name:
-            resulting_message += f"function: {function_name}, "
-        if line_number:
-            resulting_message += f"line: {line_number}, "
+    def __init__(self, operation=None, details=None):
+        operation_str = f" ({operation}) " if operation else " "
+        details_str = f": {details}" if details else ""
 
-        resulting_message += message
+        reason = f"Pro tuto operaci{operation_str}nemáte dostatečná oprávnění{details_str}"
+        # TODO tohle zrušit až se bude vše načítat ajaxem
+        reason_ascii = unidecode(reason)
 
-        super().__init__(reason=f"Assertion error: {resulting_message}")
+        super().__init__(status_code=403, reason=reason_ascii)
