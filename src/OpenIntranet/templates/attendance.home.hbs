@@ -233,7 +233,7 @@
                         <th>Od</th>
                         <th>Do</th>
                         <th>Počet hodin</th>
-                        <th>Projekt</th>
+                        <th>Poznámka</th>
                         <th></th>
                     </tr>
                     {% for workspan in workspans %}
@@ -243,7 +243,7 @@
                         </td>
                         <td>{{workspan["to"]}}</td>
                         <td>{{workspan["hours"]}}</td>
-                        <td>{{workspan["assignment"]}}</td>
+                        <td>{{workspan.get("notes", "")}}</td>
                         <td>
                             <button class="btn btn-sm btn-secondary row-delete-btn" data-id="{{workspan['_id']}}"
                                     onclick="deleteWorkspan(this)">
@@ -263,9 +263,8 @@
                         <td><input class="workspan-hours" type="number" style="width: 50px"
                                    min="0" max="12" step="0.5"></td>
                         <td>
-                            <select class="workspan-assignment" style="border-width: thin; width: 200px">
-                                <option value="hmm">Pracovat</option>
-                            </select>
+                            <input class="workspan-notes" style="border-width: thin; width: 200px; border-style: solid;
+                            border-color: rgb(170, 170, 170)">
                         </td>
                         <td>
                             <button class="btn btn-secondary" onclick="saveWorkSpan(this)">Přidat</button>
@@ -400,7 +399,7 @@
         }
 
         _ajaxMonthData() {
-            // TODO je potřeba v kalendáři mít přístup i k assignmentům
+            // TODO je potřeba v kalendáři mít přístup i k poznámkám
             $.ajax({
                 context: this,
                 url: "/attendance/api/u/{{_id}}/calendar/date/" + this.monthShown.format("YYYY-MM-DD"),
@@ -656,12 +655,12 @@
 
     function saveWorkSpan(button) {
         let row = $(button).closest("tr");
-        console.log(row.find(".workspan-assignment").val());
+        console.log(row.find(".workspan-notes").val());
 
         let data = {
             "from": row.find(".workspan-from").val(),
             "hours": row.find(".workspan-hours").val(),
-            "assignment": row.find(".workspan-assignment").val(),
+            "notes": row.find(".workspan-notes").val(),
             "date": calendar.dateSelected.format("YYYY-MM-DD"),
         };
 
@@ -816,7 +815,7 @@
             <label>Hodiny</label>
         </div>
         <div class="col-7">
-            <label>Projekt</label>
+            <label>Poznámka</label>
         </div>
     </div>
 </form>
@@ -834,9 +833,7 @@
         <input type="number" min="0" max="12" step="0.5" name="hours" class="form-control form-control-sm hours">
     </div>
     <div class="form-group col-7">
-        <select class="form-control form-control-sm" name="assignment">
-            <option value="hm">Pracovat</option>
-        </select>
+        <input class="form-control form-control-sm" name="notes">
     </div>
 </div>
 `;
@@ -869,14 +866,14 @@
         formRow.querySelector("div.day-name").textContent = day.format("ddd");
 
         let hoursInput = formRow.querySelector('input[name="hours"]');
-        let assignmentSelect = formRow.querySelector('select[name="assignment"]');
+        let notesInput = formRow.querySelector('input[name="notes"]');
 
         if (typeof hours != "undefined")
             hoursInput.setAttribute("placeholder", hours);
 
         if (isVacation) {
             hoursInput.disabled = true;
-            assignmentSelect.disabled = true;
+            notesInput.disabled = true;
         }
 
         return formRow;
@@ -920,7 +917,7 @@
     }
 
     function showMonthModal() {
-        // TODO je potřeba v kalendáři mít přístup i k assignmentům
+        // TODO je potřeba v kalendáři mít přístup i k poznámkám
         if (calendar.workdays === null || calendar.vacations === null) {
             Lobibox.alert("error", {"msg": "Ještě nebyly načteny data o tomto měsíci. Zkuste to znovu."});
             return;
@@ -955,13 +952,13 @@
 
         for (let row of rows) {
             const hours = parseFloat(row.querySelector('input[name="hours"]').value);
-            const assignment = row.querySelector('select[name="assignment"]').value;
+            const notes = row.querySelector('input[name="notes"]').value;
 
             if (!isNaN(hours)) {
                 data.push({
                     date: row.getAttribute("data-date"),
                     hours: hours,
-                    assignment: assignment
+                    notes: notes
                 })
             }
         }

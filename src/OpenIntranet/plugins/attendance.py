@@ -573,7 +573,7 @@ class ApiAddWorkspanHandler(WorkspanBaseHandler):
         workspan = {}
         workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(form_data["date"], form_data["from"])
         workspan["hours"] = float(form_data["hours"])
-        workspan["assignment"] = form_data["assignment"]
+        workspan["notes"] = form_data["notes"]
 
         contract_mdoc = udb.get_user_active_contract(self.mdb.users, user_id, today)
         workspan["contract"] = contract_mdoc["_id"] if contract_mdoc else None
@@ -604,7 +604,7 @@ class ApiEditMonthWorkspansHandler(WorkspanBaseHandler):
             workspan = {}
             workspan["from"] = today
             workspan["hours"] = float(day_dict["hours"])
-            workspan["assignment"] = day_dict["assignment"]
+            workspan["notes"] = day_dict["notes"]
 
             contract_mdoc = udb.get_user_active_contract(self.mdb.users, user_id, today)
             workspan["contract"] = contract_mdoc["_id"] if contract_mdoc else None
@@ -682,7 +682,7 @@ class ApiDeleteWorkspanHandler(BaseHandler):
             raise ForbiddenHTTPError(operation="odstranění docházky jiného uživatele")
 
         workspan_id = self.request.body.decode("utf-8")
-        adb.delete_user_workspan(self.mdb, user_id, [workspan_id])
+        adb.delete_user_workspan(self.mdb, user_id, workspan_id)
 
 
 # TODO validovat vstup
