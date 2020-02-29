@@ -10,6 +10,7 @@
     "axios": "^0.19.2",
     "bootstrap-vue": "^2.1.0",
     "core-js": "^3.6.4",
+    "dayjs": "^1.8.21",
     "tabulator-tables": "^4.5.3",
     "vue": "^2.6.11",
     "vue-material-design-icons": "^4.4.0",
