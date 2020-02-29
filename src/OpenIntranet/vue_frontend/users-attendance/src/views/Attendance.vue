@@ -1,12 +1,17 @@
 <template>
-    <h1>
-        Attendance
-    </h1>
+    <div>
+        <h1>
+            Attendance
+        </h1>
+        <attendance-calendar/>
+    </div>
 </template>
 
 <script>
+    import AttendanceCalendar from "../components/attendance-calendar/AttendanceCalendar";
     export default {
-        name: "AttendanceUser"
+        name: "Attendance",
+        components: {AttendanceCalendar}
     }
 </script>
 

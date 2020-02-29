@@ -1,5 +1,5 @@
 <template>
-    $END$
+    <h1>Users Sudo</h1>
 </template>
 
 <script>

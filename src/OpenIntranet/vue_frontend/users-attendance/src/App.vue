@@ -5,7 +5,13 @@
             <div id="nav">
                 <router-link to="/">Home</router-link>
                 |
-                <router-link to="/about">About</router-link>
+                <router-link to="/attendance">Docházka</router-link>
+                |
+                <router-link to="/attendance/sudo">Docházka Sudo</router-link>
+                |
+                <router-link to="/users">Uživatelé</router-link>
+                |
+                <router-link to="/users/sudo">Uživatelé Sudo</router-link>
             </div>
             <router-view/>
         </div>

@@ -1,6 +1,8 @@
 <template>
     <div>
-        calendar
+        <b-table>
+            
+        </b-table>
     </div>
 </template>
 
