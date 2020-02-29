@@ -1,5 +1,5 @@
 from tornado.web import HTTPError
-from unidecode import unidecode
+# from unidecode import unidecode
 
 
 class BadInputHTTPError(HTTPError):
@@ -22,6 +22,6 @@ class ForbiddenHTTPError(HTTPError):
 
         reason = f"Pro tuto operaci{operation_str}nemáte dostatečná oprávnění{details_str}"
         # TODO tohle zrušit až se bude vše načítat ajaxem
-        reason_ascii = unidecode(reason)
+        # reason_ascii = unidecode(reason)
 
-        super().__init__(status_code=403, reason=reason_ascii)
+        super().__init__(status_code=403, reason=reason)
