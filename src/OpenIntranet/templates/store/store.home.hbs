@@ -1077,5 +1077,14 @@ $('#select-component-parameters-filter').on('select2:select', function (e) {
     $("#filter_tab_content").append(document.importNode(t.content, true));
 });
 
+
+// Pouzito v modalu editace polozky
+function copyIdToClipoboard(){
+  var textove_pole = document.getElementById("inputID_edit");
+  textove_pole.select();
+  textove_pole.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+}
+
 </script>
 {% end %}
