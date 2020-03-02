@@ -32,7 +32,9 @@ class SystemHandler(BaseHandler):
             print("Nastaveno cookie pro vybrany warehouse")
 
 
+# TODO validovat vstup
 class ParametersHandler(BaseHandler):
+    role_module = ["sudo"]
 
     def get(self):
         self.render("system.parameters.hbs",

@@ -1,48 +1,44 @@
 import calendar
 import json
-import os
 from datetime import datetime, timedelta
-from time import sleep
 
 import bson.json_util
-import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
-from tornado.ioloop import IOLoop
 
 from plugins import BaseHandler, get_dpp_params, BaseHandlerOwnCloud
-from plugins.helpers import database_attendance as adb, report_generation
+from plugins.helpers import database_attendance as adb, report_generation, database_reports as rdb, owncloud_utils
 from plugins.helpers import database_user as udb
 from plugins.helpers import str_ops
-from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError
+from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError, ForbiddenHTTPError
 from plugins.helpers.finance import calculate_tax
 from plugins.helpers.math_utils import floor_to_half
 from plugins.helpers.mdoc_ops import get_user_days_of_vacation_in_year
-from plugins.helpers.owncloud_utils import generate_accountant_reports_directory_path, get_file_url, \
-    generate_hours_worked_reports_directory_path
+from plugins.helpers.owncloud_utils import generate_reports_directory_path, get_file_url
+
+ROLE_SUDO = "users-sudo"
+ROLE_ACCOUNTANT = "users-accountant"
 
 
 def make_handlers(plugin_name, plugin_namespace):
     return [
-        (r'/{}/pokus'.format(plugin_name), plugin_namespace.PokusHandler),
-        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
-        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendanceHandler),
-        (r'/{}/api/u/(.*)/workspans'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
-        (r'/{}/api/u/(.*)/workspans/month'.format(plugin_name), plugin_namespace.ApiMonthWorkspansHandler),
+        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
+        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
+        (r'/{}/api/u/(.*)/workspans/add'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
+        (r'/{}/api/u/(.*)/workspans/edit_month'.format(plugin_name), plugin_namespace.ApiEditMonthWorkspansHandler),
+        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
         (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
         (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
-        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
-        (r'/{}/api/u/(.*)/vacations'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
+        (r'/{}/api/u/(.*)/vacations/add'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
         (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
         (r'/{}/api/u/(.*)/close_month'.format(plugin_name), plugin_namespace.ApiCloseMonthHandler),
         (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), plugin_namespace.ApiReopenMonthHandler),
-        (r'/{}/api/month_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
-        (r'/{}/api/year_table/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
-        (r'/{}/api/generate_accountant_report'.format(plugin_name),
+        (r'/{}/api/month_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
+        (r'/{}/api/year_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
+        (r'/{}/api/reports_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminReportsTableHandler),
+        (r'/{}/api/reports/accountant/generate'.format(plugin_name),
          plugin_namespace.ApiGenerateAccountantReportHandler),
-        (r'/{}/api/generate_hours_worked_reports'.format(plugin_name),
-         plugin_namespace.ApiGenerateHoursWorkedReportHandler),
-        (r'/{}/api/u/(.*)/generate_hours_worked_report'.format(plugin_name),
+        (r'/{}/api/reports/hours_worked/generate'.format(plugin_name),
          plugin_namespace.ApiGenerateHoursWorkedReportHandler),
         (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
         (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
@@ -58,30 +54,15 @@ def plug_info():
     }
 
 
-class PokusHandler(BaseHandler):
-
-    async def get(self):
-        await IOLoop.current().run_in_executor(None, self.func, 0, 15)
-        self.write("pokus")
-
-    def func(self, a, b, text):
-
-        for i in range(a, b):
-            if i == 5:
-                raise ValueError("Je to pět")
-            print(text)
-            sleep(1)
-
-
 class HomeHandler(BaseHandler):
 
     def get(self):
-        me = self.actual_user
+        current_user_id = self.actual_user["_id"]
 
-        if self.is_authorized(['users-editor', 'sudo-users']):
+        if self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT]):
             self.render('attendance.home-sudo.hbs')
         else:
-            self.redirect(f"/attendance/u/{me['_id']}")
+            self.redirect(f"/attendance/u/{current_user_id}")
 
 
 class AttendanceCalculator:
@@ -258,6 +239,7 @@ class AttendanceCalculator:
 
 
 class ApiAdminMonthTableHandler(BaseHandler):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     def get(self, date):
         date = str_ops.datetime_from_iso_str(date)
@@ -288,6 +270,7 @@ class ApiAdminMonthTableHandler(BaseHandler):
 
 
 class ApiAdminYearTableHandler(BaseHandler):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     def get(self, date):
         date = str_ops.datetime_from_iso_str(date)
@@ -311,10 +294,41 @@ class ApiAdminYearTableHandler(BaseHandler):
         self.write(bson.json_util.dumps(rows))
 
 
-class UserAttendanceHandler(BaseHandler):
+class ApiAdminReportsTableHandler(BaseHandler):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
+
+    def get(self, date):
+        date = str_ops.datetime_from_iso_str(date).replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        rows = []
+
+        for month in range(1, 13):
+            month_date = date.replace(month=month)
+
+            accountant_report_owncloud_id = rdb.get_report_file_id(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+            hours_worked_report_owncloud_id = rdb.get_report_file_id(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
+
+            row = {
+                "month": str_ops.date_to_iso_str(month_date),
+                "accountant_report": owncloud_utils.get_file_url(self.mdb, accountant_report_owncloud_id),
+                "accountant_report_up_to_date": rdb.is_report_up_to_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT),
+                "hours_worked_report": owncloud_utils.get_file_url(self.mdb, hours_worked_report_owncloud_id),
+                "hours_worked_report_up_to_date": rdb.is_report_up_to_date(self.mdb, month_date,
+                                                                           rdb.HOURS_WORKED_REPORT)
+            }
+
+            rows.append(row)
+
+        self.write(bson.json_util.dumps(rows))
+
+
+class UserAttendancePageHandler(BaseHandler):
 
     def get(self, user_id, date_str=None):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="zobrazení docházky jiného uživatele")
 
         date = str_ops.datetime_from_iso_str(date_str)
         if not date:
@@ -362,8 +376,12 @@ class UserAttendanceHandler(BaseHandler):
 
 class ApiCalendarHandler(BaseHandler):
 
-    def post(self, user_id, date):
+    def get(self, user_id, date):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="zobrazení kalendáře jiného uživatele")
+
         # TODO je potřeba v kalendáři mít přístup i k assignmentům
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
         num_days_in_month = calendar.monthrange(month.year, month.month)[1]
@@ -402,8 +420,11 @@ class ApiCalendarHandler(BaseHandler):
 
 class ApiMonthInfoHandler(BaseHandler):
 
-    def post(self, user_id, date):
+    def get(self, user_id, date):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="zobrazení informací o měsíci jiného uživatele")
 
         month = str_ops.datetime_from_iso_str(date).replace(day=1)
 
@@ -429,67 +450,149 @@ class ApiMonthInfoHandler(BaseHandler):
 
 class WorkspanBaseHandler(BaseHandler):
 
-    def check_vacations_conflicts(self, user_id, workspan):
-        """ returns true if there is no conflict """
+    def prepare(self):
+        super().prepare()
+        self.reset_cache()
+
+    def set_target_user_id(self, user_id):
+        print("-> nastavuji user_id", user_id)
+        self.user_id = user_id
+
+    def reset_cache(self):
+        print("-> resetuji cache")
+        self.added_workspans = []
+        self.deleted_workspans = []
+
+    def add_workspan(self, workspan):
+        print("-> přidávám workspan", workspan)
+        self.ensure_no_vacations_conflicts(workspan)
+        self.ensure_no_workspans_conflicts(workspan)
+
+        self.added_workspans.append(workspan)
+
+    def delete_workspan(self, workspan):
+        print("-> mažu workspan", workspan)
+        self.deleted_workspans.append(workspan)
+
+    def commit_changes(self):
+        """
+        Pro fungování předpokládá, že všechny workspany přidány v jedné instanci této třídy jsou v jednou měsíci.
+        """
+        print("-> komituju změny")
+
+        if self.added_workspans:
+            self.attendance_calculator = AttendanceCalculator(self.mdb, self.user_id, self.added_workspans[0]["from"])
+            sum_hours_added = sum(ws["hours"] for ws in self.added_workspans)
+            sum_hours_deleted = sum(ws["hours"] for ws in self.deleted_workspans)
+            self.total_hours_added = sum_hours_added - sum_hours_deleted
+
+            self.ensure_month_max_hours_not_reached()
+            self.ensure_year_max_hours_not_reached()
+
+        for added_workspan in self.added_workspans:
+            adb.add_user_workspan(self.mdb, self.user_id, added_workspan)
+
+        for deleted_workspan in self.deleted_workspans:
+            adb.delete_user_workspan(self.mdb, self.user_id, deleted_workspan["_id"])
+
+        self.reset_cache()
+
+    def ensure_no_vacations_conflicts(self, workspan):
         # z databáze dostaneme dovolené končící dnes nebo později seřazené podle data konce.
         # první dovolená je nejblíž, stačí tedy zkontrolovat, jestli začíná dnes nebo dříve.
+        print("-> vacation conflicts")
+
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
-        vacations = adb.get_user_vacations(self.mdb, user_id, today)
+        vacations = adb.get_user_vacations(self.mdb, self.user_id, today)
         if vacations and vacations[0]["from"] <= workspan["from"]:
-            return False
+            raise BadInputHTTPError("Zadaná práce zasahuje do dovolené.")
 
-        return True
+    def ensure_no_workspans_conflicts(self, workspan):
+        """
+        K fungování předpokládá, že v jedné instanci této třídy je přidán jen jeden workspan za den.
+        Předpoklad je splněn při přidávání po jednom (v ApiAddWorkspanHandler) a přidávání celého měsíce
+        (v ApiEditMonthWorkspansHandler).
+        """
+        print("-> workspans conflicts")
 
-    def check_workspans_conflicts(self, user_id, workspan):
         today = workspan["from"].replace(hour=0, minute=0, second=0, microsecond=0)
         tomorow = today + relativedelta(days=1)
 
-        todays_workspans = adb.get_user_workspans(self.mdb, user_id, today, tomorow)
+        todays_workspans = adb.get_user_workspans(self.mdb, self.user_id, today, tomorow)
         workspan_end = workspan["from"] + relativedelta(minutes=int(workspan["hours"] * 60))
 
+        hours_in_day = workspan["hours"]
+
         for other_ws in todays_workspans:
+            if other_ws["_id"] in (ws["_id"] for ws in self.deleted_workspans):
+                continue
+
             latest_start = max(workspan["from"], other_ws["from"])
             earliest_end = min(workspan_end, other_ws["from"] + relativedelta(minutes=int(other_ws["hours"]) * 60))
 
             if latest_start < earliest_end:
-                return False
+                raise BadInputHTTPError("V zadané době je již jiná práce.")
 
-        return True
+            hours_in_day += other_ws["hours"]
+
+        if hours_in_day > 12:
+            raise BadInputHTTPError("V jednom dni lze pracovat nejvýše 12 hodin.")
+
+    def ensure_month_max_hours_not_reached(self):
+        print("-> month max hours")
+
+        month_hours = self.attendance_calculator.month_hours_worked + self.total_hours_added
+        if month_hours > self.attendance_calculator.month_max_hours:
+            raise BadInputHTTPError("Zadané odpracované hodiny převyšují měsíční limit povolených hodin.")
+
+    def ensure_year_max_hours_not_reached(self):
+        print("-> year max hours")
+        year_hours = self.attendance_calculator.year_hours_worked + self.total_hours_added
+
+        if year_hours > self.attendance_calculator.year_max_hours:
+            raise BadInputHTTPError("Zadané odpracované hodiny převyšují roční limit povolených hodin.")
 
 
+# TODO validovat vstup
 class ApiAddWorkspanHandler(WorkspanBaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
 
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="přidání docházky jiného uživatele")
+
         req = self.request.body.decode("utf-8")
         form_data = bson.json_util.loads(req)
+
+        if not form_data["hours"]:
+            raise BadInputHTTPError("Zadejte počet hodin.")
 
         today = str_ops.datetime_from_iso_str(form_data["date"])
 
         workspan = {}
         workspan["from"] = str_ops.datetime_from_iso_string_and_time_string(form_data["date"], form_data["from"])
         workspan["hours"] = float(form_data["hours"])
-        workspan["assignment"] = form_data["assignment"]
+        workspan["notes"] = form_data["notes"]
 
         contract_mdoc = udb.get_user_active_contract(self.mdb.users, user_id, today)
         workspan["contract"] = contract_mdoc["_id"] if contract_mdoc else None
 
-        if not self.check_vacations_conflicts(user_id, workspan):
-            raise BadInputHTTPError("Na dovolené se nepracuje.")
-
-        if not self.check_workspans_conflicts(user_id, workspan):
-            raise BadInputHTTPError("Časový konflikt s jinou prací.")
-
-        print("ukladam workspan", workspan)
-
-        adb.add_user_workspan(self.mdb, user_id, workspan)
+        self.set_target_user_id(user_id)
+        self.add_workspan(workspan)
+        self.commit_changes()
 
 
-class ApiMonthWorkspansHandler(BaseHandler):
+# TODO validovat vstup
+class ApiEditMonthWorkspansHandler(WorkspanBaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="editace docházky jiného uživatele")
+
+        self.set_target_user_id(user_id)
 
         req = self.request.body.decode("utf-8")
         form_data = bson.json_util.loads(req)
@@ -501,7 +604,7 @@ class ApiMonthWorkspansHandler(BaseHandler):
             workspan = {}
             workspan["from"] = today
             workspan["hours"] = float(day_dict["hours"])
-            workspan["assignment"] = day_dict["assignment"]
+            workspan["notes"] = day_dict["notes"]
 
             contract_mdoc = udb.get_user_active_contract(self.mdb.users, user_id, today)
             workspan["contract"] = contract_mdoc["_id"] if contract_mdoc else None
@@ -509,16 +612,23 @@ class ApiMonthWorkspansHandler(BaseHandler):
             todays_workspans = adb.get_user_workspans(self.mdb, user_id, today, tomorow)
 
             for today_workspan in todays_workspans:
-                adb.delete_user_workspan(self.mdb, user_id, today_workspan["_id"])
+                self.delete_workspan(today_workspan)
 
             if workspan["hours"] > 0:
-                adb.add_user_workspan(self.mdb, user_id, workspan)
+                self.add_workspan(workspan)
+
+        self.commit_changes()
 
 
+# TODO validovat vstup
 class ApiAddVacationHandler(BaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="přidání dovolené jinému uživateli")
+
         # TODO hlídat aby nové dovolené byly v budoucnosti, nelze přidat dovolenou zpětně
         req = self.request.body.decode("utf-8")
         data = bson.json_util.loads(req)
@@ -542,10 +652,14 @@ class ApiAddVacationHandler(BaseHandler):
         adb.add_user_vacation(self.mdb, user_id, vacation)
 
 
+# TODO validovat vstup
 class ApiInterruptVacationHandler(BaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="přerušení dovolené jiného uživatele")
 
         req = self.request.body.decode("utf-8")
         data = json.loads(req)
@@ -564,14 +678,21 @@ class ApiDeleteWorkspanHandler(BaseHandler):
     def post(self, user_id):
         user_id = ObjectId(user_id)
 
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="odstranění docházky jiného uživatele")
+
         workspan_id = self.request.body.decode("utf-8")
         adb.delete_user_workspan(self.mdb, user_id, workspan_id)
 
 
+# TODO validovat vstup
 class ApiCloseMonthHandler(BaseHandler):
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
+
+        if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
+            raise ForbiddenHTTPError(operation="uzavření měsíce jiného uživatele")
 
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
@@ -585,7 +706,9 @@ class ApiCloseMonthHandler(BaseHandler):
         adb.close_month(self.mdb, user_id, month_date)
 
 
+# TODO validovat vstup
 class ApiReopenMonthHandler(BaseHandler):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     def post(self, user_id):
         user_id = ObjectId(user_id)
@@ -594,17 +717,23 @@ class ApiReopenMonthHandler(BaseHandler):
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
         adb.reopen_month(self.mdb, user_id, month_date)
+        rdb.set_report_out_of_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+        rdb.set_report_out_of_date(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
 
 
+# TODO validovat vstup
 class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     async def post(self):
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
-        owncloud_directory = generate_accountant_reports_directory_path(month_date)
+        existing_report_file_id = rdb.get_report_file_id(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+        existing_report_mdoc = owncloud_utils.get_file_mdoc(self.mdb, existing_report_file_id)
+        existing_report_version = owncloud_utils.get_file_last_version_number(existing_report_mdoc)
 
-        report = report_generation.AccountantReport(self.company_info["name"], month_date)
+        report = report_generation.AccountantReport(self.company_info["name"], month_date, existing_report_version + 1)
 
         users = udb.get_users(self.mdb.users)
 
@@ -629,30 +758,56 @@ class ApiGenerateAccountantReportHandler(BaseHandlerOwnCloud):
         report.add_sums()
         file_path = report.save()
 
-        company_name_no_spaces = self.company_info["name"].replace(" ", "_")
-        owncloud_name = f"accountant_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
-        await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
+        if existing_report_file_id:
+            await self.update_owncloud_file(existing_report_file_id, file_path)
+            rdb.set_report_up_to_date(self.mdb, month_date, rdb.ACCOUNTANT_REPORT)
+        else:
+            owncloud_directory = generate_reports_directory_path(month_date)
+
+            company_name_no_spaces = self.company_info["name"].replace(" ", "_")
+            owncloud_name = f"accountant_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
+            owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
+
+            rdb.save_report_file_id(self.mdb, month_date, owncloud_id, rdb.ACCOUNTANT_REPORT)
 
 
+# TODO validovat vstup
 class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
+    role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
-    async def post(self, user_id=None):
+    async def post(self):
         month_date_iso = self.request.body.decode("utf-8")
         month_date = str_ops.datetime_from_iso_str(month_date_iso)
 
-        if user_id:
-            user_id = ObjectId(user_id)
-            user_mdoc = udb.get_user(self.mdb.users, user_id)
-            await self.generate_report_for_user(user_id, user_mdoc, month_date)
+        users = udb.get_users(self.mdb.users)
 
+        existing_report_file_id = rdb.get_report_file_id(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
+        existing_report_mdoc = owncloud_utils.get_file_mdoc(self.mdb, existing_report_file_id)
+        existing_report_version = owncloud_utils.get_file_last_version_number(existing_report_mdoc)
+
+        report = report_generation.HoursWorkedReport(self.company_info["name"], month_date, existing_report_version + 1)
+
+        for user_mdoc in users:
+            self.make_user_page(report, user_mdoc, month_date)
+
+        file_path = report.save()
+
+        if existing_report_file_id:
+            await self.update_owncloud_file(existing_report_file_id, file_path)
+            rdb.set_report_up_to_date(self.mdb, month_date, rdb.HOURS_WORKED_REPORT)
         else:
-            users = udb.get_users(self.mdb.users)
+            owncloud_directory = generate_reports_directory_path(month_date)
 
-            for user_mdoc in users:
-                user_id = user_mdoc["_id"]
-                await self.generate_report_for_user(user_id, user_mdoc, month_date)
+            company_name_no_spaces = self.company_info["name"].replace(" ", "_")
+            owncloud_name = f"hours_worked_report_{company_name_no_spaces}_{month_date.month}-{month_date.year}"
+            owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
 
-    async def generate_report_for_user(self, user_id, user_mdoc, month_date):
+            rdb.save_report_file_id(self.mdb, month_date, owncloud_id, rdb.HOURS_WORKED_REPORT)
+
+    def make_user_page(self, report, user_mdoc, month_date):
+
+        user_id = user_mdoc["_id"]
+
         workspans = adb.get_user_workspans(self.mdb, user_id, month_date, month_date + relativedelta(months=1))
 
         if not workspans:
@@ -662,9 +817,7 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
             raise MissingInfoHTTPError(f"{str_ops.name_to_str(user_mdoc.get('name'))} ({user_mdoc['user']}) "
                                        f"nemá uzavřený měsíc.")
 
-        report = report_generation.HoursWorkedReport(self.company_info["name"],
-                                                     str_ops.name_to_str(user_mdoc["name"]),
-                                                     month_date)
+        report.init_page(str_ops.name_to_str(user_mdoc["name"]))
 
         hours_in_day = {}
         for workspan in workspans:
@@ -678,18 +831,4 @@ class ApiGenerateHoursWorkedReportHandler(BaseHandlerOwnCloud):
         for date, hours in hours_in_day.items():
             report.add_row(date, hours)
 
-        report.add_sums_and_end()
-        file_path = report.save()
-
-        owncloud_directory = generate_hours_worked_reports_directory_path(user_id, user_mdoc["user"], month_date)
-
-        existing_report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date,
-                                                                    up_to_date_only=False)
-
-        if existing_report_file_id:
-            await self.update_owncloud_file(existing_report_file_id, file_path)
-            adb.change_user_hours_report_up_to_date_status(self.mdb, user_id, month_date, up_to_date=True)
-        else:
-            owncloud_name = f"hours_worked_report_{user_mdoc['user']}_{month_date.month}-{month_date.year}"
-            owncloud_id = await self.upload_to_owncloud(owncloud_directory, owncloud_name, file_path)
-            adb.add_user_hours_report(self.mdb, user_id, month_date, owncloud_id)
+        report.add_sums_and_end_page()
