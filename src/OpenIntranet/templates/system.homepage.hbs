@@ -139,13 +139,13 @@
 //<!-- Prehled skladovych pozit -->
 
 
-$('#positions-tree').jstree({
+var positions_tree = $('#positions-tree').jstree({
 'core' : {
   'data' : {
     'type': "POST",
     'url' : "/store/api/get_positions/list/?jstree=True"
   },
-  "check_callback" : true
+  "check_callback" :  true
 },
 "plugins" : [
   "checkbox",
@@ -175,30 +175,18 @@ $('#positions-tree').jstree({
   }
 }
 });
-
-$(document).bind("dnd_stop.vakata", function(e, data) {
-  console.log(this);
-    console.log("Move dnd", e, data);
-    console.log(data.event.target.parentNode);
-    var drag_id = data.element.parentNode.id;
-    var target_id = data.event.target.parentNode.getAttribute('id');
-    console.log("Presouvam", drag_id, target_id);
+positions_tree.bind("move_node.jstree", function(e, data) {
+   console.log("Presouvam pozici " + data.node.id + " to " + data.parent);
 
     $.ajax({
       type: "POST",
       url: "/store/api/set_positions/move/",
-      data: {'id': drag_id, 'parent': target_id},
+      data: {'id': data.node.id, 'parent': data.parent},
       //success: success,
       //dataType: dataType
     });
-    $.ajax({
-      type: "POST",
-      url: "/store/api/set_categories/move/",
-      data: {'id': drag_id, 'parent': target_id},
-      //success: success,
-      //dataType: dataType
-    });
-})
+
+});
 
 function load_position_modal(position){
   console.log("POZICE", position);
@@ -288,7 +276,7 @@ function push_actual_store() {
 //<!-- Prehled skladovych pozit -->
 
 
-$('#categories-tree').jstree({
+var categories_tree = $('#categories-tree').jstree({
 'core' : {
   'data' : {
     'type': "POST",
@@ -324,6 +312,20 @@ $('#categories-tree').jstree({
   }
 }
 });
+
+
+categories_tree.bind("move_node.jstree", function(e, data) {
+   console.log("Presouvam kategorii " + data.node.id + " to " + data.parent);
+
+    $.ajax({
+      type: "POST",
+      url: "/store/api/set_categories/move/",
+      data: {'id': data.node.id, 'parent': data.parent},
+      //success: success,
+      //dataType: dataType
+    });
+
+})
 
 // Presunuti polozky z jedne do dalsi
 
