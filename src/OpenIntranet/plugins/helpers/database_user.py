@@ -8,9 +8,7 @@ from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_
     get_user_embedded_mdoc_by_id
 
 
-# TODO brát jako parametr databázi, ne kolekci
-
-
+# done
 def get_users(coll: pymongo.collection.Collection, **by):
     by_copy = dict(by)
     by_copy["type"] = "user"
@@ -18,6 +16,7 @@ def get_users(coll: pymongo.collection.Collection, **by):
     return users
 
 
+# done
 def get_user(coll: pymongo.collection.Collection, user_id: ObjectId):
     assert isinstance(user_id, ObjectId)
 
@@ -27,6 +26,7 @@ def get_user(coll: pymongo.collection.Collection, user_id: ObjectId):
     return user_mdoc
 
 
+# done
 def get_user_contracts(coll: pymongo.collection.Collection, user_id: ObjectId, sort_by="valid_from"):
     assert isinstance(user_id, ObjectId)
 
@@ -40,6 +40,7 @@ def get_user_contracts(coll: pymongo.collection.Collection, user_id: ObjectId, s
     return next(cursor, {}).get("contracts", [])
 
 
+# done
 def update_user(coll: pymongo.collection.Collection, user_id: ObjectId, data: dict, embedded_1to1_docs=("name",)):
     assert isinstance(user_id, ObjectId)
 
@@ -100,6 +101,7 @@ def delete_user_address(coll: pymongo.collection.Collection, user_id: ObjectId, 
                     }})
 
 
+# done (iteratively call User.new())
 def add_users(coll: pymongo.collection.Collection, ids: list):
     users = [{"_id": _id,
               "user": _id,
@@ -107,18 +109,20 @@ def add_users(coll: pymongo.collection.Collection, ids: list):
               "created": datetime.now().replace(microsecond=0),
               "type": "user",
               "email_validated": "no",
-              } for _id in ids if assert_isinstance(_id, ObjectId)]
+              } for _id in ids if isinstance(_id, ObjectId)]
     coll.insert_many(users)
 
     return ids
 
 
+# done
 def delete_user(coll: pymongo.collection.Collection, user_id: ObjectId):
     assert isinstance(user_id, ObjectId)
 
     coll.delete_one({"_id": user_id})
 
 
+# maybe done (by calling Contract.new(db, parent_id=<id of user>)), might be better to do User().add_contract() ?
 def add_user_contract(coll: pymongo.collection.Collection, user_id: ObjectId, contract: dict):
     assert isinstance(user_id, ObjectId)
 
@@ -179,6 +183,7 @@ def add_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, do
     return _id
 
 
+# done
 def delete_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: str):
     assert isinstance(user_id, ObjectId)
 
