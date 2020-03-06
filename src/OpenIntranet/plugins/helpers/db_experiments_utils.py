@@ -22,6 +22,21 @@ def cachedproperty(func):
     return wrapper
 
 
+def chainable(method):
+    """
+    Makes decorated method return self, therefore making it chainable.
+    Warning: All returns of original method are thrown away!
+    """
+
+    @functools.wraps(method)
+    def wrapper(self):
+        method(self)
+
+        return self
+
+    return wrapper
+
+
 def get_embedded_mdoc_by_id(coll, parent_id, embedded_field, embedded_id):
     mdoc = coll.find_one({"_id": parent_id, f"{embedded_field}._id": embedded_id},
                          {f"{embedded_field}.$": 1})

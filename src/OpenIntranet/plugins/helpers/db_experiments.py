@@ -1,9 +1,23 @@
 from collections import namedtuple
 from time import sleep
 
+from datetime import datetime
 from pymongo.operations import InsertOne, UpdateOne, DeleteOne
 
-from plugins.helpers.db_experiments_utils import cachedproperty, get_embedded_mdoc_by_id, filter_nones_from_dict
+from plugins.helpers.db_experiments_utils import cachedproperty, get_embedded_mdoc_by_id, filter_nones_from_dict, \
+    chainable
+
+"""
+Design practices:
+
+Wrappery jsou abstraktní, na ty nemá "uživatel", tj. běžný kód v systému, co sahat. Jsou určeny pro dědění.
+Každá třída dědící TopLevelMdocWrapper a EmbeddedMdocWithIdWrapper by měla definovat classmethod new nebo new_*
+s inicializačními parametry, v těchto metodách lze volat cls._new_empty() pro obecnou inicializaci.
+Třídy reprezentující mutable objekty v databázi by měly pro přímé nastavování fieldů implementovat self.set() 
+s parametry odpovídajícími jménům fieldů, v těchto metodách lze volat self._process_updates(updates) pro uložení změn.
+
+Všechny public metody, jejichž účelem není vracet data, by měly být @chainable.
+"""
 
 
 class MdocWrapper:
@@ -38,15 +52,18 @@ class MdocWrapper:
     def get_operations(self):
         return self.__operations
 
+    @chainable
     def clear_operations(self):
         self.__operations = []
 
+    @chainable
     def clear_cache(self):
         try:
             del self.__cachedproperty_cache
         except AttributeError:
             pass
 
+    @chainable
     def write_operations(self):
         if not self.__operations:
             return
@@ -59,7 +76,7 @@ class MdocWrapper:
 class TopLevelMdocWrapper(MdocWrapper):
 
     @classmethod
-    def new(cls, database, _id=None):
+    def _new_empty(cls, database, _id=None):
         if not _id:
             _id = ObjectId()
 
@@ -67,6 +84,8 @@ class TopLevelMdocWrapper(MdocWrapper):
 
         obj = cls(database, mdoc)
         obj._add_operation(InsertOne(mdoc))
+
+        return obj
 
     @classmethod
     def from_id(cls, database, _id):
@@ -97,13 +116,12 @@ class TopLevelMdocWrapper(MdocWrapper):
     def id(self):
         return self._mdoc["_id"]
 
-    def set(self, **kwargs):
-        pass
-
+    @chainable
     def reload_from_database(self):
         self._mdoc = self._collection.find_one({"_id": self.id})
         self.clear_cache()
 
+    @chainable
     def delete(self):
         self._add_operation(DeleteOne({"_id": self.id}))
 
@@ -123,7 +141,18 @@ class EmbeddedMdocWrapper(MdocWrapper):
 class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
 
     @classmethod
-    def new(cls, database, parent_id, embedded_id=None):
+    def _new_empty(cls, database, parent_id, embedded_id=None):
+        """
+        This class method is lazy, obj.write_operations() must be called afterwards!
+
+        Adds new embedded document represented by the class to an array of specified parent mdoc in database.
+        Every mdoc of this type must have an id, if none is provided, a new id is generated (text version of ObjectID).
+
+        :param database: MongoDB database object
+        :param parent_id: _id of parent mdoc
+        :param embedded_id: _id of the new embedded document
+        :return: object representing new embedded document
+        """
         if not embedded_id:
             embedded_id = str(ObjectId())
 
@@ -137,6 +166,8 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
 
         obj._add_operation(update)
 
+        return obj
+
     @classmethod
     def from_id(cls, database, parent_id, embedded_id):
         obj = cls(database=database, parent_id=parent_id, mdoc={"_id": embedded_id})
@@ -144,6 +175,7 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
 
         return obj
 
+    @chainable
     def _process_updates(self, updates):
         updates = filter_nones_from_dict(updates)
 
@@ -156,10 +188,12 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
     def id(self):
         return self._mdoc["_id"]
 
+    @chainable
     def reload_from_database(self):
         self._mdoc = get_embedded_mdoc_by_id(self._collection, self._parent_id, self.FIELD, self.id)
         self.clear_cache()
 
+    @chainable
     def delete(self):
         update = {"$pull": {
             self.FIELD: {
@@ -171,6 +205,7 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
 
 class SingleEmbeddedMdocWrapper(EmbeddedMdocWrapper):
 
+    @chainable
     def _process_updates(self, updates):
         updates = filter_nones_from_dict(updates)
 
@@ -179,6 +214,7 @@ class SingleEmbeddedMdocWrapper(EmbeddedMdocWrapper):
         self._add_operation(UpdateOne({"_id": self._parent_id},
                                       {"$set": set_dict}))
 
+    @chainable
     def reload_from_database(self):
         res = self._collection.find_one({"_id": self._parent_id}, {self.FIELD: 1})
 
@@ -255,6 +291,21 @@ class Contract(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "contracts"
 
+    @classmethod
+    def new_preview(cls, database, user_id, type_, file_id):
+        if not cls.is_valid_type(type_):
+            raise ValueError("Zadaný typ smlouvy není validní.")
+
+        contract = cls._new_empty(database, user_id)
+        contract._process_updates({
+            "type": f"{type_}_preview",
+            "file": file_id,
+        })
+
+    @staticmethod
+    def is_valid_type(contract_type):
+        return contract_type in ("dpp", "dpc", "ps")
+
     @property
     def type(self):
         return self._get_from_mdoc("type")
@@ -284,13 +335,36 @@ class Contract(EmbeddedMdocWithIdWrapper):
         return self._get_from_mdoc("file")
 
     @property
+    def scan_file(self):
+        return self._get_from_mdoc("scan_file")
+
+    @property
     def invalidation_date(self):
         return self._get_from_mdoc("invalidation_date")
+
+    @chainable
+    def unmark_as_preview(self):
+        self._process_updates({"type": self.type.replace("_preview", "")})
+
+    @chainable
+    def invalidate(self, invalidation_date: datetime):
+        self._process_updates({"invalidation_date": invalidation_date})
+
+    @chainable
+    def add_scan_file(self, scan_file_id):
+        self._process_updates({"scan_file": scan_file_id})
 
 
 class Document(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "documents"
+
+    @classmethod
+    def new(cls, database, user_id, type_, file):
+        return cls._new_empty(database, user_id)._process_updates({
+            "type": type_,
+            "file": file,
+        })
 
     @property
     def type(self):
@@ -317,6 +391,13 @@ class Vacation(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "vacations"
 
+    @classmethod
+    def new(cls, database, user_id, from_, to):
+        return cls._new_empty(database, user_id)._process_updates({
+            "from": from_,
+            "to": to
+        })
+
     @property
     def from_(self):
         return self._get_from_mdoc("from")
@@ -338,6 +419,17 @@ class Workspan(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "workspans"
 
+    @classmethod
+    def new(cls, database, user_id, from_, hours, contract_id, notes=None):
+        obj = cls._new_empty(database, user_id)
+        obj._process_updates({
+            "from": from_,
+            "hours": hours,
+            "contract": contract_id,
+            "notes": notes,
+        })
+        return obj
+
     @property
     def from_(self):
         return self._get_from_mdoc("from")
@@ -347,16 +439,25 @@ class Workspan(EmbeddedMdocWithIdWrapper):
         return self._get_from_mdoc("hours")
 
     @property
-    def notes(self):
-        return self._get_from_mdoc("notes")
+    def contract(self):
+        return Contract.from_id(self._database, self._parent_id, self._get_from_mdoc("contract"))
 
     @property
-    def contract(self):
-        return self._get_from_mdoc("contract")
+    def notes(self):
+        return self._get_from_mdoc("notes")
 
 
 class User(TopLevelMdocWrapper):
     COLLECTION = "users"
+
+    @classmethod
+    def new(cls, database, user_name, user_id=None):
+        return User._new_empty(database, user_id)._process_updates({
+            "user": user_name,
+            "type": "user",
+            "email_validated": "no",
+            "role": []
+        })
 
     @property
     def user_name(self):
@@ -453,6 +554,61 @@ class User(TopLevelMdocWrapper):
             "phone_number": phone_number,
             "skills": skills,
         })
+
+    def get_active_contract(self, date):
+        return
+
+    def get_active_contracts(self, from_date, to_date):
+        return
+
+    def get_active_document(self, document_type, date):
+        return
+
+    def get_active_documents(self, document_type, from_date, to_date):
+        return
+
+    def update_email_validation_status(self, yes=False, no=False, token=None):
+        return
+
+    def set_password_change_token(self, token):
+        return
+
+    def unset_password_change_token(self):
+        return
+
+    def get_workspans(self, from_date, to_date):
+        return
+
+    def get_vacations(self, earliest_end, latest_end):
+        return
+
+    def is_month_closed(self, month_date):
+        return
+
+    def close_month(self, month_date):
+        return
+
+    def reopen_month(self, month_date):
+        return
+
+
+class OwnCloudFile(TopLevelMdocWrapper):
+    COLLECTION = "owncloud"
+
+    @classmethod
+    def new(cls, database, url):
+        return cls._new_empty(database)
+
+    @property
+    def directory(self):
+        return self._get_from_mdoc("directory")
+
+    @property
+    def filename(self):
+        return self._get_from_mdoc("filename")
+
+    def get_url(self, version=-1):
+        return
 
 
 if __name__ == '__main__':
