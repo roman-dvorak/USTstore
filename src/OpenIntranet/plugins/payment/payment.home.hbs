@@ -1,0 +1,68 @@
+{% extends "../templates/base.hbs" %}
+{% block title %} | Platby {%end%}
+{% block body %}
+
+<script src="https://unpkg.com/moment@2.24.0/moment.js"></script>
+<script src="https://unpkg.com/moment@2.24.0/locale/cs.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+<style>
+
+.hide{
+    display: none;
+}
+.payment_element:hover .hide{
+    display: block;
+}
+
+</style>
+
+<div class="container">
+    <div>
+        <button>Vše</button>
+        <button>Uploadovat</button>
+    </div>
+
+    <div id="payment_list">
+        <div v-for="item in payments" class="card payment_element">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        {{! item.type}}
+                    </div>
+                    <div class="col">
+                        Nahráno: {{! item.done}}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        {{! item.description}}
+                    </div>
+                    <div class="col">
+                        {{! item.totalAmount}} Czk
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer hide">
+                {{!item}}
+            </div>
+        </div>
+
+    </div>
+</div>
+    {{payments}}
+
+
+<script type="text/javascript">
+
+new Vue({
+  el: '#payment_list',
+  data: {
+    'payments': {%raw payments %}
+    }
+})
+
+</script>
+
+{% end %}{# block body#}
