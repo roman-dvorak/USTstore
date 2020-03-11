@@ -1,6 +1,6 @@
 <template>
     <b-tbody :class="{inactive: !active}">
-        <b-tr @click="$emit('change-open', index)">
+        <b-tr @click="$emit('change-open', contract._id)">
             <b-th>
                 <div class="flex-space-between">
                     <div id="title">
@@ -110,6 +110,10 @@
 
     .details-wrapper {
         padding: 0 1rem;
+    }
+
+    .details-wrapper .table {
+        margin-bottom: 0;
     }
 
     .no-top-border {
