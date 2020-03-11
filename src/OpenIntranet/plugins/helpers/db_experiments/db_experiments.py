@@ -1,11 +1,11 @@
-from collections import namedtuple
-from time import sleep
-
 from datetime import datetime
+
+from bson import ObjectId
 from pymongo.operations import InsertOne, UpdateOne, DeleteOne
 
-from plugins.helpers.db_experiments_utils import cachedproperty, get_embedded_mdoc_by_id, filter_nones_from_dict, \
-    chainable
+from plugins import DbWrapper
+from plugins.helpers.db_experiments.db_experiments_utils import cachedproperty, get_embedded_mdoc_by_id, \
+    filter_nones_from_dict
 
 """
 Design practices:
@@ -16,14 +16,14 @@ s inicializačními parametry, v těchto metodách lze volat cls._new_empty() pr
 Třídy reprezentující mutable objekty v databázi by měly pro přímé nastavování fieldů implementovat self.set() 
 s parametry odpovídajícími jménům fieldů, v těchto metodách lze volat self._process_updates(updates) pro uložení změn.
 
-Všechny public metody, jejichž účelem není vracet data, by měly být @chainable.
+Všechny public metody, jejichž účelem není vracet data, by měly vracet self.
 """
 
 
 class MdocWrapper:
     COLLECTION = ""
 
-    def __init__(self, database, mdoc=None):
+    def __init__(self, database: DbWrapper, mdoc=None):
         self._database = database
         self._mdoc = mdoc
         self._is_mdoc_up_to_date = True
@@ -41,36 +41,18 @@ class MdocWrapper:
         return self._mdoc.get(field, None)
 
     def _add_operation(self, operation):
-        self.__operations.append({
-            "collection": self.COLLECTION,
-            "operation": operation,
-        })
+        self._database.add_operation(self.COLLECTION, operation)
 
     def reload_from_database(self):
         raise NotImplementedError()
 
-    def get_operations(self):
-        return self.__operations
-
-    @chainable
-    def clear_operations(self):
-        self.__operations = []
-
-    @chainable
     def clear_cache(self):
         try:
             del self.__cachedproperty_cache
         except AttributeError:
             pass
 
-    @chainable
-    def write_operations(self):
-        if not self.__operations:
-            return
-
-        self._collection.bulk_write([oper_dict["operation"] for oper_dict in self.__operations])
-        self.clear_operations()
-        self._is_mdoc_up_to_date = False
+        return self
 
 
 class TopLevelMdocWrapper(MdocWrapper):
@@ -110,20 +92,25 @@ class TopLevelMdocWrapper(MdocWrapper):
     def _process_updates(self, updates: dict):
         updates = filter_nones_from_dict(updates)
 
-        self._add_operation(UpdateOne({"_id": self.id}, {"$set": updates}))
+        if updates:
+            self._add_operation(UpdateOne({"_id": self.id}, {"$set": updates}))
+
+        return self
 
     @property
     def id(self):
         return self._mdoc["_id"]
 
-    @chainable
     def reload_from_database(self):
         self._mdoc = self._collection.find_one({"_id": self.id})
         self.clear_cache()
 
-    @chainable
+        return self
+
     def delete(self):
         self._add_operation(DeleteOne({"_id": self.id}))
+
+        return self
 
 
 class EmbeddedMdocWrapper(MdocWrapper):
@@ -136,6 +123,9 @@ class EmbeddedMdocWrapper(MdocWrapper):
 
         if not self.FIELD:
             raise ValueError("The FIELD constant must be defined in this class.")
+
+    def reload_from_database(self):
+        raise NotImplementedError()
 
 
 class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
@@ -175,25 +165,27 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
 
         return obj
 
-    @chainable
     def _process_updates(self, updates):
         updates = filter_nones_from_dict(updates)
 
-        set_dict = {f"{self.FIELD}.$.{key}": value for key, value in updates.items()}
+        if updates:
+            set_dict = {f"{self.FIELD}.$.{key}": value for key, value in updates.items()}
 
-        self._add_operation(UpdateOne({"_id": self._parent_id, f"{self.FIELD}._id": self.id},
-                                      {"$set": set_dict}))
+            self._add_operation(UpdateOne({"_id": self._parent_id, f"{self.FIELD}._id": self.id},
+                                          {"$set": set_dict}))
+
+        return self
 
     @property
     def id(self):
         return self._mdoc["_id"]
 
-    @chainable
     def reload_from_database(self):
         self._mdoc = get_embedded_mdoc_by_id(self._collection, self._parent_id, self.FIELD, self.id)
         self.clear_cache()
 
-    @chainable
+        return self
+
     def delete(self):
         update = {"$pull": {
             self.FIELD: {
@@ -202,10 +194,11 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
         }}
         self._add_operation(UpdateOne({"_id": self._parent_id}, update))
 
+        return self
+
 
 class SingleEmbeddedMdocWrapper(EmbeddedMdocWrapper):
 
-    @chainable
     def _process_updates(self, updates):
         updates = filter_nones_from_dict(updates)
 
@@ -214,11 +207,14 @@ class SingleEmbeddedMdocWrapper(EmbeddedMdocWrapper):
         self._add_operation(UpdateOne({"_id": self._parent_id},
                                       {"$set": set_dict}))
 
-    @chainable
+        return self
+
     def reload_from_database(self):
         res = self._collection.find_one({"_id": self._parent_id}, {self.FIELD: 1})
 
         self._mdoc = res.get(self.FIELD, {}) if res else {}
+
+        return self
 
 
 class Name(SingleEmbeddedMdocWrapper):
@@ -342,17 +338,20 @@ class Contract(EmbeddedMdocWithIdWrapper):
     def invalidation_date(self):
         return self._get_from_mdoc("invalidation_date")
 
-    @chainable
     def unmark_as_preview(self):
         self._process_updates({"type": self.type.replace("_preview", "")})
 
-    @chainable
+        return self
+
     def invalidate(self, invalidation_date: datetime):
         self._process_updates({"invalidation_date": invalidation_date})
 
-    @chainable
+        return self
+
     def add_scan_file(self, scan_file_id):
         self._process_updates({"scan_file": scan_file_id})
+
+        return self
 
 
 class Document(EmbeddedMdocWithIdWrapper):
@@ -535,7 +534,7 @@ class User(TopLevelMdocWrapper):
     def workspans(self):
         return self._get_tuple_of_embedded_mdocs(Workspan)
 
-    def set(self,
+    def set(self, *,
             role=None,
             account_number=None,
             assignment=None,
@@ -554,6 +553,8 @@ class User(TopLevelMdocWrapper):
             "phone_number": phone_number,
             "skills": skills,
         })
+
+        return self
 
     def get_active_contract(self, date):
         return
@@ -596,7 +597,7 @@ class OwnCloudFile(TopLevelMdocWrapper):
     COLLECTION = "owncloud"
 
     @classmethod
-    def new(cls, database, url):
+    def new(cls, database, directory, filename):
         return cls._new_empty(database)
 
     @property
@@ -610,12 +611,25 @@ class OwnCloudFile(TopLevelMdocWrapper):
     def get_url(self, version=-1):
         return
 
+    def add_version(self, url):
+        return self
 
-if __name__ == '__main__':
-    import pymongo
-    from bson import ObjectId
-    from db_experiments_utils import write_operations
 
-    db = pymongo.MongoClient().USTintranet
+class Report(TopLevelMdocWrapper):
+    COLLECTION = "users_reports"
 
-    u = User.from_id(db, ObjectId("5e2c47a158872d1d9b210a49"))
+    @property
+    def type(self):
+        return self._get_from_mdoc("type")
+
+    @property
+    def month(self):
+        return self._get_from_mdoc("month")
+
+    @property
+    def file(self):
+        return
+
+    @property
+    def up_to_date(self):
+        return self._get_from_mdoc("up_to_date")

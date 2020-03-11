@@ -250,9 +250,6 @@ class ApiAdminMonthTableHandler(BaseHandler):
             user_id = user["_id"]
             calculator = AttendanceCalculator(self.mdb, user_id, date)
 
-            report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date=date)
-            report_url = get_file_url(self.mdb, report_file_id) if report_file_id else None
-
             row = {
                 "id": str(user_id),
                 "name": user.get("name", {}),
@@ -262,7 +259,6 @@ class ApiAdminMonthTableHandler(BaseHandler):
                 "gross_wage": calculator.month_gross_wage,
                 "tax_amount": calculator.month_tax_amount,
                 "net_wage": calculator.month_net_wage,
-                "report": report_url
             }
             rows.append(row)
 
