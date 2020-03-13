@@ -21,8 +21,8 @@
               <div class="col-sm-9 input-group input-group-sm">
                 <input type="text" class="form-control" id="inputID_edit" placeholder="ID soucastky">
                 <div class="input-group-append">
-			    	      <button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button>
-                          <button class="btn btn-outline-secondary material-icons" id="copyID_edit" onclick="copyToCLipboard(this)">share</button>
+			    	      <!-- <button class="btn btn-outline-secondary" type="button" onclick="component_detect('tme')">TME</button> -->
+                  <button class="btn btn-outline-secondary material-icons" id="copyID_edit" onclick="copyIdToClipoboard(this)">share</button>
 			  	      </div>
                 <div style="height: 43pt; padding: 0pt; margin-top: 1rem;" class="col-12 hide-on-new"><svg id="edit_barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
               </div>
@@ -102,7 +102,7 @@
               <div class="input-group input-group-sm col-sm-9">
                 <select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="inputCATEGORY_edit">
                 {% for cat in category %}
-                    <option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
+                    <option value="{{cat['_id']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
                 {% end %}
                 </select>
 

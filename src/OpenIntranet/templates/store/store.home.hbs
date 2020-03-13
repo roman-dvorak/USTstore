@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 <style type="text/css">
 
-	.product_list_element {
+/*	.product_list_element {
 		margin: 0pt;
 		padding: 5pt;
 	}
@@ -28,7 +28,7 @@
 		margin: 0pt;
 		display: inline-flex;
 	}
-
+*/
 	.table_input{
 		width: 8em;
 		background: #fafafa;
@@ -74,8 +74,28 @@
 <div class="col-md-4 col-sm-12 col-12 bg-faded sidebar">
   <div>
 
+<div class="card">
+  <div class="card-body">
+
+    <div class="card-title">
+      <h5>Kategorie</h5> 
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
+      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
+    </div>
+    
+    <div id="category-tree">
+      
+    </div>
+
+  </div>
+</div>
+
+
 <div class="card" style="min-height: min-content;">
-<div class="card-body row">
+<div class="card-body">
+<div class="row">
     <div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
     <div style="width: 100%;" id="selected-tags" class="pl-3 pb-2 pr-3"></div>
 
@@ -124,7 +144,7 @@
     <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
   	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
 		{% for cat in category %}
-			<option value="{{cat['name']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
+			<option value="{{cat['_id']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
 		{% end %}
 	</select></div>
   </div>
@@ -162,6 +182,7 @@
     <div id="supplier_list" style="width: 100%;">
     </div>
   </div>
+</div>
 </div>
 
 
@@ -251,43 +272,10 @@
       </li>
     </ul>
     <div class="tab-content p-1">
-    <div class="tab-pane fade show active" role="tabpanel" id="nav-filter-categories"> <!-- Zacatek zalozky kategorie -->
-      <div class="pl-3 pb-3">
-        <button onclick="select_categories('all')" class="btn btn-primary">Vybrat vse</button>
-        <button onclick="select_categories('none')" class="btn btn-primary">zrusit vyber</button>
-        <small> (inverzní filtr <input type="checkbox" name="" id="category_polarity" onchange="update_list()">)</small>
-        <select id="filter-instock" onchange="update_list()">
-        <option value="All" selected>Vše</option>
-        <option value="Yes">Skladem</option>
-        <option value="No">Vyskladněno</option>
-      </select>
-      </div>
-
-      <div id="filter_block" class="row">
-        {% set last = {'path': "/", 'name':""} %}
-        <div>                                                                           {# Tohle je tady, aby nebyl ukoncen nezapocaty div #}
-        {% for cat in category %}
-          {% if (cat.get('path', '/')+cat['name']).split('/')[1] != (last.get('path', '/')+last['name']).split('/')[1]%}
-            </div>
-            <div class="col cat_top">
-          {% end %}
-          {# {{cat.get('path', '/').split('/')}}{{cat}}<br> #}
-           <a onclick="console.log('{{cat.get('path', '/')}}{{cat['name']}}')" style="display: flex; overflow-x: hidden; overflow-y: hidden;">
-             <input type="checkbox" name="{{cat['name']}}" id="{{cat['name']}}" class="filter_cat" checked="true" onchange="update_list()" value="">
-             {{cat['name']}}
-           </a>
-          {% set last = cat%}
-        {% end %}
-        </div>
-      </div>
+    <div class="tab-pane fade" role="tabpanel" id="nav-filter-categories"> 
+      Zruseno - presunuto doleva
     </div>
 
-      <div class="pl-3 pb-3">
-        <h3>Filtrovani podle tagu</h3>
-        <input type="text" class="form-control" id="tag-search" onchange="update_list()">
-        <small> (inverzní filtr <input type="checkbox" name="" id="tag_polarity" onchange="update_list()">)</small>
-      </div>
-    </div> <!-- Konec zalozky KATEGORIE -->
     <div class="tab-pane fade" role="tabpanel" id="nav-filter-parameters"> <!-- Zacatek zalozky PARAMETRY -->
       <div>
         Filtrovat podle parametru: <select class="select-component-parameters" id="select-component-parameters-filter"></select>
@@ -382,6 +370,33 @@
     </div>
   </div>
 </div>
+
+
+<script type="text/javascript">
+
+function load_category_tree(){
+    $('#category-tree').jstree({
+        'core' : {
+           'data' : {
+              'type': "POST",
+              'url' : "/store/api/get_categories/list/?jstree=True"
+            }
+        },
+        "plugins" : [
+            "checkbox",
+            "massload",
+            "sort",
+            "state",
+            "types",
+        ],
+        'checkbox':{
+            'whole_node': false,
+        }
+    });
+}
+load_category_tree();
+
+</script>
 
 <script type="text/javascript">
 
@@ -517,7 +532,7 @@ $(document).ready(function() {
     update_list();
     var hash = location.hash.substr(1);
     if(hash.length>2){
-	    load_product(hash);
+	    load_product(hash, open = true);
 	}
 
 });
@@ -550,28 +565,32 @@ function select_categories(what){
 }
 
 function active_categories(name = false){
-	if (name != false){
-	}else{
-		var list = []
-		var selected=$(".filter_cat:checked")
-		for (var i = selected.length - 1; i >= 0; i--) {
-			list.push(selected[i].name)
-		}
-		//console.log('selected', list)
-		return(list)
-	}
+	// if (name != false){
+	// }else{
+	// 	var list = []
+	// 	var selected=$(".filter_cat:checked")
+	// 	for (var i = selected.length - 1; i >= 0; i--) {
+	// 		list.push(selected[i].name)
+	// 	}
+	// 	//console.log('selected', list)
+ //    console.log("AKtivni kategorie", list);
+	// 	return(list)
+	// }
+  var list_of_categories = $('#category-tree').jstree('get_selected');
+  return list_of_categories;
 }
 
 function update_list(){
 	$('.product_list_loading').show();
 	$('.page_select_btn').hide();
 	$('#product_list').empty();
+  console.log("DATA:", active_categories());
 	$.ajax({
 	  type: "POST",
 	  url: "/store/api/products/",
 	  //contentType : 'application/json',
 	  data: {
-	  		'selected': active_categories(),
+	  		'categories': active_categories(),
 	  		'search': $("#filter-search").val(),
 	  		'polarity': $('#category_polarity').is( ":checked" ),
 	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),
@@ -605,7 +624,7 @@ function update_view(){
     $('#product_list').empty();
     for (var i = 0; i < current_page.length; i++) {
         var element = current_page[i];
-        console.log("ELEMENT", element.overview);
+        // console.log("ELEMENT", element.overview);
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
@@ -630,7 +649,7 @@ function update_view(){
         if ($('#display_select').val() == 'table'){
             try{var warehouse_count = element.overview.stocks[Cookies.get("warehouse")].count.onstock;}
             catch(err){var warehouse_count = 0; console.log(err);}
-            console.log(warehouse_count)
+            // console.log(warehouse_count)
             tmpl.querySelector('.stock_count').innerHTML = "<b>"+warehouse_count +
                       "</b><small class='text-muted'> (" + element.overview.count.onstock + ")</small>";
             if (element.tags){
@@ -742,13 +761,18 @@ function getUnitLabel(unit){
 }
 
 
-function load_product(id){
+function load_product(id, open = false){
 	$('.product_list_element').css('background-color', 'white');
 	$('.row_of_'+id.replace(/[\|&;\$%@"<>\(\)\+/, -.]/g, "")).css("background-color", "yellow");
 
 	if (current_detail != id){
 		console.log("měl bych nacit produkc s id", id);
 		window.location.hash = '#'+id;
+
+    if(open){
+      OpenArticleEdit(id);
+    }
+
 		try {
 			$.ajax({
 				type: "POST",
@@ -1003,6 +1027,15 @@ $('#select-component-parameters-filter').on('select2:select', function (e) {
     t.content.querySelector('.filter_tab_name').innerHTML = data.text;
     $("#filter_tab_content").append(document.importNode(t.content, true));
 });
+
+
+// Pouzito v modalu editace polozky
+function copyIdToClipoboard(){
+  var textove_pole = document.getElementById("inputID_edit");
+  textove_pole.select();
+  textove_pole.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+}
 
 </script>
 {% end %}

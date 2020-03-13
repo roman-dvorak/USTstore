@@ -145,10 +145,16 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   $('#input_warehouse_unit_price').val(element['warehouse_unit_price'] || 0);
                   $('#inputSELLABLE_edit').prop('checked', element['sellable'] || false);
                   $('#inputDESCRIPTION_edit').val(element['description'] || "");
-                  $('#inputCATEGORY_edit').val(element['category']).trigger('change');
+                  //$('#inputCATEGORY_edit').val(element['category']).trigger('change');
                   $('#inputBARCODE_edit').val(element['barcode'][0]);
                   $("#inputBARCODE_edit").attr('disabled', true);
                   $('#inputSNREQUIED_list').val(element['sn_requied']||false);
+
+                  var ecat = []
+                  for (cat in element['category']){
+                      ecat.push(element['category'][cat].$oid)
+                  }
+                  $('#inputCATEGORY_edit').val(ecat).trigger('change');
 
                   draw_parameters();
                   draw_supplier();

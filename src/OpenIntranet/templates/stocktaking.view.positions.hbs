@@ -3,7 +3,12 @@
 {% block body %}
 
 <style type="text/css">
-	
+
+
+.view-row{
+	height: 2em;
+}
+
 .cat-title{
 	width: 100%;
 	border-bottom: 2pt black solid;
@@ -53,54 +58,81 @@
 
 </style>
 
-<div>
+<div class="container">
 
 	<div class="card">
-		<div class="card-header">
+		<h3 class="card-header">
 			Přehled skladu
-		</div>
+		</h3>
 		<div class="card-body">
-			
+			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>.
 		</div>
-
 	</div>
 
-	<div>
-		
-		{%for position in data %}
-			<h2>{{data[position]['name']}}</h2>
-				{{data[position]['info']}}<br>
 
-				<table style="width: 100%" class="table-sm">	
+		{%for position in data %}
+		<div class="card">
+		<h3 class="card-header"> {{data[position]['name']}}</h3>
+		<div class="card-body">
+			{{data[position]['info']}}
+		</div>
+		<div class="card-text">
+
+				<table style="width: 100%" class="table-sm table-striped">
+				<thead>
+					<tr>
 				<th>Nazev</th>
 				<th>Pocet celkem</th>
 				<th>Pocet skladem</th>
 				<th>Nakupni cena za ks</th>
+				<th></th>
+					</tr>
+				</thead>
+				<tbody>
 				{%for article in data[position]['list'] %}
-						<tr class="{%if article['has_inventory']%}bg-success{%end%}">
+					{%if article['in_stock']%}
+						<tr class="view-row {%if article['has_inventory']%}bg-success{%end%}">
+							{% set count_stock = get_warehouse_count(article, warehouse["_id"]) %}
 							<td>
-                            	<a class="btn btn-outline-secondary material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="__blank__">open_in_new</a>
+                            	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
+                            	<a class="material-icons" type="button" href="#" onclick="copyToClipboard('{{article['_id']}}')">share</a>
                             	{{article['name']}}
                             </td>
 							<td>{{article['overview']['count']['onstock']}}</td>
-							<td> {{get_warehouse_count(article, warehouse["_id"])}}</td>
+							<td> {{count_stock}}</td>
 							<td>{{article['warehouse_unit_price']}} Czk/unit</td>
 							<td>{{article['has_inventory']}}</td>
 							<!-- <small>{{article}}</small><br> -->
+							<td>
+							</td>
 						</tr>
-					
-				{% end %}</table>
-			<hr>
+					{%end%}
+
+				{% end %}</tbody></table>
+			</div>
+			</div>
 
 		{%end%}
 
 
 	</div>
-	
+
+
 
 
 <script type="text/javascript">
-	
+
+	function copyToClipboard(text) {
+	    var dummy = document.createElement("textarea");
+	    // dummy.style.display = 'none'
+	    document.body.appendChild(dummy);
+	    dummy.value = text;
+	    dummy.select();
+		console.log(dummy);
+	    document.execCommand("copy");
+	    document.body.removeChild(dummy);
+	}
+
 	function doStockTaking(e) {
 		console.log(e);
 		var id = $(e).attr('component');

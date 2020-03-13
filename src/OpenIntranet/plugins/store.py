@@ -119,7 +119,11 @@ class api_products_json(BaseHandler):
 
         polarity = '$nin' if (self.request.arguments.get('polarity', [b'true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
-        selected = (self.request.arguments.get('selected[]', []))
+        selected = (self.request.arguments.get('categories[]', []))
+        for i, cat in enumerate(selected):
+            print(cat.decode('UTF-8'))
+            selected[i] = bson.ObjectId(cat.decode('UTF-8'))
+        print("SEZNAM kategorie", selected)
         in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
@@ -158,7 +162,7 @@ class api_products_json(BaseHandler):
                                     {'name': { '$regex': search, '$options': 'ix'}},
                                     {'description': { '$regex': search, '$options': 'ix'}} ]}
                 },{
-                    "$match": {'category': {polarity: ascii_list_to_str(selected)}}
+                    "$match": {'category': {polarity: selected}}
                 },{
                     '$addFields': {'count': { '$sum': '$history.bilance'}}
                 }]
@@ -193,7 +197,7 @@ class api_products_json(BaseHandler):
                     "$lookup":{
                         "from": "category",
                         "localField": "category",
-                        "foreignField": "name",
+                        "foreignField": "_id",
                         "as": "category"
                     }
                 },{
@@ -323,6 +327,7 @@ class api_move_category(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         parent = self.get_argument('parent', '#')
+        cid = bson.ObjectId(self.get_argument("id", None))
 
         if parent == '':
             print("CHYBA neni nastaven rodic")
@@ -333,13 +338,17 @@ class api_move_category(BaseHandler):
 
 
         data = {'$set': {'parent': parent} }
-        self.mdb.category.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        if parent != cid:
+            self.mdb.category.update({'_id': cid}, data, upsert=False)
+        else:
+            print("CHYBA")
         self.write("OK")
 
 class api_move_position(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
         parent = self.get_argument('parent', '#')
+        cid = bson.ObjectId(self.get_argument("id", None))
 
         if parent == '':
             print("CHYBA neni nastaven rodic")
@@ -348,9 +357,11 @@ class api_move_position(BaseHandler):
         print("new parent", parent)
         print("Object", self.get_argument("id", None))
 
-
         data = {'$set': {'parent': parent} }
-        self.mdb.store_positions.update({'_id': bson.ObjectId(self.get_argument("id", None))}, data, upsert=False)
+        if parent != cid:
+            self.mdb.store_positions.update({'_id': cid}, data, upsert=False)
+        else:
+            print("CHYBA")
         self.write("OK")
 
 class api_update_position(BaseHandler):
@@ -361,15 +372,22 @@ class api_update_position(BaseHandler):
             cid = bson.ObjectId()
         else:
             cid = bson.ObjectId(cid)
+    
+        parent = self.get_argument('parent', '#')
+        if parent != '#':
+            parent = bson.ObjectId(parent)
 
-        data = {'_id': cid,
-                'name': self.get_argument('name'),
-                'text': self.get_argument('text', 'not_set'),
-                'parent': self.get_argument('parent', '#'),
-                'position': '#',
-                'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
+        print(parent, cid)
 
-        self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
+        if cid != parent:
+            data = {'_id': cid,
+                    'name': self.get_argument('name'),
+                    'text': self.get_argument('text', 'not_set'),
+                    'parent': parent,
+                    'position': '#',
+                    'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
+
+            self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
         self.write("OK")
 
 class api_update_category(BaseHandler):
@@ -381,12 +399,19 @@ class api_update_category(BaseHandler):
         else:
             cid = bson.ObjectId(cid)
 
-        data = {'_id': cid,
-                'name': self.get_argument('name'),
-                'description': self.get_argument('description', ''),
-                'parent': self.get_argument('parent', '#')}
+        parent = self.get_argument('parent', '#')
+        if parent != '#':
+            parent = bson.ObjectId(parent)
 
-        self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
+        print(parent, cid)
+
+        if cid != parent:
+            data = {'_id': cid,
+                    'name': self.get_argument('name'),
+                    'description': self.get_argument('description', ''),
+                    'parent': parent}
+
+            self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
         self.write("OK")
 
 
@@ -505,8 +530,15 @@ class api(BaseHandler):
 
 
             ## Pokud neni zarazen do zadne kategorie dat ho do Nezarazeno
+
+            print("KATEGORIE:", new_json['category'])
+            for i, cat in enumerate(new_json['category']):
+                print(cat, type(cat))
+                new_json['category'][i] = bson.ObjectId(cat)
+
             if len(new_json['category']) == 0:
-                new_json['category'] += ['Nezařazeno']
+                new_json['category'] += bson.ObjectId('5a68f0522208c4a21e2aa99c')
+
 
             if new_json.get('barcode', [False])[0] == "":
                 print("BARCODE id", id, str(int(str(id), 16)))
@@ -517,7 +549,7 @@ class api(BaseHandler):
 
 
             print("Update product with parameters:", ObjectId(id))
-            print(json.dumps(new_json, indent=4))
+            #print(json.dumps(new_json, indent=4))
             dout = self.mdb.stock.update(
                     {
                         "_id": ObjectId(id)
@@ -958,7 +990,8 @@ def stickers_simple(col = 3, rows = 7, skip = 0, comp = [], store = None, pozice
         #pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos) + " | " + ','.join(component['category']))
 
         pdf.set_xy(cell_x+3, cell_y+12)
-        pdf.cell(cell_w-10, 10, str(datetime.date.today()) + " | " + ','.join(component['category']))
+        #pdf.cell(cell_w-10, 10, str(datetime.date.today()) + " | " + ','.join(component['category']))
+        pdf.cell(cell_w-10, 10, str(datetime.date.today()))
 
         pdf.set_xy(cell_x+3, cell_y+15)
         pdf.cell(cell_w-10, 10, str(stock_identificator['code']) + " | " + str(pos))

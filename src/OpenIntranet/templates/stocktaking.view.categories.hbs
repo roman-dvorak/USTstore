@@ -97,7 +97,7 @@
 	</div>
 	{% for cat in category %}
 		<div class="d-flex flex-row justify-content-between row module-row {% if cat['cat_sum'] == 0 %}text-muted{%end%} {%if cat['cat_inventura']%}done{%end%}">
-			<div class="col">{{cat['category']}}</div>
+			<div class="col">{{cat['category']['name']}}</div>
 			<div class="col" style="">{{"{:d} ks".format(len(cat['modules']))}}</div>
 			<div class="col" style="">{{"{:6,.2f} j".format(cat['cat_elements'])}}</div>
 			<div class="col" style="">{{"{:+6,.2f} Czk".format(cat['cat_sum_bilance'])}}</div>
@@ -153,8 +153,8 @@
 			</div>
 
 		{% for module in cat['modules'] %}
-			<div class="{% if module['count'] == 0%}not-in-stock{%end%} d-flex flex-row justify-content-between row module-row {% if module['price_sum'] == 0 %}text-muted small{%end%} {%if cat['cat_inventura']%}done{%end%} {%if module['count'] and module['warehouse_unit_price'] == 0%}warning{%end%}">
-				<div class="col">{{module['name']}}</div>
+			<div class="{% if module['count'] == 0%}not-in-stock{%end%} d-flex flex-row justify-content-between row module-row {% if module['price_sum'] == 0 %}text-muted small{%end%} {%if module['inventory']%}done{%end%} {%if module['count'] and module['warehouse_unit_price'] == 0%}warning{%end%}">
+				<div class="col"> <a href="/store#{{module['_id']}}" id="id_stock_link" target="_blank">{{module['name']}}</a></div>
 				<div class="col" style="">{{"{:d}".format(len(module.get('history', [])))}}</div>
 
 <!-- Pocty KS -->
@@ -165,8 +165,8 @@
 				<div class="col" style=""> <span class="text-muted small">{% if module['price_sum']%} {{"({:5.2f})".format(module['price_sum'])}} {%else%}{%end%}</span>  {{"{:6.2f} Czk".format(module['price_warehouse'])}}</div>
 				
 				
-				<div class="col" style="flex-grow: 0;">{%if module['inventory_2018'].get('count',None)%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
-				<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+				<div class="col" style="flex-grow: 0;">{%if module['inventory'] and module['inventory'].get('count',None)%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>
+				{#<div class="col" style="flex-grow: 0;">{%if module['inventory']%}<i class="material-icons text-success">done</i>{%else%}<i class="material-icons text-danger">clear</i>{%end%}</div>#}
 				<div class="col" style=""> 
 					{% if (not module['inventory']) and (module['count'] > 0) %}
 					<div class="input-group input-group-sm">
