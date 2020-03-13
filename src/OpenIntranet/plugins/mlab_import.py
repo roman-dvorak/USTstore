@@ -16,16 +16,18 @@ from fpdf import FPDF
 import requests
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["module"]
+
         return [
-             (r'/{}/data/module_list'.format(module), plugin.module_list),
-             (r'/{}/update'.format(module), plugin.stock_update),
-             #(r'/{}/(.*)/print/'.format(module), plugin.print_bom),
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
+             (r'/{}/data/module_list'.format(plugin_name), module_list),
+             (r'/{}/update'.format(plugin_name), stock_update),
+             #(r'/{}/(.*)/print/'.format(plugin_name), print_bom),
+             (r'/{}'.format(plugin_name), home),
+             (r'/{}/'.format(plugin_name), home),
         ]
 
-def plug_info():
+def get_plugin_info():
     #class base_info(object):
     return {
         "module": "mlab_import",

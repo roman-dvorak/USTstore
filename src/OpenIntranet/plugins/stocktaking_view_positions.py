@@ -22,12 +22,12 @@ from plugins.store_data.stock_counting import getLastInventory, getPrice, getInv
 
 from plugins.helpers.warehouse import *
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
         return [
-             (r'/stocktaking/view/positions', plugin.view_positions),
+             (r'/stocktaking/view/positions', view_positions),
         ]
 
-def plug_info():
+def get_plugin_info():
     #class base_info(object):
     return {
         "display": False,

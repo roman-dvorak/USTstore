@@ -20,32 +20,34 @@ ROLE_SUDO = "users-sudo"
 ROLE_ACCOUNTANT = "users-accountant"
 
 
-def make_handlers(plugin_name, plugin_namespace):
+def get_plugin_handlers():
+    plugin_name = get_plugin_info()["module"]
+
     return [
-        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
-        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserAttendancePageHandler),
-        (r'/{}/api/u/(.*)/workspans/add'.format(plugin_name), plugin_namespace.ApiAddWorkspanHandler),
-        (r'/{}/api/u/(.*)/workspans/edit_month'.format(plugin_name), plugin_namespace.ApiEditMonthWorkspansHandler),
-        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), plugin_namespace.ApiDeleteWorkspanHandler),
-        (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), plugin_namespace.ApiCalendarHandler),
-        (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), plugin_namespace.ApiMonthInfoHandler),
-        (r'/{}/api/u/(.*)/vacations/add'.format(plugin_name), plugin_namespace.ApiAddVacationHandler),
-        (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), plugin_namespace.ApiInterruptVacationHandler),
-        (r'/{}/api/u/(.*)/close_month'.format(plugin_name), plugin_namespace.ApiCloseMonthHandler),
-        (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), plugin_namespace.ApiReopenMonthHandler),
-        (r'/{}/api/month_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminMonthTableHandler),
-        (r'/{}/api/year_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminYearTableHandler),
-        (r'/{}/api/reports_table/date/(.*)'.format(plugin_name), plugin_namespace.ApiAdminReportsTableHandler),
+        (r'/{}/u/(.*)/date/(.*)'.format(plugin_name), UserAttendancePageHandler),
+        (r'/{}/u/(.*)'.format(plugin_name), UserAttendancePageHandler),
+        (r'/{}/api/u/(.*)/workspans/add'.format(plugin_name), ApiAddWorkspanHandler),
+        (r'/{}/api/u/(.*)/workspans/edit_month'.format(plugin_name), ApiEditMonthWorkspansHandler),
+        (r'/{}/api/u/(.*)/workspans/delete'.format(plugin_name), ApiDeleteWorkspanHandler),
+        (r'/{}/api/u/(.*)/calendar/date/(.*)'.format(plugin_name), ApiCalendarHandler),
+        (r'/{}/api/u/(.*)/monthinfo/date/(.*)'.format(plugin_name), ApiMonthInfoHandler),
+        (r'/{}/api/u/(.*)/vacations/add'.format(plugin_name), ApiAddVacationHandler),
+        (r'/{}/api/u/(.*)/vacations/interrupt'.format(plugin_name), ApiInterruptVacationHandler),
+        (r'/{}/api/u/(.*)/close_month'.format(plugin_name), ApiCloseMonthHandler),
+        (r'/{}/api/u/(.*)/reopen_month'.format(plugin_name), ApiReopenMonthHandler),
+        (r'/{}/api/month_table/date/(.*)'.format(plugin_name), ApiAdminMonthTableHandler),
+        (r'/{}/api/year_table/date/(.*)'.format(plugin_name), ApiAdminYearTableHandler),
+        (r'/{}/api/reports_table/date/(.*)'.format(plugin_name), ApiAdminReportsTableHandler),
         (r'/{}/api/reports/accountant/generate'.format(plugin_name),
-         plugin_namespace.ApiGenerateAccountantReportHandler),
+         ApiGenerateAccountantReportHandler),
         (r'/{}/api/reports/hours_worked/generate'.format(plugin_name),
-         plugin_namespace.ApiGenerateHoursWorkedReportHandler),
-        (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
-        (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
+         ApiGenerateHoursWorkedReportHandler),
+        (r'/{}'.format(plugin_name), HomeHandler),
+        (r'/{}/'.format(plugin_name), HomeHandler),
     ]
 
 
-def plug_info():
+def get_plugin_info():
     return {
         "module": "attendance",
         "name": "Docházka",

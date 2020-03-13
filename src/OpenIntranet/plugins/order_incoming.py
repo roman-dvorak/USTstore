@@ -16,31 +16,31 @@ import code128
 import codecs
 import datetime
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
         module = 'invoice_import'
         return [
-             (r'/{}/get_invoices/'.format(module), plugin.get_invoices),
-             (r'/{}/get_invoice/'.format(module), plugin.get_invoice),
+             (r'/{}/get_invoices/'.format(module), get_invoices),
+             (r'/{}/get_invoice/'.format(module), get_invoice),
 
     # pro vytvoreni nove objednavky
-             (r'/{}/invoice/edit/'.format(module), plugin.invoice_edit),
-             (r'/{}/invoice/edit'.format(module), plugin.invoice_edit),
-             (r'/{}/invoice/(.*)/edit'.format(module), plugin.invoice_edit),
-             (r'/{}/invoice/(.*)/edit/'.format(module), plugin.invoice_edit),
+             (r'/{}/invoice/edit/'.format(module), invoice_edit),
+             (r'/{}/invoice/edit'.format(module), invoice_edit),
+             (r'/{}/invoice/(.*)/edit'.format(module), invoice_edit),
+             (r'/{}/invoice/(.*)/edit/'.format(module), invoice_edit),
 
-             (r'/{}/invoice/(.*)/push_item/'.format(module), plugin.push_item),
+             (r'/{}/invoice/(.*)/push_item/'.format(module), push_item),
 
-             (r'/{}/save_invoice/'.format(module), plugin.save_invoice),
-             (r'/{}/invoice/prepare_invoice_row/'.format(module), plugin.prepare_invoice_row),
-             (r'/{}/next_state/'.format(module), plugin.invoice_next_state),
-             (r'/{}/invoice/(.*)/'.format(module), plugin.invoice),
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
-             #(r'/%s' %module, plugin.home),
-             #(r'/%s/' %module, plugin.home),
+             (r'/{}/save_invoice/'.format(module), save_invoice),
+             (r'/{}/invoice/prepare_invoice_row/'.format(module), prepare_invoice_row),
+             (r'/{}/next_state/'.format(module), invoice_next_state),
+             (r'/{}/invoice/(.*)/'.format(module), invoice),
+             (r'/{}'.format(module), home),
+             (r'/{}/'.format(module), home),
+             #(r'/%s' %module, home),
+             #(r'/%s/' %module, home),
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
         "module": "invoice_import",
         "name": "Importování faktur",

@@ -18,15 +18,17 @@ from bson import ObjectId
 from plugins import BaseHandler
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+    plugin_name = get_plugin_info()["module"]
+
     handlers = [
-        (r'/{}/label'.format(module), plugin.print_label),
-        (r'/{}/generate_label'.format(module), plugin.generate_label)
+        (r'/{}/label'.format(plugin_name), print_label),
+        (r'/{}/generate_label'.format(plugin_name), generate_label)
         ]
     return handlers
 
 
-def plug_info():
+def get_plugin_info():
     return {
         "module": "printer",
         "name": "tisk"

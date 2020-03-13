@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import json
+import sys
 from datetime import datetime, timedelta
 
 import bson.json_util
@@ -33,42 +34,44 @@ ROLE_SUDO = "users-sudo"
 ROLE_ACCOUNTANT = "users-accountant"
 
 
-def make_handlers(plugin_name, plugin_namespace):
+def get_plugin_handlers():
+    plugin_name = get_plugin_info()["module"]
+
     return [
         (r'/{}/vue/?(.*)'.format(plugin_name), VueStaticFileHandler, {
             "path": "vue_frontend/users-attendance/dist",
             "default_filename": "index.html"
         }),
-        # (r'/{}/api/users'.format(plugin_name), plugin_namespace.ApiUsersHandler),
-        # (r'/{}/api/users/(.*)'.format(plugin_name), plugin_namespace.ApiUsersHandler),
-        (r'/{}/api/users/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
-        # (r'/{}/api/users/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/contracts/(.*)'.format(plugin_name), plugin_namespace.ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/documents'.format(plugin_name), plugin_namespace.ApiDocumentsHandler),
-        # (r'/{}/api/users/(.*)/documents/(.*)'.format(plugin_name), plugin_namespace.ApiDocumentsHandler),
+        # (r'/{}/api/users'.format(plugin_name), ApiUsersHandler),
+        # (r'/{}/api/users/(.*)'.format(plugin_name), ApiUsersHandler),
+        (r'/{}/api/users/current'.format(plugin_name), ApiCurrentUserHandler),
+        (r'/{}/api/users/(.*)/contracts'.format(plugin_name), ApiContractsHandler),
+        # (r'/{}/api/users/(.*)/contracts/(.*)'.format(plugin_name), ApiContractsHandler),
+        # (r'/{}/api/users/(.*)/documents'.format(plugin_name), ApiDocumentsHandler),
+        # (r'/{}/api/users/(.*)/documents/(.*)'.format(plugin_name), ApiDocumentsHandler),
 
         # old
-        (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
-        (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
-        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiAddContractHandler),
-        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), plugin_namespace.ApiInvalidateContractHandler),
-        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), plugin_namespace.ApiUploadContractScanHandler),
-        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), plugin_namespace.ApiFinalizeContractHandler),
-        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), plugin_namespace.ApiAddDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), plugin_namespace.ApiInvalidateDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), plugin_namespace.ApiReuploadDocumentHandler),
-        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), plugin_namespace.ApiValidateEmail),
-        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), plugin_namespace.ApiValidateEmail),
-        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), plugin_namespace.ApiChangePasswordHandler),
+        (r'/{}/api/admintable'.format(plugin_name), ApiAdminTableHandler),
+        (r'/{}/api/u/(.*)/edit'.format(plugin_name), ApiEditUserHandler),
+        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), ApiAddContractHandler),
+        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), ApiInvalidateContractHandler),
+        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), ApiUploadContractScanHandler),
+        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), ApiFinalizeContractHandler),
+        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), ApiAddDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), ApiInvalidateDocumentHandler),
+        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), ApiReuploadDocumentHandler),
+        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), ApiValidateEmail),
+        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), ApiValidateEmail),
+        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), ApiChangePasswordHandler),
         (r'/{}/api/u/(.*)/password/change/token/(.*)'.format(plugin_name),
-         plugin_namespace.ApiChangePasswordHandler),
-        (r'/{}/u/(.*)'.format(plugin_name), plugin_namespace.UserPageHandler),
-        (r'/{}'.format(plugin_name), plugin_namespace.HomeHandler),
-        (r'/{}/'.format(plugin_name), plugin_namespace.HomeHandler),
+         ApiChangePasswordHandler),
+        (r'/{}/u/(.*)'.format(plugin_name), UserPageHandler),
+        (r'/{}'.format(plugin_name), HomeHandler),
+        (r'/{}/'.format(plugin_name), HomeHandler),
     ]
 
 
-def plug_info():
+def get_plugin_info():
     return {
         "module": "users",
         "name": "Uživatelé",
@@ -112,6 +115,14 @@ class ApiCurrentUserHandler(BaseHandler):
 
 
 # endregion
+
+
+class ApiContractsHandler(BaseHandler):
+
+    def get(self, user_id, contract_id=None):
+        for module in sys.modules:
+            print("  ", module)
+        self.write("done")
 
 
 class HomeHandler(BaseHandler):
@@ -442,9 +453,6 @@ class UserPageHandler(BaseHandler):
 
         return json.dumps(final_structure)
 
-
-class ApiContractsHandler(BaseHandler):
-    pass
 
 # TODO validovat vstup
 class ApiAddContractHandler(BaseHandlerOwnCloud):
