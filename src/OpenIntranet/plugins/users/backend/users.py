@@ -34,51 +34,6 @@ ROLE_SUDO = "users-sudo"
 ROLE_ACCOUNTANT = "users-accountant"
 
 
-def get_plugin_handlers():
-    plugin_name = get_plugin_info()["module"]
-
-    return [
-        (r'/{}/vue/?(.*)'.format(plugin_name), VueStaticFileHandler, {
-            "path": "vue_frontend/users-attendance/dist",
-            "default_filename": "index.html"
-        }),
-        # (r'/{}/api/users'.format(plugin_name), ApiUsersHandler),
-        # (r'/{}/api/users/(.*)'.format(plugin_name), ApiUsersHandler),
-        (r'/{}/api/users/current'.format(plugin_name), ApiCurrentUserHandler),
-        (r'/{}/api/users/(.*)/contracts'.format(plugin_name), ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/contracts/(.*)'.format(plugin_name), ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/documents'.format(plugin_name), ApiDocumentsHandler),
-        # (r'/{}/api/users/(.*)/documents/(.*)'.format(plugin_name), ApiDocumentsHandler),
-
-        # old
-        (r'/{}/api/admintable'.format(plugin_name), ApiAdminTableHandler),
-        (r'/{}/api/u/(.*)/edit'.format(plugin_name), ApiEditUserHandler),
-        (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), ApiAddContractHandler),
-        (r'/{}/api/u/(.*)/contracts/invalidate'.format(plugin_name), ApiInvalidateContractHandler),
-        (r'/{}/api/u/(.*)/contracts/scan'.format(plugin_name), ApiUploadContractScanHandler),
-        (r'/{}/api/u/(.*)/contracts/finalize'.format(plugin_name), ApiFinalizeContractHandler),
-        (r'/{}/api/u/(.*)/documents/add'.format(plugin_name), ApiAddDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/invalidate'.format(plugin_name), ApiInvalidateDocumentHandler),
-        (r'/{}/api/u/(.*)/documents/reupload'.format(plugin_name), ApiReuploadDocumentHandler),
-        (r'/{}/api/u/(.*)/email/validate/(.*)'.format(plugin_name), ApiValidateEmail),
-        (r'/{}/api/u/(.*)/email/validate'.format(plugin_name), ApiValidateEmail),
-        (r'/{}/api/u/(.*)/password/change'.format(plugin_name), ApiChangePasswordHandler),
-        (r'/{}/api/u/(.*)/password/change/token/(.*)'.format(plugin_name),
-         ApiChangePasswordHandler),
-        (r'/{}/u/(.*)'.format(plugin_name), UserPageHandler),
-        (r'/{}'.format(plugin_name), HomeHandler),
-        (r'/{}/'.format(plugin_name), HomeHandler),
-    ]
-
-
-def get_plugin_info():
-    return {
-        "module": "users",
-        "name": "Uživatelé",
-        "icon": 'icon_users.svg',
-    }
-
-
 # region Vue stuff
 
 class VueStaticFileHandler(StaticFileHandler):
