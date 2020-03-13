@@ -1,18 +1,29 @@
 <template>
     <b-tbody :class="{inactive: !active}">
-        <b-tr @click="$emit('change-open', contract._id)">
+        <b-tr>
             <b-th>
                 <div class="flex-space-between">
-                    <div id="title">
+                    <div id="title" @click="$emit('change-open', contract._id)">
                         {{contractTypeFormat(contract.type)}}
                         {{czechDateFormat(contract.valid_from)}} - {{czechDateFormat(contract.valid_until)}}
                         <span v-if="_.has(contract, 'invalidation_date')">
                             ({{czechDateFormat(contract.invalidation_date)}})
                         </span>
                     </div>
-                    <b-button variant="secondary" size="sm" class="table-button">
-                        <i class="material-icons">close</i>
-                    </b-button>
+                    <icon-menu-dropdown right>
+                        <b-dropdown-item-button v-if="hasAddSignedMenuItem">
+                            Přidat sken podepsané smlouvy
+                        </b-dropdown-item-button>
+                        <b-dropdown-item-button v-if="hasDeleteMenuItem">
+                            Smazat smlouvu
+                        </b-dropdown-item-button>
+                        <b-dropdown-item-button v-if="hasInvalidateMenuItem">
+                            Zneplatnit smlouvu
+                        </b-dropdown-item-button>
+                        <b-dropdown-item-button v-if="hasChangeInvalidationDateMenuItem">
+                            Změnit datum zneplatnění
+                        </b-dropdown-item-button>
+                    </icon-menu-dropdown>
                 </div>
             </b-th>
         </b-tr>
@@ -45,16 +56,11 @@
                             <td>{{contract.notes}}</td>
                         </b-tr>
 
-                        <b-tr>
+                        <b-tr v-if="_.has(contract, 'scan_signed_url')">
                             <td>Sken podepsané smlouvy</td>
                             <td>
-                                <div class="flex-space-between" v-if="_.has(contract, 'scan_signed_url')">
-                                    <a :href="contract.scan_signed_url" target="_blank">Zobrazit</a>
-                                    <b-button variant="secondary" size="sm" class="table-button">
-                                        <i class="material-icons">edit</i>
-                                    </b-button>
-                                </div>
-                                <a href="#" v-else>Nahrát</a>
+                                <a :href="contract.scan_signed_url"
+                                   target="_blank">Zobrazit</a>
                             </td>
                         </b-tr>
 
@@ -80,12 +86,17 @@
 
 <script>
     import {useDateUtilities} from "../../utilities/date-utilities";
+    import IconMenuDropdown from "../IconMenuDropdown";
+    import {useContractUtilities} from "../../utilities/contract-utilities";
+    import dayjs from "dayjs";
 
     export default {
         name: "Contract",
+        components: {IconMenuDropdown},
         setup() {
             return {
-                ...useDateUtilities()
+                ...useDateUtilities(),
+                ...useContractUtilities(),
             }
 
         },
@@ -93,11 +104,27 @@
             contract: Object,
             active: Boolean,
             open: Boolean,
-            index: Number,
+            invalidatable: Boolean,
         },
         methods: {
             contractTypeFormat: function (type) {
                 return {dpp: "Dohoda o provedení práce"}[type]
+            }
+        },
+        computed: {
+            hasAddSignedMenuItem: function () {
+                const effectiveValidUntil = this.getEffectiveValidUntil(this.contract);
+
+                return dayjs().isBefore(effectiveValidUntil)
+            },
+            hasDeleteMenuItem: function () {
+                return dayjs().isBefore(this.contract.valid_from)
+            },
+            hasInvalidateMenuItem: function () {
+                return !this.hasChangeInvalidationDateMenuItem
+            },
+            hasChangeInvalidationDateMenuItem: function () {
+                return _.has(this.contract, "invalidation_date")
             }
         }
     }
@@ -106,6 +133,10 @@
 <style scoped>
     * {
         text-align: left;
+    }
+
+    #title {
+        cursor: pointer;
     }
 
     .details-wrapper {
@@ -136,6 +167,10 @@
 
     .table-button .material-icons {
         font-size: 17px;
+    }
+
+    .menu-icon {
+        cursor: pointer;
     }
 
     .inactive {

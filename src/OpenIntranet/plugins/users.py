@@ -39,8 +39,15 @@ def make_handlers(plugin_name, plugin_namespace):
             "path": "vue_frontend/users-attendance/dist",
             "default_filename": "index.html"
         }),
-        (r'/{}/godmode'.format(plugin_name), plugin_namespace.GodmodeHandler),
-        (r'/{}/api/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
+        # (r'/{}/api/users'.format(plugin_name), plugin_namespace.ApiUsersHandler),
+        # (r'/{}/api/users/(.*)'.format(plugin_name), plugin_namespace.ApiUsersHandler),
+        (r'/{}/api/users/current'.format(plugin_name), plugin_namespace.ApiCurrentUserHandler),
+        # (r'/{}/api/users/(.*)/contracts'.format(plugin_name), plugin_namespace.ApiContractsHandler),
+        # (r'/{}/api/users/(.*)/contracts/(.*)'.format(plugin_name), plugin_namespace.ApiContractsHandler),
+        # (r'/{}/api/users/(.*)/documents'.format(plugin_name), plugin_namespace.ApiDocumentsHandler),
+        # (r'/{}/api/users/(.*)/documents/(.*)'.format(plugin_name), plugin_namespace.ApiDocumentsHandler),
+
+        # old
         (r'/{}/api/admintable'.format(plugin_name), plugin_namespace.ApiAdminTableHandler),
         (r'/{}/api/u/(.*)/edit'.format(plugin_name), plugin_namespace.ApiEditUserHandler),
         (r'/{}/api/u/(.*)/contracts/add'.format(plugin_name), plugin_namespace.ApiAddContractHandler),
@@ -105,13 +112,6 @@ class ApiCurrentUserHandler(BaseHandler):
 
 
 # endregion
-
-class GodmodeHandler(BaseHandler):
-
-    def get(self):
-        self.mdb.users.update_one({"user": "derner"},
-                                  {"$addToSet": {"role": "users-sudo"}})
-        self.write("done")
 
 
 class HomeHandler(BaseHandler):
@@ -442,6 +442,9 @@ class UserPageHandler(BaseHandler):
 
         return json.dumps(final_structure)
 
+
+class ApiContractsHandler(BaseHandler):
+    pass
 
 # TODO validovat vstup
 class ApiAddContractHandler(BaseHandlerOwnCloud):

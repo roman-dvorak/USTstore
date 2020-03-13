@@ -30,7 +30,7 @@
             }
         },
         async created() {
-            Axios.get("/users/api/current")
+            Axios.get("/users/api/users/current")
                 .then(res => console.log(this.currentUser = res.data))
                 .catch(err => console.log(err))
         }
