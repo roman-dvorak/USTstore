@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from pymongo.operations import InsertOne, UpdateOne, DeleteOne
 
 from plugins import DbWrapper
-from plugins.helpers.db_experiments.db_experiments_utils import get_embedded_mdoc_by_id
 
 """
 Design practices:
@@ -180,7 +179,14 @@ class EmbeddedMdocWithIdWrapper(EmbeddedMdocWrapper):
         return self._mdoc["_id"]
 
     def reload_from_database(self):
-        self._mdoc = get_embedded_mdoc_by_id(self._collection, self._parent_id, self.FIELD, self.id)
+        mdoc = self._collection.find_one({"_id": self._parent_id, f"{self.FIELD}._id": self.id},
+                             {f"{self.FIELD}.$": 1})
+        if not mdoc:
+            return None
+
+        field_content = mdoc.get(self.FIELD, None)
+
+        self._mdoc = field_content[0] if field_content else None
         self.clear_cache()
 
         return self
