@@ -25,7 +25,7 @@ def make_handlers(module, plugin):
              (r'/%s/api/(.*)/' %module, plugin.api)
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
         "module": "print",
         "name": "Správce skladu",

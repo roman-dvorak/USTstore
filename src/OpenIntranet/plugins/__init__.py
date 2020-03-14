@@ -28,16 +28,16 @@ from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_fi
     get_file_last_version_number
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
     handlers = [
-        (r'/login', plugin.LoginHandler),
-        (r'/logout', plugin.LogoutHandler),
-        (r'/registration', plugin.RegistrationHandler),
-        (r'/api/backup', plugin.doBackup), ]
+        (r'/login', LoginHandler),
+        (r'/logout', LogoutHandler),
+        (r'/registration', RegistrationHandler),
+        (r'/api/backup', doBackup), ]
     return handlers
 
 
-def plug_info():
+def get_plugin_info():
     return {
         "display": False,
         "module": "init",

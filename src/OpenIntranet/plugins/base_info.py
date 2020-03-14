@@ -5,23 +5,28 @@ import tornado.escape
 import tornado.web
 import tornado.websocket
 from . import Intranet
-#from pyoctopart.octopart import Octopart
+# from pyoctopart.octopart import Octopart
 import json
 import urllib
 
-def make_handlers(module, plugin):
-		return [
-			 (r'/%s' %module, plugin.hand_bi_home),
-			 (r'/%s/' %module, plugin.hand_bi_home),
-		]
-def plug_info():
-	#class base_info(object):
-	return {
-		"module": "base_info",
-		"name": "base_info"
-	}
+
+def get_plugin_handlers():
+    plugin_name = get_plugin_info()["module"]
+
+    return [
+        (r'/%s' % plugin_name, hand_bi_home),
+        (r'/%s/' % plugin_name, hand_bi_home),
+    ]
+
+
+def get_plugin_info():
+    # class base_info(object):
+    return {
+        "module": "base_info",
+        "name": "base_info"
+    }
 
 
 class hand_bi_home(tornado.web.RequestHandler):
-	def get(self, data=None):
-		self.write("BASE ....")
+    def get(self, data=None):
+        self.write("BASE ....")
