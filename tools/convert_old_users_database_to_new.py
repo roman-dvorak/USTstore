@@ -23,6 +23,9 @@ def convert_embedded_ids_to_objectid(database, field, user_mdoc):
     for embedded in user_mdoc[field]:
         try:
             embedded["_id"] = ObjectId(embedded["_id"])
+
+            if "contract" in embedded:
+                embedded["contract"] = ObjectId(embedded["contract"])
         except InvalidId as e:
             print(f"Problém v {field}: {e}")
 

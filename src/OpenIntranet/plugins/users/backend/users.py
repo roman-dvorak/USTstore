@@ -22,6 +22,7 @@ from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError, 
 from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
+from plugins.users.backend.helpers.api import JSONEncoder
 
 """
 Role:
@@ -46,13 +47,6 @@ class VueStaticFileHandler(StaticFileHandler):
                 return self.get_absolute_path(root, "index.html")
             else:
                 raise e
-
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, ObjectId):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
 
 
 class ApiCurrentUserHandler(BaseHandler):
@@ -123,7 +117,7 @@ class ApiAdminTableHandler(BaseHandler):
 
                 del item["addresses"]
 
-        out = bson.json_util.dumps(data)
+        out = json.dumps(data, cls=JSONEncoder)
         self.write(out)
 
     def post(self):
@@ -406,7 +400,7 @@ class UserPageHandler(BaseHandler):
             "tax_declaration": tax_declarations,
         }
 
-        return json.dumps(final_structure)
+        return json.dumps(final_structure, cls=JSONEncoder)
 
 
 # TODO validovat vstup
@@ -458,7 +452,7 @@ class ApiAddContractHandler(BaseHandlerOwnCloud):
             "_id": contract_id,
             "url": get_file_url(self.mdb, file_id)
         }
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, cls=JSONEncoder))
 
     def check_for_conflict_with_other_contracts(self, user_id, contract):
         other_contracts = udb.get_user_active_contracts(self.mdb,
@@ -492,7 +486,7 @@ class ApiFinalizeContractHandler(BaseHandler):
     def post(self, user_id):
         user_id = ObjectId(user_id)
 
-        contract_id = self.request.body.decode("utf-8")
+        contract_id = ObjectId(self.request.body.decode("utf-8"))
         contract = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
 
         update_workspans_contract_id(self.mdb, user_id,
@@ -512,9 +506,10 @@ class ApiInvalidateContractHandler(BaseHandler):
 
         req = self.request.body.decode("utf-8")
         data = json.loads(req)
+        contract_id = ObjectId(data["_id"])
 
         invalidation_date = str_ops.datetime_from_iso_str(data["date"])
-        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, data["_id"])
+        contract_mdoc = udb.get_user_contract_by_id(self.mdb, user_id, contract_id)
 
         if not (contract_mdoc["valid_from"] <= invalidation_date <= contract_mdoc["valid_until"]):
             raise BadInputHTTPError("Datum zneplatnění smlouvy musí spadat do období platnosti smlouvy.")
@@ -524,7 +519,7 @@ class ApiInvalidateContractHandler(BaseHandler):
                                      contract_mdoc["valid_until"] + relativedelta(days=1),
                                      None)
 
-        udb.invalidate_user_contract(self.mdb.users, user_id, data["_id"], invalidation_date)
+        udb.invalidate_user_contract(self.mdb.users, user_id, contract_id, invalidation_date)
 
 
 class ApiUploadContractScanHandler(BaseHandlerOwnCloud):
@@ -533,7 +528,7 @@ class ApiUploadContractScanHandler(BaseHandlerOwnCloud):
     async def post(self, user_id):
         user_id = ObjectId(user_id)
 
-        contract_id = self.get_argument("_id")
+        contract_id = ObjectId(self.get_argument("_id"))
 
         local_path, = self.save_uploaded_files("file")
         if not local_path:
@@ -600,8 +595,7 @@ class ApiReuploadDocumentHandler(BaseHandlerOwnCloud):
     async def post(self, user_id):
         user_id = ObjectId(user_id)
 
-        document_id = self.get_argument("_id")
-        print(document_id)
+        document_id = ObjectId(self.get_argument("_id"))
         local_path, = self.save_uploaded_files("file")
 
         owncloud_id = udb.get_user_document_owncloud_id(self.mdb.users, user_id, document_id)
@@ -618,14 +612,15 @@ class ApiInvalidateDocumentHandler(BaseHandler):
 
         req = self.request.body.decode("utf-8")
         data = json.loads(req)
+        document_id = ObjectId(data["_id"])
 
         invalidation_date = str_ops.datetime_from_iso_str(data["date"])
-        document_mdoc = udb.get_user_document_by_id(self.mdb, user_id, data["_id"])
+        document_mdoc = udb.get_user_document_by_id(self.mdb, user_id, document_id)
 
         if not (document_mdoc["valid_from"] <= invalidation_date <= document_mdoc["valid_until"]):
             raise BadInputHTTPError("Datum zneplatnění dokumentu musí spadat do období platnosti dokumentu.")
 
-        udb.invalidate_user_document(self.mdb.users, user_id, data["_id"], invalidation_date)
+        udb.invalidate_user_document(self.mdb.users, user_id, document_id, invalidation_date)
 
 
 class ApiValidateEmail(BaseHandler):

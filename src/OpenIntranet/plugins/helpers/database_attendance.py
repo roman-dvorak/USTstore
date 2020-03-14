@@ -11,7 +11,7 @@ from plugins.helpers.database_utils import add_embedded_mdoc_to_mdoc_array, get_
 def add_user_workspan(database, user_id: ObjectId, workspan):
     assert isinstance(user_id, ObjectId)
 
-    workspan_id = str(ObjectId())
+    workspan_id = ObjectId()
 
     add_embedded_mdoc_to_mdoc_array(database.users, user_id, "workspans", workspan, workspan_id, filter_values=())
 
@@ -22,7 +22,7 @@ def add_user_workspan(database, user_id: ObjectId, workspan):
 def add_user_vacation(database, user_id: ObjectId, vacation):
     assert isinstance(user_id, ObjectId)
 
-    vacation_id = str(ObjectId())
+    vacation_id = ObjectId()
 
     add_embedded_mdoc_to_mdoc_array(database.users, user_id, "vacations", vacation, vacation_id)
 
@@ -76,15 +76,17 @@ def get_user_vacations(database,
 
 
 # done
-def get_user_vacation_by_id(database, user_id: ObjectId, vacation_id: str):
+def get_user_vacation_by_id(database, user_id: ObjectId, vacation_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(vacation_id, ObjectId)
 
     return get_user_embedded_mdoc_by_id(database, user_id, "vacations", vacation_id)
 
 
 # done
-def interrupt_user_vacation(database, user_id: ObjectId, vacation_id, new_end_date):
+def interrupt_user_vacation(database, user_id: ObjectId, vacation_id: ObjectId, new_end_date):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(vacation_id, ObjectId)
 
     database.users.update_one({"_id": user_id, "vacations._id": vacation_id},
                               {"$set": {
@@ -93,8 +95,9 @@ def interrupt_user_vacation(database, user_id: ObjectId, vacation_id, new_end_da
 
 
 # done
-def delete_user_workspan(database, user_id: ObjectId, workspan_id):
+def delete_user_workspan(database, user_id: ObjectId, workspan_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(workspan_id, ObjectId)
 
     database.users.update_one({"_id": user_id},
                               {"$pull": {

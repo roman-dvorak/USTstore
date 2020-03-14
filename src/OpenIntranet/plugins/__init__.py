@@ -25,7 +25,7 @@ from termcolor import colored
 from tornado.web import HTTPError
 
 from plugins.helpers.db_experiments.database_wrapper import DbWrapper
-from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
+from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, \
     get_file_last_version_number
 
 
@@ -656,7 +656,7 @@ class BaseHandlerOwnCloud(BaseHandler):
             "_id": file_id,
             "directory": oc_directory,
             "filename": oc_filename,
-            "versions": {}
+            "versions": []
         })
 
         return file_id
@@ -698,14 +698,12 @@ class BaseHandlerOwnCloud(BaseHandler):
             "_id": file_id,
             "directory": oc_directory,
             "filename": oc_filename,
-            "versions": {
-                "0": {
-                    "by": self.actual_user["_id"],
-                    "when": datetime.datetime.now(),
-                    "path": oc_path,
-                    "url": shared_url,
-                }
-            }
+            "versions": [{
+                "by": self.actual_user["_id"],
+                "when": datetime.datetime.now(),
+                "path": oc_path,
+                "url": shared_url,
+            }],
         })
 
         if delete_local:
@@ -775,8 +773,8 @@ class BaseHandlerOwnCloud(BaseHandler):
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll.update_one({"_id": file_id},
-                        {"$set": {
-                            f"versions.{version_number}": {
+                        {"$push": {
+                            "versions": {
                                 "by": self.actual_user["_id"],
                                 "when": datetime.datetime.now(),
                                 "path": oc_path,

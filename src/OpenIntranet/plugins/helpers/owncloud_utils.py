@@ -27,34 +27,20 @@ def get_file_url(database, file_id, version=-1):
 
     file_mdoc = get_file_mdoc(database, file_id)
 
-    version_indices = list(file_mdoc["versions"].keys())
-    if not version_indices:
+    if not file_mdoc["versions"]:
         return ""
 
-    index = version_indices[version]
-    return file_mdoc["versions"][index]["url"]
-
-
-def get_file_last_version_index(file_mdoc: dict):
-    """
-    Vrací key poslední verze souboru (str) nebo None když soubor ještě nemá verzi.
-    """
-    if not file_mdoc:
-        return None
-    versions_keys = list(file_mdoc["versions"].keys())
-    if not versions_keys:
-        return None
-    return list(file_mdoc["versions"].keys())[-1]
+    return file_mdoc["versions"][version]["url"]
 
 
 def get_file_last_version_number(file_mdoc: dict):
     """
     Vrací číslo poslední verze nebo -1 když soubor ještě nemá verzi.
     """
-    index = get_file_last_version_index(file_mdoc)
-    if not index:
+    if not file_mdoc:
         return -1
-    return int(index)
+
+    return len(file_mdoc["versions"]) - 1
 
 
 def generate_user_directory_path(user_id: ObjectId, user_name: str, year_date):

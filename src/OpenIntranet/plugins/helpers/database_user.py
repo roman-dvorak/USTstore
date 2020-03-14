@@ -126,14 +126,14 @@ def delete_user(coll: pymongo.collection.Collection, user_id: ObjectId):
 def add_user_contract(coll: pymongo.collection.Collection, user_id: ObjectId, contract: dict):
     assert isinstance(user_id, ObjectId)
 
-    add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, str(ObjectId()))
+    add_embedded_mdoc_to_mdoc_array(coll, user_id, "contracts", contract, ObjectId())
 
 
 # done
 def add_user_contract_preview(coll: pymongo.collection.Collection, user_id: ObjectId, contract: dict):
     assert isinstance(user_id, ObjectId)
 
-    contract_id = str(ObjectId())
+    contract_id = ObjectId()
 
     contract = dict(contract)
     contract["type"] = f"{contract['type']}_preview"
@@ -143,8 +143,9 @@ def add_user_contract_preview(coll: pymongo.collection.Collection, user_id: Obje
 
 
 # done
-def unmark_user_contract_as_preview(database, user_id: ObjectId, contract_id: str):
+def unmark_user_contract_as_preview(database, user_id: ObjectId, contract_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(contract_id, ObjectId)
 
     contract_mdoc = get_user_contract_by_id(database, user_id, contract_id)
 
@@ -159,9 +160,10 @@ def unmark_user_contract_as_preview(database, user_id: ObjectId, contract_id: st
 # done
 def invalidate_user_contract(coll: pymongo.collection.Collection,
                              user_id: ObjectId,
-                             contract_id: str,
+                             contract_id: ObjectId,
                              invalidation_date: datetime):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(contract_id, ObjectId)
 
     coll.update_one({"_id": user_id, "contracts._id": contract_id},
                     {"$set": {
@@ -170,8 +172,9 @@ def invalidate_user_contract(coll: pymongo.collection.Collection,
 
 
 # done
-def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: ObjectId, contract_id: str, file_id):
+def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: ObjectId, contract_id: ObjectId, file_id):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(contract_id, ObjectId)
 
     coll.update_one({"_id": user_id, "contracts._id": contract_id},
                     {"$set": {
@@ -183,14 +186,15 @@ def add_user_contract_scan(coll: pymongo.collection.Collection, user_id: ObjectI
 def add_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document: dict):
     assert isinstance(user_id, ObjectId)
 
-    _id = str(ObjectId())
+    _id = ObjectId()
     add_embedded_mdoc_to_mdoc_array(coll, user_id, "documents", document, _id)
     return _id
 
 
 # done
-def delete_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: str):
+def delete_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(document_id, ObjectId)
 
     coll.update_one({"_id": user_id},
                     {"$pull": {
@@ -203,9 +207,10 @@ def delete_user_document(coll: pymongo.collection.Collection, user_id: ObjectId,
 # done
 def invalidate_user_document(coll: pymongo.collection.Collection,
                              user_id: ObjectId,
-                             document_id: str,
+                             document_id: ObjectId,
                              invalidation_date: datetime):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(document_id, ObjectId)
 
     coll.update_one({"_id": user_id, "documents._id": document_id},
                     {"$set": {
@@ -213,15 +218,17 @@ def invalidate_user_document(coll: pymongo.collection.Collection,
                     }})
 
 
-def get_user_document_owncloud_id(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: str):
+def get_user_document_owncloud_id(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(document_id, ObjectId)
 
     document_mdoc = coll.find_one({"_id": user_id, "documents._id": document_id}, {"documents.$": 1})
     return document_mdoc["documents"][0]["file"]
 
 
-def update_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: str, document: dict):
+def update_user_document(coll: pymongo.collection.Collection, user_id: ObjectId, document_id: ObjectId, document: dict):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(document_id, ObjectId)
 
     to_set, to_unset = get_mdocument_set_unset_dicts(document)
 
@@ -392,15 +399,17 @@ def update_user_email_is_validated_status(coll: pymongo.collection.Collection,
 
 
 # done
-def get_user_contract_by_id(database, user_id: ObjectId, contract_id: str):
+def get_user_contract_by_id(database, user_id: ObjectId, contract_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(contract_id, ObjectId)
 
     return get_user_embedded_mdoc_by_id(database, user_id, "contracts", contract_id)
 
 
 # done
-def get_user_document_by_id(database, user_id: ObjectId, document_id: str):
+def get_user_document_by_id(database, user_id: ObjectId, document_id: ObjectId):
     assert isinstance(user_id, ObjectId)
+    assert isinstance(document_id, ObjectId)
 
     return get_user_embedded_mdoc_by_id(database, user_id, "documents", document_id)
 

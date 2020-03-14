@@ -15,6 +15,7 @@ from plugins.helpers.finance import calculate_tax
 from plugins.helpers.math_utils import floor_to_half
 from plugins.helpers.mdoc_ops import get_user_days_of_vacation_in_year
 from plugins.helpers.owncloud_utils import generate_reports_directory_path, get_file_url
+from plugins.users.backend.helpers.api import JSONEncoder
 
 ROLE_SUDO = "users-sudo"
 ROLE_ACCOUNTANT = "users-accountant"
@@ -216,9 +217,6 @@ class ApiAdminMonthTableHandler(BaseHandler):
             user_id = user["_id"]
             calculator = AttendanceCalculator(self.mdb, user_id, date)
 
-            report_file_id = adb.get_user_hours_report_file_id(self.mdb, user_id, month_date=date)
-            report_url = get_file_url(self.mdb, report_file_id) if report_file_id else None
-
             row = {
                 "id": str(user_id),
                 "name": user.get("name", {}),
@@ -228,11 +226,10 @@ class ApiAdminMonthTableHandler(BaseHandler):
                 "gross_wage": calculator.month_gross_wage,
                 "tax_amount": calculator.month_tax_amount,
                 "net_wage": calculator.month_net_wage,
-                "report": report_url
             }
             rows.append(row)
 
-        self.write(bson.json_util.dumps(rows))
+        self.write(json.dumps(rows, cls=JSONEncoder))
 
 
 class ApiAdminYearTableHandler(BaseHandler):
@@ -257,7 +254,7 @@ class ApiAdminYearTableHandler(BaseHandler):
             }
             rows.append(row)
 
-        self.write(bson.json_util.dumps(rows))
+        self.write(json.dumps(rows, cls=JSONEncoder))
 
 
 class ApiAdminReportsTableHandler(BaseHandler):
@@ -285,7 +282,7 @@ class ApiAdminReportsTableHandler(BaseHandler):
 
             rows.append(row)
 
-        self.write(bson.json_util.dumps(rows))
+        self.write(json.dumps(rows, cls=JSONEncoder))
 
 
 class UserAttendancePageHandler(BaseHandler):
@@ -381,7 +378,7 @@ class ApiCalendarHandler(BaseHandler):
             "workdays": workspan_days_hours,
         }
 
-        self.write(bson.json_util.dumps(data))
+        self.write(json.dumps(data, cls=JSONEncoder))
 
 
 class ApiMonthInfoHandler(BaseHandler):
@@ -411,7 +408,7 @@ class ApiMonthInfoHandler(BaseHandler):
             "month_closed": adb.is_month_closed(self.mdb, user_id, month)
         }
 
-        self.write(bson.json_util.dumps(data))
+        self.write(json.dumps(data, cls=JSONEncoder))
 
 
 class WorkspanBaseHandler(BaseHandler):
@@ -459,7 +456,7 @@ class WorkspanBaseHandler(BaseHandler):
             adb.add_user_workspan(self.mdb, self.user_id, added_workspan)
 
         for deleted_workspan in self.deleted_workspans:
-            adb.delete_user_workspan(self.mdb, self.user_id, deleted_workspan["_id"])
+            adb.delete_user_workspan(self.mdb, self.user_id, ObjectId(deleted_workspan["_id"]))
 
         self.reset_cache()
 
@@ -629,14 +626,15 @@ class ApiInterruptVacationHandler(BaseHandler):
 
         req = self.request.body.decode("utf-8")
         data = json.loads(req)
+        vacation_id = ObjectId(data["_id"])
 
         interruption_date = str_ops.datetime_from_iso_str(data["date"])
-        vacation_mdoc = adb.get_user_vacation_by_id(self.mdb, user_id, data["_id"])
+        vacation_mdoc = adb.get_user_vacation_by_id(self.mdb, user_id, vacation_id)
 
         if not (vacation_mdoc["from"] <= interruption_date <= vacation_mdoc["to"]):
             raise BadInputHTTPError("Datum přerušení musí být mezi začátkem a koncem dovolené!")
 
-        adb.interrupt_user_vacation(self.mdb, user_id, data["_id"], interruption_date)
+        adb.interrupt_user_vacation(self.mdb, user_id, vacation_id, interruption_date)
 
 
 class ApiDeleteWorkspanHandler(BaseHandler):
@@ -647,7 +645,7 @@ class ApiDeleteWorkspanHandler(BaseHandler):
         if not self.is_authorized([ROLE_SUDO, ROLE_ACCOUNTANT], specific_users=[user_id]):
             raise ForbiddenHTTPError(operation="odstranění docházky jiného uživatele")
 
-        workspan_id = self.request.body.decode("utf-8")
+        workspan_id = ObjectId(self.request.body.decode("utf-8"))
         adb.delete_user_workspan(self.mdb, user_id, workspan_id)
 
 
