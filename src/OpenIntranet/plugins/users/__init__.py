@@ -68,3 +68,24 @@ def get_plugin_info():
         "name": "Uživatelé",
         "icon": 'icon_users.svg'
     }
+
+
+"""
+Návrh 
+
+def get_plugin_info():
+    return {
+        "name": "users",
+        "entrypoints": [
+            {
+                "url": "/users",
+                "title": "Uživatelé",
+                "icon": 'icon_users.svg',
+            },
+            {
+                "url": "/attendance",
+                "title": "Docházka",
+                "icon": 'icon_users.svg',
+            }]
+    }
+"""
