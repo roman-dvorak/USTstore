@@ -55,6 +55,14 @@ class home(BaseHandler):
                 continue
 
             for entrypoint in plugin_info.get("entrypoints", []):
+                if "url" not in entrypoint:
+                    print("Tento entrypoint pluginu", plugin_info["name"], "nemá url a nelze zobrazit:", entrypoint)
+                    continue
+
+                if "title" not in entrypoint:
+                    print("Tento entrypoint pluginu", plugin_info["name"], "nemá titulek a nelze zobrazit:", entrypoint)
+                    continue
+
                 if not self.should_show_entrypoint(entrypoint):
                     continue
 
@@ -69,10 +77,17 @@ class home(BaseHandler):
         self.write("ACK")
 
     def should_show_entrypoint(self, entrypoint):
+        if "role" in entrypoint and not self.is_authorized(entrypoint["role"]):
+            return False
+
         return True
 
     def should_show_plugin(self, plugin_info):
+        if "role" in plugin_info and not self.is_authorized(plugin_info["role"]):
+            return False
+
         return True
+
 
 class WebApp(tornado.web.Application):
 
