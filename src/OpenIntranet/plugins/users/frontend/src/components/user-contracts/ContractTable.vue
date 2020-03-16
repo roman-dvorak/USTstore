@@ -15,7 +15,7 @@
                   :active="contract._id === whichActive"
                   :open="contract._id === whichOpen"
                   :invalidatable="isInvalidatable(contract)"
-                  @change-open="newId => whichOpen = newId"/>
+                  @change-open="newId => whichOpen = whichOpen === newId ? null : newId"/>
         <b-tbody v-if="contracts.length !== minVisible">
             <b-tr>
                 <b-td>
@@ -41,6 +41,7 @@
     import Contract from "./Contract";
     import dayjs from "dayjs";
     import {useContractUtilities} from "../../utilities/contract-utilities";
+    import Axios from "axios";
 
     export default {
         name: "ContractTable",
@@ -101,6 +102,12 @@
                 //         notes: "blabla"
                 //     },
                 // ];
+                Axios.get("/users/api/users/5e2c47a158872d1d9b210a49?include=contracts")
+                    .then(response => {
+                        this.contracts = response.data.contracts;
+                        console.log(this.contracts)
+                    })
+                    .catch(error => console.log(error));
 
                 this.whichOpen = this.whichActive = this.findActiveContractId(this.contracts);
             },

@@ -1,13 +1,14 @@
 <template>
-    <b-tbody :class="{inactive: !active}">
+    <b-tbody :class="{inactive: !active, invalidated: isInvalidated}">
         <b-tr>
             <b-th>
                 <div class="flex-space-between">
                     <div id="title" @click="$emit('change-open', contract._id)">
                         {{contractTypeFormat(contract.type)}}
-                        {{czechDateFormat(contract.valid_from)}} - {{czechDateFormat(contract.valid_until)}}
-                        <span v-if="_.has(contract, 'invalidation_date')">
-                            ({{czechDateFormat(contract.invalidation_date)}})
+                        {{czechDateFormat(contract.valid_from)}} -
+                        <span class="valid-until-date">{{czechDateFormat(contract.valid_until)}}</span>
+                        <span v-if="isInvalidated">
+                            {{czechDateFormat(contract.invalidation_date)}}
                         </span>
                     </div>
                     <icon-menu-dropdown right>
@@ -64,7 +65,7 @@
                             </td>
                         </b-tr>
 
-                        <b-tr v-if="_.has(contract, 'invalidation_date')">
+                        <b-tr v-if="isInvalidated">
                             <td>Zneplatněna ke dni</td>
                             <td>{{czechDateFormat(contract.invalidation_date)}}</td>
                         </b-tr>
@@ -125,6 +126,9 @@
             },
             hasChangeInvalidationDateMenuItem: function () {
                 return _.has(this.contract, "invalidation_date")
+            },
+            isInvalidated: function () {
+                return Boolean(this.contract.invalidation_date)
             }
         }
     }
@@ -137,6 +141,7 @@
 
     #title {
         cursor: pointer;
+        user-select: none;
     }
 
     .details-wrapper {
@@ -179,5 +184,9 @@
 
     .inactive .table {
         color: gray;
+    }
+
+    .invalidated .valid-until-date {
+        text-decoration: line-through;
     }
 </style>
