@@ -17,7 +17,7 @@ import requests
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/{}/data/module_list'.format(plugin_name), module_list),
@@ -30,8 +30,14 @@ def get_plugin_handlers():
 def get_plugin_info():
     #class base_info(object):
     return {
-        "module": "mlab_import",
-        "name": "Importování z MLABu"
+        "name": "mlab_import",
+        "entrypoints": [
+            {
+                "title": "Importování z MLABu",
+                "url": "/mlab_import",
+                "icon": "cloud_download",
+            }
+        ]
     }
 
 

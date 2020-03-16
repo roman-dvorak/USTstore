@@ -16,7 +16,7 @@ from fpdf import FPDF
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/{}/(.*)/upload/bom/ust/'.format(plugin_name), ust_bom_upload),
@@ -30,8 +30,14 @@ def get_plugin_handlers():
 def get_plugin_info():
     #class base_info(object):
     return {
-        "module": "production",
-        "name": "production"
+        "name": "production",
+        "entrypoints": [
+            {
+                "title": "production",
+                "url": "/production",
+                "icon": "work"
+            }
+        ]
     }
 
 

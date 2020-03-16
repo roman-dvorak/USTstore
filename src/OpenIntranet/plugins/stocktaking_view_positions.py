@@ -30,9 +30,9 @@ def get_plugin_handlers():
 def get_plugin_info():
     #class base_info(object):
     return {
-        "display": False,
-        "module": "stocktaking",
-        "name": "Stock taking - Positions overiew"
+        "name": "stocktaking_view_positions",
+        "entrypoints": [],
+        # "name": "Stock taking - Positions overiew"
     }
 
 

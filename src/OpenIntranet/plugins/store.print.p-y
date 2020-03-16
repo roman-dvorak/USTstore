@@ -25,12 +25,12 @@ def make_handlers(module, plugin):
              (r'/%s/api/(.*)/' %module, plugin.api)
         ]
 
-def get_plugin_info():
-    return{
-        "module": "print",
-        "name": "Správce skladu",
-        "icon": 'icon_sklad.svg'
-    }
+# def get_plugin_info():
+#     return{
+#         "module": "print",
+#         "name": "Správce skladu",
+#         "icon": 'icon_sklad.svg'
+#     }
 
 
 class print_layout(BaseHandler):

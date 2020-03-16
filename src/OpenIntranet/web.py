@@ -46,14 +46,33 @@ tornado.options.define("email_smtp_port", default=25)
 
 class home(BaseHandler):
     def get(self, arg=None):
-        print("GET home")
         err = []
+
+        entrypoints = []
+
+        for plugin_info in self.settings["plugins"].values():
+            if not self.should_show_plugin(plugin_info):
+                continue
+
+            for entrypoint in plugin_info.get("entrypoints", []):
+                if not self.should_show_entrypoint(entrypoint):
+                    continue
+
+                entrypoints.append(dict(plugin_name=plugin_info["name"], **entrypoint))
+
+        entrypoints.sort(key=lambda e: e["plugin_name"])
+
         self.render("intranet.home.hbs", title=tornado.options.options.intranet_name, default=None, required=True,
-                    parent=self, err=err, Repo=Repo)
+                    parent=self, err=err, Repo=Repo, entrypoints=entrypoints)
 
     def post(self, *args, **kwargs):
         self.write("ACK")
 
+    def should_show_entrypoint(self, entrypoint):
+        return True
+
+    def should_show_plugin(self, plugin_info):
+        return True
 
 class WebApp(tornado.web.Application):
 
@@ -124,7 +143,7 @@ class WebApp(tornado.web.Application):
 
                 plugin_handlers = module.get_plugin_handlers()
                 plugin_info = module.get_plugin_info()
-                plugin_name = plugin_info.get("module", module_name)
+                plugin_name = plugin_info.get("name", module_name)
 
                 if plugin_name in plugin_infos:
                     raise RuntimeError(f"Plugin {plugin_name} (v souboru {file_name}) je duplicitní.")

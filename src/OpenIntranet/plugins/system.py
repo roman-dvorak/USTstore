@@ -6,7 +6,7 @@ from plugins import BaseHandler, get_company_info, get_dpp_params
 
 
 def get_plugin_handlers():
-    plugin_name = get_plugin_info()["module"]
+    plugin_name = get_plugin_info()["name"]
 
     handlers = [
         (r'/{}/parameters'.format(plugin_name), ParametersHandler),
@@ -18,8 +18,14 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return {
-        "module": "system",
-        "name": "system"
+        "name": "system",
+        "entrypoints": [
+            {
+                "title": "Systém",
+                "url": "/system",
+                "icon": "settings",
+            }
+        ]
     }
 
 

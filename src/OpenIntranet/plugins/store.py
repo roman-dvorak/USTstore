@@ -22,7 +22,7 @@ import datetime
 from plugins.helpers.warehouse import *
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/%s' %plugin_name, hand_bi_home),
@@ -49,10 +49,15 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return{
-        "module": "store",
-        "name": "Sklad",
-        "icon": 'icon_sklad.svg',
-        "role": ['store-access', 'store-sudo', 'sudo', 'store-manager']
+        "role": ['store-access', 'store-sudo', 'sudo', 'store-manager'],
+        "name": "store",
+        "entrypoints": [
+            {
+                "title": "Sklad",
+                "url": "/store",
+                "icon": "business",
+            }
+        ]
     }
 
 ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]

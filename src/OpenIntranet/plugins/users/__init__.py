@@ -1,4 +1,4 @@
-from .backend import attendance, users
+from .backend import attendance, users, vue_handlers
 
 
 def get_plugin_handlers():
@@ -6,17 +6,18 @@ def get_plugin_handlers():
     attendance_base_name = "attendance"
 
     return [
-        (r'/{}/vue/?(.*)'.format(users_base_name), users.VueStaticFileHandler, {
+        (r'/{}/vue/?(.*)'.format(users_base_name), vue_handlers.VueStaticFileHandler, {
             "path": "plugins/users/frontend/dist",
             "default_filename": "index.html"
         }),
-        # (r'/{}/api/users'.format(users_base_name), users.ApiUsersHandler),
-        # (r'/{}/api/users/(.*)'.format(users_base_name), users.ApiUsersHandler),
-        (r'/{}/api/users/current'.format(users_base_name), users.ApiCurrentUserHandler),
-        (r'/{}/api/users/(.*)/contracts'.format(users_base_name), users.ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/contracts/(.*)'.format(users_base_name), users.ApiContractsHandler),
-        # (r'/{}/api/users/(.*)/documents'.format(users_base_name), users.ApiDocumentsHandler),
-        # (r'/{}/api/users/(.*)/documents/(.*)'.format(users_base_name), users.ApiDocumentsHandler),
+        (r'/{}/api/users'.format(users_base_name), vue_handlers.ApiUsersHandler),
+        (r'/{}/api/users/current'.format(users_base_name), vue_handlers.ApiCurrentUserHandler),
+        (r'/{}/api/users/(.*)/contracts'.format(users_base_name),
+         vue_handlers.ApiContractsHandler),
+        (r'/{}/api/users/(.*)/contracts/(.*)'.format(users_base_name), vue_handlers.ApiContractsHandler),
+        (r'/{}/api/users/(.*)/documents'.format(users_base_name), vue_handlers.ApiDocumentsHandler),
+        (r'/{}/api/users/(.*)/documents/(.*)'.format(users_base_name), vue_handlers.ApiDocumentsHandler),
+        (r'/{}/api/users/(.*)'.format(users_base_name), vue_handlers.ApiUsersHandler),
 
         # old
         (r'/{}/api/admintable'.format(users_base_name), users.ApiAdminTableHandler),
@@ -64,28 +65,17 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return {
-        "module": "users",
-        "name": "Uživatelé",
-        "icon": 'icon_users.svg'
-    }
-
-
-"""
-Návrh 
-
-def get_plugin_info():
-    return {
         "name": "users",
         "entrypoints": [
             {
-                "url": "/users",
-                "title": "Uživatelé",
-                "icon": 'icon_users.svg',
-            },
-            {
                 "url": "/attendance",
                 "title": "Docházka",
-                "icon": 'icon_users.svg',
-            }]
+                "icon": 'watch_later',
+            },
+            {
+                "url": "/users",
+                "title": "Uživatelé",
+                "icon": 'account_box',
+            },
+        ]
     }
-"""

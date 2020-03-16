@@ -25,7 +25,7 @@ import collections, urllib, base64, hmac, hashlib, json
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              #(r'/%s' %plugin_name, hand_bi_home),
@@ -37,8 +37,8 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return{
-        "module": "external_database",
-        "name": "external_database"
+        "name": "external_database",
+        "entrypoints": [],
     }
 
 

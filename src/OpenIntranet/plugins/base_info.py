@@ -11,7 +11,7 @@ import urllib
 
 
 def get_plugin_handlers():
-    plugin_name = get_plugin_info()["module"]
+    plugin_name = get_plugin_info()["name"]
 
     return [
         (r'/%s' % plugin_name, hand_bi_home),
@@ -20,10 +20,9 @@ def get_plugin_handlers():
 
 
 def get_plugin_info():
-    # class base_info(object):
     return {
-        "module": "base_info",
-        "name": "base_info"
+        "name": "base_info",
+        "entrypoints": []
     }
 
 

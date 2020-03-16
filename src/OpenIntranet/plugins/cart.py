@@ -13,7 +13,7 @@ import datetime
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/{}'.format(plugin_name), home),
@@ -30,9 +30,14 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return{
-        "module": "cart",
-        "name": "Nákupí košíky",
-        "icon": 'icon_cart.svg'
+        "name": "cart",
+        "entrypoints": [
+            {
+                "title": "Nákupní košíky",
+                "url": "/cart",
+                "icon": "shopping_cart",
+            }
+        ]
     }
 
 

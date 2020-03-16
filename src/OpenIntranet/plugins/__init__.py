@@ -24,7 +24,7 @@ from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
 
-from plugins.helpers.db_experiments.database_wrapper import DbWrapper
+from plugins.helpers.db_experiments.database_wrapper import DbWithBulkOps
 from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, \
     get_file_last_version_number
 
@@ -40,9 +40,8 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return {
-        "display": False,
-        "module": "init",
-        "name": "init"
+        "name": "init",
+        "entrypoints": []
     }
 
 
@@ -111,7 +110,7 @@ def perm_validator(method, permissions=[], sudo=True):
 def database_init():
     client = pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)
 
-    return DbWrapper(client, tornado.options.options.mdb_database)
+    return DbWithBulkOps(client, tornado.options.options.mdb_database)
 
 
 def get_company_info(database):

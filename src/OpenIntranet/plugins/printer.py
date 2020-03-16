@@ -19,7 +19,7 @@ from plugins import BaseHandler
 
 
 def get_plugin_handlers():
-    plugin_name = get_plugin_info()["module"]
+    plugin_name = get_plugin_info()["name"]
 
     handlers = [
         (r'/{}/label'.format(plugin_name), print_label),
@@ -30,8 +30,14 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return {
-        "module": "printer",
-        "name": "tisk"
+        "name": "printer",
+        "entrypoints": [
+            {
+                "title": "Tisk",
+                "url": "/printer",
+                "icon": "print",
+            }
+        ]
     }
 
 

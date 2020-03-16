@@ -13,7 +13,7 @@ import datetime
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/{}'.format(plugin_name), home),
@@ -26,8 +26,8 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return{
-        "module": "development",
-        "name": "Vývvoj",
+        "name": "development",
+        "entrypoints": []
     }
 
 

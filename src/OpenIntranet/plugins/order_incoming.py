@@ -42,10 +42,15 @@ def get_plugin_handlers():
 
 def get_plugin_info():
     return{
-        "module": "invoice_import",
-        "name": "Importování faktur",
-        "icon": 'icon_sklad.svg',
-        "role": ['invoice', 'invoice-access']
+        "role": ['invoice', 'invoice-access'],
+        "name": "invoice_import",
+        "entrypoints": [
+            {
+                "title": "Importování faktur",
+                "url": "/invoice_import",
+                "icon": "assignment_returned",
+            }
+        ]
     }
 
 

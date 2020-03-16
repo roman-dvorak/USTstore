@@ -25,7 +25,7 @@ from plugins.store_data.stock_counting import getLastInventory, getPrice, getInv
 
 
 def get_plugin_handlers():
-        plugin_name = get_plugin_info()["module"]
+        plugin_name = get_plugin_info()["name"]
 
         return [
              (r'/{}/get_item/'.format(plugin_name), load_item),
@@ -43,8 +43,14 @@ def get_plugin_handlers():
 def get_plugin_info():
     #class base_info(object):
     return {
-        "module": "stocktaking",
-        "name": "Stock taking"
+        "name": "stocktaking",
+        "entrypoints": [
+            {
+                "title": "Stock taking",
+                "url": "/stocktaking",
+                "icon": "insert_chart",
+            }
+        ]
     }
 
 

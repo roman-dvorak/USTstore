@@ -5,18 +5,68 @@
 {% set keys = sorted(plugins.keys()) %}
 
 <style type="text/css">
-	.plugin_tab{float: left; padding: 1em;}
+    body {
+        overflow: auto;
+    }
+
+    .plugin_tab {
+        float: left;
+        padding: 1em;
+    }
+
+    .entrypoints-contrainer {
+        padding: 15px;
+        display: flex;
+        flex-flow: wrap;
+    }
+
+    .entrypoint-card {
+        width: 250px;
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+        margin-bottom: 20px;
+    }
+
+    .entrypoint-link {
+        text-decoration: none;
+        color: var(--gray-dark);
+    }
+
+    .entrypoint-link:hover {
+        color: var(--gray);
+        text-decoration: none;
+    }
+
+    .entrypoint-link:visited {
+        text-decoration: none;
+    }
+
+    .entrypoint-icon {
+        width: 70px;
+        font-size: 70px;
+        margin-right: 10px;
+    }
+
+    .entrypoint-title {
+        font-weight: bold;
+    }
+
+    .plugin-name {
+        color: gray;
+    }
 </style>
 
-{% for e in err %}
-<p> Error: {{e}} </p>
-{% end %}
-<div class="row">
-	{% for plug in keys %}
-		{%if (len(plugins[plug].get('role', [])) is 0 or parent.is_authorized(plugins[plug].get('role', []))) and plugins[plug].get('display', True) %}
-		<a href="/{{plugins[plug]['module']}}"><div class="plugin_tab"><label class="tab_label"><img src="/static/{{plugins[plug].get('icon', 'icon_empty.svg')}}" class="pr-1">{{plugins[plug]['name']}}</label></div></a>
-        {%end%}
-	{% end %}
+<div class="entrypoints-contrainer">
+    {% for entrypoint in entrypoints %}
+    <a class="entrypoint-card entrypoint-link" href="{{entrypoint['url']}}">
+        <i class="material-icons entrypoint-icon">{{entrypoint.get("icon", "settings_input_component")}}</i>
+        <div>
+            <div class="entrypoint-title">{{entrypoint["title"]}}</div>
+            <div class="plugin-name">{{entrypoint["plugin_name"]}}</div>
+        </div>
+    </a>
+    {% end %}
 </div>
 {#{Repo()}#}
 
