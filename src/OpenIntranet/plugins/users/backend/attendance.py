@@ -15,7 +15,7 @@ from plugins.helpers.finance import calculate_tax
 from plugins.helpers.math_utils import floor_to_half
 from plugins.helpers.mdoc_ops import get_user_days_of_vacation_in_year
 from plugins.helpers.owncloud_utils import generate_reports_directory_path, get_file_url
-from plugins.users.backend.helpers.api import JSONEncoder
+from plugins.users.backend.helpers.api import ApiJSONEncoder
 
 ROLE_SUDO = "users-sudo"
 ROLE_ACCOUNTANT = "users-accountant"
@@ -229,7 +229,7 @@ class ApiAdminMonthTableHandler(BaseHandler):
             }
             rows.append(row)
 
-        self.write(json.dumps(rows, cls=JSONEncoder))
+        self.write(json.dumps(rows, cls=ApiJSONEncoder))
 
 
 class ApiAdminYearTableHandler(BaseHandler):
@@ -254,7 +254,7 @@ class ApiAdminYearTableHandler(BaseHandler):
             }
             rows.append(row)
 
-        self.write(json.dumps(rows, cls=JSONEncoder))
+        self.write(json.dumps(rows, cls=ApiJSONEncoder))
 
 
 class ApiAdminReportsTableHandler(BaseHandler):
@@ -282,7 +282,7 @@ class ApiAdminReportsTableHandler(BaseHandler):
 
             rows.append(row)
 
-        self.write(json.dumps(rows, cls=JSONEncoder))
+        self.write(json.dumps(rows, cls=ApiJSONEncoder))
 
 
 class UserAttendancePageHandler(BaseHandler):
@@ -378,7 +378,7 @@ class ApiCalendarHandler(BaseHandler):
             "workdays": workspan_days_hours,
         }
 
-        self.write(json.dumps(data, cls=JSONEncoder))
+        self.write(json.dumps(data, cls=ApiJSONEncoder))
 
 
 class ApiMonthInfoHandler(BaseHandler):
@@ -408,7 +408,7 @@ class ApiMonthInfoHandler(BaseHandler):
             "month_closed": adb.is_month_closed(self.mdb, user_id, month)
         }
 
-        self.write(json.dumps(data, cls=JSONEncoder))
+        self.write(json.dumps(data, cls=ApiJSONEncoder))
 
 
 class WorkspanBaseHandler(BaseHandler):

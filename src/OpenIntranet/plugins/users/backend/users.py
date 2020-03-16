@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import json
-import sys
 from datetime import datetime, timedelta
 
 import bson.json_util
@@ -9,7 +8,7 @@ import tornado
 import tornado.options
 from bson import ObjectId
 from dateutil.relativedelta import relativedelta
-from tornado.web import HTTPError, StaticFileHandler
+from tornado.web import HTTPError
 
 from plugins import BaseHandler, password_hash
 from plugins import BaseHandlerOwnCloud
@@ -22,7 +21,7 @@ from plugins.helpers.exceptions import BadInputHTTPError, MissingInfoHTTPError, 
 from plugins.helpers.mdoc_ops import find_type_in_addresses, update_workspans_contract_id
 from plugins.helpers.owncloud_utils import get_file_url, generate_contracts_directory_path, \
     generate_documents_directory_path
-from plugins.users.backend.helpers.api import JSONEncoder
+from plugins.users.backend.helpers.api import ApiJSONEncoder
 
 """
 Role:
@@ -37,41 +36,8 @@ ROLE_ACCOUNTANT = "users-accountant"
 
 # region Vue stuff
 
-class VueStaticFileHandler(StaticFileHandler):
-
-    def validate_absolute_path(self, root: str, absolute_path: str):
-        try:
-            return super().validate_absolute_path(root, absolute_path)
-        except HTTPError as e:
-            if e.status_code == 404:
-                return self.get_absolute_path(root, "index.html")
-            else:
-                raise e
-
-
-class ApiCurrentUserHandler(BaseHandler):
-
-    def get(self):
-        print(self.current_user)
-
-        data = {
-            "_id": str(self.current_user["_id"]),
-            "user": self.current_user["user"],
-            "param": self.current_user["param"]
-        }
-
-        self.write(JSONEncoder().encode(data))
-
 
 # endregion
-
-
-class ApiContractsHandler(BaseHandler):
-
-    def get(self, user_id, contract_id=None):
-        for module in sys.modules:
-            print("  ", module)
-        self.write("done")
 
 
 class HomeHandler(BaseHandler):
@@ -117,7 +83,7 @@ class ApiAdminTableHandler(BaseHandler):
 
                 del item["addresses"]
 
-        out = json.dumps(data, cls=JSONEncoder)
+        out = json.dumps(data, cls=ApiJSONEncoder)
         self.write(out)
 
     def post(self):
@@ -400,7 +366,7 @@ class UserPageHandler(BaseHandler):
             "tax_declaration": tax_declarations,
         }
 
-        return json.dumps(final_structure, cls=JSONEncoder)
+        return json.dumps(final_structure, cls=ApiJSONEncoder)
 
 
 # TODO validovat vstup
@@ -452,7 +418,7 @@ class ApiAddContractHandler(BaseHandlerOwnCloud):
             "_id": contract_id,
             "url": get_file_url(self.mdb, file_id)
         }
-        self.write(json.dumps(response, cls=JSONEncoder))
+        self.write(json.dumps(response, cls=ApiJSONEncoder))
 
     def check_for_conflict_with_other_contracts(self, user_id, contract):
         other_contracts = udb.get_user_active_contracts(self.mdb,
