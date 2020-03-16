@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from plugins.helpers.db_experiments.db_utils import SingleEmbeddedMdocWrapper, EmbeddedMdocWithIdWrapper, \
-    TopLevelMdocWrapper, StringField, DateField, IntegerField, ObjectIdField, EnumerationField, FloatField, ArrayField, \
-    ArrayOfEmbeddedField, SingleEmbeddedField, BooleanField
+from plugins.helpers.db_experiments.db_wrappers import SingleEmbeddedMdocWrapper, EmbeddedMdocWithIdWrapper, \
+    TopLevelMdocWrapper
+from plugins.helpers.db_experiments.db_fields import StringField, IntegerField, FloatField, BooleanField, DateField, \
+    ObjectIdField, EnumerationField, ArrayField, SingleEmbeddedField, ArrayOfEmbeddedField
 
 
 class Name(SingleEmbeddedMdocWrapper):
@@ -16,7 +17,7 @@ class Name(SingleEmbeddedMdocWrapper):
 
 
 # TODO dát adresám _id a chovat se k nim jako k normálním embedded
-class Address(SingleEmbeddedMdocWrapper):
+class Address(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "addresses"
 
@@ -25,52 +26,59 @@ class Address(SingleEmbeddedMdocWrapper):
     state = StringField("state")
     zip = StringField("zip")
 
-    type = StringField("type", settable=False, deletable=False)
+    type = EnumerationField("type", ["residence", "contact"], settable=False, deletable=False)
 
 
 class Contract(EmbeddedMdocWithIdWrapper):
     COLLECTION = "users"
     FIELD = "contracts"
 
-    type = EnumerationField("type", ["dpp"], settable=False, deletable=False)
+    type = EnumerationField("type", ["dpp", "dpp_preview"], settable=False, deletable=False)
     signing_date = DateField("signing_date", settable=False, deletable=False)
     signing_place = DateField("signing_place", settable=False, deletable=False)
     valid_from = DateField("valid_from", settable=False, deletable=False)
     valid_until = DateField("valid_until", settable=False, deletable=False)
-    invalidation_date = DateField("invalidation_date", settable=False, deletable=False)
     hour_rate = IntegerField("hour_rate", settable=False, deletable=False)
     file = ObjectIdField("file", settable=False, deletable=False)
     scan_file = ObjectIdField("scan_file", settable=False, deletable=False)
 
+    invalidation_date = DateField("invalidation_date")
+
     @classmethod
-    def new_preview(cls, database, user_id, type_, file_id):
-        if not cls.is_valid_type(type_):
-            raise ValueError("Zadaný typ smlouvy není validní.")
-
+    def new_preview(cls, database,
+                    user_id,
+                    type_,
+                    signing_date,
+                    signing_place,
+                    valid_from,
+                    valid_until,
+                    hour_rate,
+                    file_id):
         contract = cls._new_empty(database, user_id)
-        contract._process_updates({
-            "type": f"{type_}_preview",
-            "file": file_id,
-        })
-
-    @staticmethod
-    def is_valid_type(contract_type):
-        return contract_type in ("dpp", "dpc", "ps")
+        with contract.i_know_what_im_doing():
+            contract.type = type_
+            contract.signing_date = signing_date
+            contract.signing_place = signing_place
+            contract.valid_from = valid_from
+            contract.valid_until = valid_until
+            contract.hour_rate = hour_rate
+            contract.file = file_id
 
     def unmark_as_preview(self):
-        self._process_updates({"type": self.type.replace("_preview", "")})
-
-        return self
-
-    def invalidate(self, invalidation_date: datetime):
-        self._process_updates({"invalidation_date": invalidation_date})
+        with self.i_know_what_im_doing():
+            self.type = self.type.replace("_preview", "")
 
         return self
 
     def add_scan_file(self, scan_file_id):
-        self._process_updates({"scan_file": scan_file_id})
+        with self.i_know_what_im_doing():
+            self.scan_file = scan_file_id
 
         return self
+
+    def _invalidation_date_validator(self, value):
+        if not (self.valid_from <= value <= self.valid_until):
+            raise ValueError("Datum zneplatnění musí být mezi daty začátku a konce platnosti smlouvy.")
 
 
 class Document(EmbeddedMdocWithIdWrapper):
@@ -130,7 +138,7 @@ class Workspan(EmbeddedMdocWithIdWrapper):
 class User(TopLevelMdocWrapper):
     COLLECTION = "users"
 
-    user_name = StringField("user", settable=False, deletable=False)
+    user = StringField("user", settable=False, deletable=False)
     role = ArrayField("role")
     created = DateField("created", settable=False, deletable=False)
     type = EnumerationField("type", ["user"], settable=False, deletable=False)
