@@ -21,36 +21,43 @@ import datetime
 
 from plugins.helpers.warehouse import *
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             (r'/%s' %module, plugin.hand_bi_home),
-             (r'/%s/' %module, plugin.hand_bi_home),
-             (r'/%s/print/' %module, plugin.print_layout),
-             (r'/{}/api/items/by_position/'.format(module), plugin.api_get_items_by_position),
-             (r'/{}/api/item/(.*)/'.format(module), plugin.api_item_json),
-             (r'/{}/api/item/(.*)/buy_request'.format(module), plugin.api_buyrequest_json),
-             (r'/{}/api/item/(.*)/suppliers'.format(module), plugin.api_suppliers),
-             (r'/{}/api/products/'.format(module), plugin.api_products_json),
-             (r'/{}/api/get_parameters/list/'.format(module), plugin.api_parameters_list),
-             (r'/{}/api/get_positions/list/'.format(module), plugin.api_positions_list),
-             (r'/{}/api/set_positions/update/'.format(module), plugin.api_update_position),
-             (r'/{}/api/set_positions/move/'.format(module), plugin.api_move_position),
+             (r'/%s' %plugin_name, hand_bi_home),
+             (r'/%s/' %plugin_name, hand_bi_home),
+             (r'/%s/print/' %plugin_name, print_layout),
+             (r'/{}/api/items/by_position/'.format(plugin_name), api_get_items_by_position),
+             (r'/{}/api/item/(.*)/'.format(plugin_name), api_item_json),
+             (r'/{}/api/item/(.*)/buy_request'.format(plugin_name), api_buyrequest_json),
+             (r'/{}/api/item/(.*)/suppliers'.format(plugin_name), api_suppliers),
+             (r'/{}/api/products/'.format(plugin_name), api_products_json),
+             (r'/{}/api/get_parameters/list/'.format(plugin_name), api_parameters_list),
+             (r'/{}/api/get_positions/list/'.format(plugin_name), api_positions_list),
+             (r'/{}/api/set_positions/update/'.format(plugin_name), api_update_position),
+             (r'/{}/api/set_positions/move/'.format(plugin_name), api_move_position),
 
-             (r'/{}/api/get_categories/list/'.format(module), plugin.api_categories_list),
-             (r'/{}/api/set_categories/move/'.format(module), plugin.api_move_category),
-             (r'/{}/api/set_categories/update/'.format(module), plugin.api_update_category),
+             (r'/{}/api/get_categories/list/'.format(plugin_name), api_categories_list),
+             (r'/{}/api/set_categories/move/'.format(plugin_name), api_move_category),
+             (r'/{}/api/set_categories/update/'.format(plugin_name), api_update_category),
 
-             (r'/%s/newprint' %module, plugin.newprint),
-             (r'/%s/api/(.*)/' %module, plugin.api),
-             (r'/{}/operation/(.*)/'.format(module), plugin.operation)
+             (r'/%s/newprint' %plugin_name, newprint),
+             (r'/%s/api/(.*)/' %plugin_name, api),
+             (r'/{}/operation/(.*)/'.format(plugin_name), operation)
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
-        "module": "store",
-        "name": "Sklad",
-        "icon": 'icon_sklad.svg',
-        "role": ['store-access', 'store-sudo', 'sudo', 'store-manager']
+        "role": ['store-access', 'store-sudo', 'sudo', 'store-manager'],
+        "name": "store",
+        "entrypoints": [
+            {
+                "title": "Sklad",
+                "url": "/store",
+                "icon": "business",
+            }
+        ]
     }
 
 ascii_list_to_str = lambda input: [x.decode('ascii') for x in input]

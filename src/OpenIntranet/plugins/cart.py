@@ -12,25 +12,32 @@ import urllib
 import datetime
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
-             (r'/{}/test'.format(module), plugin.test),
-             (r'/{}/print/(.*)/'.format(module), plugin.api_print),
-             (r'/{}/api/add_to_cart'.format(module), plugin.api_addToCart),
-             (r'/{}/api/new_cart'.format(module), plugin.api_new_cart),
-             #(r'/%s/print/' %module, plugin.print_layout),
-             #(r'/%s/api/add_to_cart/' %module, plugin.api_addToCart)
-             #(r'/%s/api/get_cart/' %module, plugin.api_getCart)
-             #(r'/%s/api/(.*)/' %module, plugin.api)
+             (r'/{}'.format(plugin_name), home),
+             (r'/{}/'.format(plugin_name), home),
+             (r'/{}/test'.format(plugin_name), test),
+             (r'/{}/print/(.*)/'.format(plugin_name), api_print),
+             (r'/{}/api/add_to_cart'.format(plugin_name), api_addToCart),
+             (r'/{}/api/new_cart'.format(plugin_name), api_new_cart),
+             #(r'/%s/print/' %plugin_name, print_layout),
+             #(r'/%s/api/add_to_cart/' %plugin_name, api_addToCart)
+             #(r'/%s/api/get_cart/' %plugin_name, api_getCart)
+             #(r'/%s/api/(.*)/' %plugin_name, api)
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
-        "module": "cart",
-        "name": "Nákupí košíky",
-        "icon": 'icon_cart.svg'
+        "name": "cart",
+        "entrypoints": [
+            {
+                "title": "Nákupní košíky",
+                "url": "/cart",
+                "icon": "shopping_cart",
+            }
+        ]
     }
 
 
@@ -71,7 +78,7 @@ class api_addToCart(BaseHandler):
 
             if method == 'absolute':
                 print("Do kosiku pridavam polozku '{}' v počtu '{}' metodou {}".format(component, count, method))
-                
+
                 if exist:
                     self.mdb.carts.update({'_id': bson.ObjectId(cart['_id']),
                                            'cart.id': component},
