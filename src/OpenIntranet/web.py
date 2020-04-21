@@ -1,6 +1,6 @@
 # #!/usr/bin/python
 # # -*- coding: utf-8 -*-
-import glob
+import glob2
 import importlib
 import os
 import traceback
@@ -19,6 +19,8 @@ tornado.options.define("port", default=10020, help="port", type=int)
 tornado.options.define("config", default="/data/ust/intranet.conf", help="Intranet config file")
 tornado.options.define("debug", default=True, help="debug mode", type=bool)
 tornado.options.define("octopart_api", default=None, help="OCTOPART api key")
+
+tornado.options.define("plugins", default=[], help="Loaded modules", multiple=True)
 
 tornado.options.define("owncloud_url", default=None, help="URL address of owncloud server")
 tornado.options.define("owncloud_user", default=None, help="URL address of owncloud server")
@@ -92,8 +94,7 @@ class home(BaseHandler):
 class WebApp(tornado.web.Application):
 
     def __init__(self):
-        print("Hledám pluginy...")
-        print()
+        print("Načítám tyto pluginy...")
 
         plugins, handlers, ignored = self.find_plugins("plugins")
 
@@ -106,16 +107,16 @@ class WebApp(tornado.web.Application):
             (r'/(.*)', home)
         ]
 
-        print("plugins:")
-        for plugin in plugins:
-            print(f"\t{plugin}")
-        print()
-
         if ignored:
             print("ignored:")
             for file in ignored:
                 print(f"\t{file}")
             print()
+
+        print("plugins:")
+        for plugin in plugins:
+            print(f"\t{plugin}")
+        print()
 
         name = tornado.options.options.intranet_name
         server = tornado.options.options.intranet_url
@@ -147,33 +148,65 @@ class WebApp(tornado.web.Application):
         handlers = []
         ignored_files = []
 
-        for file_name in os.listdir(plugins_dir_name):
-            if file_name in ignored_names:
-                continue
-
-            module_name = self.get_module_name(file_name, plugins_dir_name)
-
+        print(tornado.options.options.plugins)
+        for plugin_file in tornado.options.options.plugins:
             try:
-                module = importlib.import_module(f"{plugins_dir_name}.{module_name}")
-
+                module = importlib.import_module('plugins.'+plugin_file)
+                
                 plugin_handlers = module.get_plugin_handlers()
                 plugin_info = module.get_plugin_info()
-                plugin_name = plugin_info.get("name", module_name)
-
-                if plugin_name in plugin_infos:
-                    raise RuntimeError(f"Plugin {plugin_name} (v souboru {file_name}) je duplicitní.")
+                plugin_name = plugin_info.get("name", module.__name__)
 
                 handlers += plugin_handlers
                 plugin_infos[plugin_name] = plugin_info
-
-            except ModuleNotFoundError:
-                ignored_files.append(file_name)
-
+            
             except Exception as e:
-                if tracebacks:
-                    self.print_traceback(e)
+                print(plugin_file)
+                print(e)
+           
+            
 
-                ignored_files.append(file_name)
+
+        #for file_name in os.listdir(plugins_dir_name):
+        # for file_name in glob2.glob(os.path.join(plugins_dir_name, "**/*.py")):
+        #     if file_name in ignored_names:
+        #         continue
+
+        #     module_name = self.get_module_name(file_name, plugins_dir_name)
+        #     plugin_import_path = '.'.join(module_name.split('/'))
+        #     plugin_import_path = plugin_import_path.replace('.__init__', '')
+
+        #     try:
+        #         print("Module", plugin_import_path, module_name)
+        #         # module = importlib.import_module(f"{plugin_import_path}")
+
+        #         # plugin_handlers = module.get_plugin_handlers()
+        #         # plugin_info = module.get_plugin_info()
+        #         # plugin_name = plugin_info.get("name", module_name)
+
+        #         # if plugin_name in plugin_infos:
+        #         #     raise RuntimeError(f"Plugin {plugin_name} (v souboru {file_name}) je duplicitní.")
+
+
+        #         spec = importlib.util.spec_from_file_location("module.name", file_name)
+        #         module = importlib.util.module_from_spec(spec)
+
+        #         plugin_handlers = module.get_plugin_handlers()
+        #         plugin_info = module.get_plugin_info()
+        #         plugin_name = plugin_info.get("name", module_name)
+
+        #         handlers += plugin_handlers
+        #         plugin_infos[plugin_name] = plugin_info
+
+        #     except ModuleNotFoundError:
+        #         print("Not Found")
+        #         ignored_files.append(file_name)
+
+        #     except Exception as e:
+        #         if tracebacks:
+        #             self.print_traceback(e)
+
+        #         ignored_files.append(file_name)
 
         return plugin_infos, handlers, ignored_files
 

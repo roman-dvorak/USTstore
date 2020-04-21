@@ -2,7 +2,7 @@ import pymongo
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 
-DB_NAME = "USTintranet"
+DB_NAME = "USTdev"
 
 
 def add_id_to_addresses(database, user_mdoc):
