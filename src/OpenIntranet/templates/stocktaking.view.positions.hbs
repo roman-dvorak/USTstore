@@ -95,7 +95,7 @@
 							{% set count_stock = get_warehouse_count(article, warehouse["_id"]) %}
 							<td>
                             	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
-                            	<a class="material-icons" type="button" href="#" onclick="copyToClipboard('{{article['_id']}}')">share</a>
+                            	<a class="material-icons" type="button" onclick="copyToClipboard('{{article['_id']}}')">share</a>
                             	{{article['name']}}
                             </td>
 							<td>{{article['overview']['count']['onstock']}}</td>

@@ -462,8 +462,8 @@ def setava_01(self, stock_taking):
                     if x['_id'].generation_time > lastOid.generation_time:
                         inventura = True
                         count = x['absolute']
-                        #pdf.set_x(110)
-                        #pdf.cell(1, 5, "i")
+                        pdf.set_x(120)
+                        pdf.cell(1, 5, "i")
                         break;
 
             if count > 0:
