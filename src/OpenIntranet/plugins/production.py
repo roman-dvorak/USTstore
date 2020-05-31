@@ -15,21 +15,29 @@ import pandas as pd
 from fpdf import FPDF
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             (r'/{}/(.*)/upload/bom/ust/'.format(module), plugin.ust_bom_upload),
-             (r'/{}/(.*)/print/'.format(module), plugin.print_bom),
-             (r'/{}/(.*)/edit/'.format(module), plugin.edit),
-             (r'/{}/api/getProductionList'.format(module), plugin.get_production_list),
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
+             (r'/{}/(.*)/upload/bom/ust/'.format(plugin_name), ust_bom_upload),
+             (r'/{}/(.*)/print/'.format(plugin_name), print_bom),
+             (r'/{}/(.*)/edit/'.format(plugin_name), edit),
+             (r'/{}/api/getProductionList'.format(plugin_name), get_production_list),
+             (r'/{}'.format(plugin_name), home),
+             (r'/{}/'.format(plugin_name), home),
         ]
 
-def plug_info():
+def get_plugin_info():
     #class base_info(object):
     return {
-        "module": "production",
-        "name": "production"
+        "name": "production",
+        "entrypoints": [
+            {
+                "title": "production",
+                "url": "/production",
+                "icon": "work"
+            }
+        ]
     }
 
 

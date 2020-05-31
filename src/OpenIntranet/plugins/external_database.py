@@ -24,19 +24,21 @@ import urllib.parse
 import collections, urllib, base64, hmac, hashlib, json
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             #(r'/%s' %module, plugin.hand_bi_home),
-             (r'/%s/tme/' %module, plugin.tme),
-             (r'/%s/octopart/' %module, plugin.octopart),
-             #(r'/%s/print/' %module, plugin.print_layout),
-             #(r'/%s/api/(.*)/' %module, plugin.api)
+             #(r'/%s' %plugin_name, hand_bi_home),
+             (r'/%s/tme/' %plugin_name, tme),
+             (r'/%s/octopart/' %plugin_name, octopart),
+             #(r'/%s/print/' %plugin_name, print_layout),
+             #(r'/%s/api/(.*)/' %plugin_name, api)
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
-        "module": "external_database",
-        "name": "external_database"
+        "name": "external_database",
+        "entrypoints": [],
     }
 
 

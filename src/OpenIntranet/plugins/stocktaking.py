@@ -24,25 +24,33 @@ sys.path.append("..")
 from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory, getInventoryRecord
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             (r'/{}/get_item/'.format(module), plugin.load_item),
-             (r'/{}/save_item/'.format(module), plugin.save_stocktaking),
-             (r'/{}/event/(.*)/save'.format(module), plugin.stocktaking_eventsave),
-             (r'/{}/event/lock'.format(module), plugin.stocktaking_eventlock),
-             (r'/{}/event/generate/basic/(.*)'.format(module), plugin.stocktaking_event_generate_basic),
-             (r'/{}/event/(.*)'.format(module), plugin.stocktaking_event),
-             (r'/{}/events'.format(module), plugin.stocktaking_events),
-             (r'/{}/view/categories'.format(module), plugin.view_categories),
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
+             (r'/{}/get_item/'.format(plugin_name), load_item),
+             (r'/{}/save_item/'.format(plugin_name), save_stocktaking),
+             (r'/{}/event/(.*)/save'.format(plugin_name), stocktaking_eventsave),
+             (r'/{}/event/lock'.format(plugin_name), stocktaking_eventlock),
+             (r'/{}/event/generate/basic/(.*)'.format(plugin_name), stocktaking_event_generate_basic),
+             (r'/{}/event/(.*)'.format(plugin_name), stocktaking_event),
+             (r'/{}/events'.format(plugin_name), stocktaking_events),
+             (r'/{}/view/categories'.format(plugin_name), view_categories),
+             (r'/{}'.format(plugin_name), home),
+             (r'/{}/'.format(plugin_name), home),
         ]
 
-def plug_info():
+def get_plugin_info():
     #class base_info(object):
     return {
-        "module": "stocktaking",
-        "name": "Stock taking"
+        "name": "stocktaking",
+        "entrypoints": [
+            {
+                "title": "Stock taking",
+                "url": "/stocktaking",
+                "icon": "insert_chart",
+            }
+        ]
     }
 
 

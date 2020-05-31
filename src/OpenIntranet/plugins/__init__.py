@@ -24,24 +24,24 @@ from tornado.options import define, options
 from termcolor import colored
 from tornado.web import HTTPError
 
-from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, get_file_last_version_index, \
+from plugins.helpers.db_experiments.database_wrapper import DbWithBulkOps
+from plugins.helpers.owncloud_utils import generate_actual_owncloud_path, \
     get_file_last_version_number
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
     handlers = [
-        (r'/login', plugin.LoginHandler),
-        (r'/logout', plugin.LogoutHandler),
-        (r'/registration', plugin.RegistrationHandler),
-        (r'/api/backup', plugin.doBackup), ]
+        (r'/login', LoginHandler),
+        (r'/logout', LogoutHandler),
+        (r'/registration', RegistrationHandler),
+        (r'/api/backup', doBackup), ]
     return handlers
 
 
-def plug_info():
+def get_plugin_info():
     return {
-        "display": False,
-        "module": "init",
-        "name": "init"
+        "name": "init",
+        "entrypoints": []
     }
 
 
@@ -108,9 +108,9 @@ def perm_validator(method, permissions=[], sudo=True):
 
 
 def database_init():
-    # print(options.as_dict())
-    return pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)[
-        tornado.options.options.mdb_database]
+    client = pymongo.MongoClient(tornado.options.options.mdb_url, tornado.options.options.mdb_port)
+
+    return DbWithBulkOps(client, tornado.options.options.mdb_database)
 
 
 def get_company_info(database):
@@ -211,11 +211,12 @@ class BaseHandler(tornado.web.RequestHandler):
             login = str(login, encoding="utf-8")
 
         self.mdb = database_init()
-        user_db = self.mdb.users.find_one({'user': login})
         self.company_info = get_company_info(self.mdb)
         self.dpp_params = get_dpp_params(self.mdb)
 
-        if login and user_db.get('user', False) == login:
+        if login:# and user_db.get('user', False) == login:
+            user_db = self.mdb.users.find_one({'user': login})
+
             self.actual_user = user_db
 
             self.role = set(user_db['role'])
@@ -655,7 +656,7 @@ class BaseHandlerOwnCloud(BaseHandler):
             "_id": file_id,
             "directory": oc_directory,
             "filename": oc_filename,
-            "versions": {}
+            "versions": []
         })
 
         return file_id
@@ -697,14 +698,12 @@ class BaseHandlerOwnCloud(BaseHandler):
             "_id": file_id,
             "directory": oc_directory,
             "filename": oc_filename,
-            "versions": {
-                "0": {
-                    "by": self.actual_user["_id"],
-                    "when": datetime.datetime.now(),
-                    "path": oc_path,
-                    "url": shared_url,
-                }
-            }
+            "versions": [{
+                "by": self.actual_user["_id"],
+                "when": datetime.datetime.now(),
+                "path": oc_path,
+                "url": shared_url,
+            }],
         })
 
         if delete_local:
@@ -774,8 +773,8 @@ class BaseHandlerOwnCloud(BaseHandler):
         shared_url = self.oc.share_file_with_link(oc_path).get_link()
 
         coll.update_one({"_id": file_id},
-                        {"$set": {
-                            f"versions.{version_number}": {
+                        {"$push": {
+                            "versions": {
                                 "by": self.actual_user["_id"],
                                 "when": datetime.datetime.now(),
                                 "path": oc_path,
@@ -816,6 +815,7 @@ def password_hash(user_name, password):
 
 class LoginHandler(BaseHandler):
     def get(self):
+        print("Bude to login")
         self.render('_login.hbs', msg='')
 
     def post(self):
