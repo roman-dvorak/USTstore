@@ -211,11 +211,12 @@ class BaseHandler(tornado.web.RequestHandler):
             login = str(login, encoding="utf-8")
 
         self.mdb = database_init()
-        user_db = self.mdb.users.find_one({'user': login})
         self.company_info = get_company_info(self.mdb)
         self.dpp_params = get_dpp_params(self.mdb)
 
-        if login and user_db.get('user', False) == login:
+        if login:# and user_db.get('user', False) == login:
+            user_db = self.mdb.users.find_one({'user': login})
+
             self.actual_user = user_db
 
             self.role = set(user_db['role'])
@@ -814,6 +815,7 @@ def password_hash(user_name, password):
 
 class LoginHandler(BaseHandler):
     def get(self):
+        print("Bude to login")
         self.render('_login.hbs', msg='')
 
     def post(self):

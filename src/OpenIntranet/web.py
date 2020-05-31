@@ -151,7 +151,10 @@ class WebApp(tornado.web.Application):
         print(tornado.options.options.plugins)
         for plugin_file in tornado.options.options.plugins:
             try:
-                module = importlib.import_module('plugins.'+plugin_file)
+                if plugin_file != '':
+                    module = importlib.import_module('plugins.'+plugin_file)
+                else:
+                    module = importlib.import_module('plugins')
                 
                 plugin_handlers = module.get_plugin_handlers()
                 plugin_info = module.get_plugin_info()
