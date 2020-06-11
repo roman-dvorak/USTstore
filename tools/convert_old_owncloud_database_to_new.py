@@ -2,7 +2,7 @@ import pymongo
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 
-DB_NAME = "USTdev"
+DB_NAME = "USTintranet"
 
 
 def main():
