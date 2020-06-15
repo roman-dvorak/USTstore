@@ -261,8 +261,10 @@ class ApiAdminReportsTableHandler(BaseHandler):
     role_module = [ROLE_SUDO, ROLE_ACCOUNTANT]
 
     def get(self, date):
+        print("DATE", date)
         date = str_ops.datetime_from_iso_str(date).replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-
+        print(date)
+        
         rows = []
 
         for month in range(1, 13):
