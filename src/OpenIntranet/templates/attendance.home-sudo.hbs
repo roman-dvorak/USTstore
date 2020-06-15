@@ -215,10 +215,11 @@
                 },
                 cellDblClick: function (e, cell) {
                     const next_month = moment(cell.getData()["month"]).add(1, "months");
+                    console.log(next_month);
                     if (moment().isBefore(next_month)) return;
 
-                    generateAccountantReport();
-                    generateHoursWorkedReport();
+                    generateAccountantReport(next_month);
+                    generateHoursWorkedReport(next_month);
                 }
             }
         ]
@@ -477,8 +478,12 @@
         $(target).toggle();
     }
 
-    function generateAccountantReport() {
-        const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+    function generateAccountantReport(last_month) {
+        if (last_month === undefined){
+            const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+        }else{
+            lastMonth = last_month._i;
+        }
 
         let result = confirm("Generovat report pro účetní pro měsíc " + lastMonth + "?");
 
@@ -496,8 +501,12 @@
         }
     }
 
-    function generateHoursWorkedReport() {
-        const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+    function generateHoursWorkedReport(last_month) {
+        if (last_month === undefined){
+            const lastMonth = moment().subtract(1, "months").startOf("month").format("YYYY-MM-DD");
+        }else{
+            lastMonth = last_month._i;
+        }
 
         let result = confirm("Generovat report hodin uživatelů pro měsíc " + lastMonth + "?");
 
