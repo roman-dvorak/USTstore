@@ -1,0 +1,72 @@
+{% extends "base.hbs" %}
+{% block title %} | Produkce, uvod{% end %}
+{% block body %}
+
+<script type="text/javascript">
+
+</script>
+
+<style type="text/css">
+
+.product_list_element {
+  margin: 0pt;
+  margin-top: 10pt;
+  padding: 5pt;
+}
+
+.product_list_element_table{
+  width: 100%;
+  background: white;
+  border: #aaa solid 1pt;
+  padding: 5pt;
+  margin: 0pt;
+  display: inline-flex;
+}
+
+.table_input{
+  width: 8em;
+  border: #ccc solid thin;
+  background: #fafafa;
+}
+
+.form-group {
+  margin-bottom: 0.5rem;
+}
+
+
+.cat_top{
+  flex: 0 0 auto;
+  width: 150pt;
+}
+
+#filter_block{
+  /* display: flex; */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0pt;
+}
+
+.form-tab-td{
+  padding: 0px;
+}
+
+.list_name{
+  padding-left: 0.5em;
+  vertical-align: top;
+}
+
+
+</style>
+
+<div>
+
+  <h1> Přehled zakázek </h2>
+  <a class="btn btn-success" href="/order/view/new">Nová</a>
+
+</div>
+
+
+
+
+
+{% end %}

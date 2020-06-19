@@ -379,7 +379,7 @@ class api_update_position(BaseHandler):
             cid = bson.ObjectId()
         else:
             cid = bson.ObjectId(cid)
-    
+
         parent = self.get_argument('parent', '#')
         if parent != '#':
             parent = bson.ObjectId(parent)
@@ -432,7 +432,7 @@ class api(BaseHandler):
             print(self.request.arguments.get('selected[]', None))
             #ZDE POSILAT JEN ID jako je to nize....
             id = bson.ObjectId(self.get_argument('value', ''))
-            self.component_update_suppliers_url(id) 
+            self.component_update_suppliers_url(id)
             self.component_update_counts(id)
             update_article_price(self.mdb.stock, id)
             dout = list(self.mdb.stock.aggregate([
@@ -770,7 +770,8 @@ class operation(BaseHandler):
             comp = self.get_argument('component')
             ctype = self.get_argument('type', None)
             supplier = self.get_argument('supplier', None)
-            stock = ObjectId(self.get_argument('stock'))
+            position = self.get_argument('position')
+            packet = self.get_argument('packet')
             description = self.get_argument('description', '')
             bilance = self.get_argument('count', 0)
             bilance_plan = self.get_argument('count_planned', None)
@@ -778,19 +779,72 @@ class operation(BaseHandler):
             price = self.get_argument('price')
             request = self.get_argument('request')
 
+            new_packet = False
+            if packet == 'new':
+                new_packet = True
+                packet_id = ObjectId()
+            else:
+                packet_id = ObjectId(packet)
+
+            if position == "None":
+                position = None
+            else:
+                position = ObjectId(position)
+
+            query_data = {'_id': bson.ObjectId(comp)}
+            packet_data = {}
+
+            # Pokud zakladam novy packet
+            if new_packet:
+                packet_data = {'$push':
+                        {
+                        'packets':
+                            {
+                            '_id': packet_id,
+                            'type': 'zip_bag',
+                            'supplier': supplier,
+                            'count': float(bilance),
+                            'position': position,
+                            'created': datetime.datetime.now()
+                            }
+                        }
+                    }
+                self.mdb.stock.update(query_data, packet_data)
+
+            # Pridavam do existujiciho packetu
+            #else:
+            #    packet_data = {}
+
             # Pokud se jedna o nakup a ma se naskladnit
             if request == 'false':
                 invoice = bson.ObjectId(invoice)
                 id = bson.ObjectId()
-                out = self.mdb.stock.update(
-                        {'_id': bson.ObjectId(comp)},
-                        {'$push': {'history':
-                            {'_id': id, 'stock': stock, 'operation':'buy', 'supplier': supplier, 'type': ctype, 'bilance': float(bilance), 'bilance_plan': bilance_plan, 'price': float(price), 'invoice': invoice,  'description':description, 'user':self.logged}
-                        }}
+
+                out = self.mdb.stock.update(query_data,
+                    {
+                    '$push':
+                        {
+                        'history':
+                            {
+                            '_id': id,
+                            'packet': packet_id,
+                            'operation': 'buy',
+                            'supplier': supplier,
+                            'type': ctype,
+                            'bilance': float(bilance),
+                            'bilance_plan': bilance_plan,
+                            'price': float(price),
+                            'invoice': invoice,
+                            'description': description,
+                            'user': self.logged
+                            }
+                        }
+                    }
                     )
-                print("buy_push >>", comp, stock, description, bilance, invoice, price)
+                print("buy_push >>", comp, position, packet, description, bilance, invoice, price)
 
                 self.LogActivity('store', 'operation_service')
+
             # Pokud vytvarime pozadavek na koupi polozky
             else:
                 out = self.mdb.stock.update(

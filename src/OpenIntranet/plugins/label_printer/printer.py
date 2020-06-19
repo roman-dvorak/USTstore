@@ -4,8 +4,8 @@
 import tornado.escape
 import tornado.web
 import tornado.websocket
-from . import Intranet
-from . import BaseHandler
+from .. import Intranet
+from .. import BaseHandler
 import json
 import bson.json_util
 import urllib
@@ -18,27 +18,27 @@ from bson import ObjectId
 from plugins import BaseHandler
 
 
-def get_plugin_handlers():
-    plugin_name = get_plugin_info()["name"]
 
-    handlers = [
-        (r'/{}/label'.format(plugin_name), print_label),
-        (r'/{}/generate_label'.format(plugin_name), generate_label)
-        ]
-    return handlers
+class print_home(BaseHandler):
+
+    def get(self):
+        print("Tisk home page   ...")
+        self.render('print.home.hbs')
 
 
-def get_plugin_info():
-    return {
-        "name": "printer",
-        "entrypoints": [
-            {
-                "title": "Tisk",
-                "url": "/printer",
-                "icon": "print",
-            }
-        ]
-    }
+class print_label_default(BaseHandler):
+    def get(self):
+        print("Tisk home page   ...")
+        self.render('print.home.hbs')
+
+
+
+class print_packet_list(BaseHandler):
+
+    def get(self):
+        print("Tisk home page   ...")
+        self.render('print.home.hbs')
+
 
 
 
@@ -95,7 +95,7 @@ class generate_label(BaseHandler):
 
             for i, position in enumerate(items):
                 pdf.set_text_color(0)
-                
+
                 ir = i + skip
                 ip = ir%(3*7)
                 row  = ip//3
@@ -140,7 +140,7 @@ class generate_label(BaseHandler):
                 pdf.set_font('pt_sans', '', 7)
                 pdf.set_xy(x0+3.5, y0+33)
                 pdf.cell(70, 0, "{} | {}".format(warehouse_name, datetime.datetime.now().strftime("%d. %m. %Y, %H:%M")))
-            
+
 
             pdf.output('static/tmp/{}.pdf'.format(task), 'F')
 
