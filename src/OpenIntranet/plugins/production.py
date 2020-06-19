@@ -728,11 +728,17 @@ class print_bom(BaseHandler):
 
 
             pdf.set_xy(15, first_row+j*rowh + 7)
-            pdf.cell(0, 5, str(', '.join(category)), border=0)
+            #pdf.cell(0, 5, str(', '.join(str(category))), border=0)
+            pdf.cell(0, 5, str(category), border=0)
 
+            placement = ""
             for k, place in enumerate(item_places):
-                pdf.set_xy(15, first_row+j*rowh + 3.5)
-                pdf.cell(0, 5, place['info'][0]['name'])
+                if k > 0:
+                    placement += ", "
+                placement += place['info'][0]['name']
+
+            pdf.set_xy(15, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, placement)
 
 
             pdf.line(10,first_row+j*rowh + 16, 200, first_row+j*rowh + 16)
