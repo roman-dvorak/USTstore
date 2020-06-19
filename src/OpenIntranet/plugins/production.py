@@ -661,9 +661,21 @@ class print_bom(BaseHandler):
 
         last = 10
         for i, component in enumerate(out):
-            print("Component", i, component)
+            print("Component", i)
             item_places = self.component_get_positions(component['cUST_ID'], stock = bson.ObjectId(self.get_cookie('warehouse', False)))
-            #print("Places:", item_places)
+
+            place_str = ""
+            for i, place in enumerate(item_places):
+                if place['info'][0]['parent'] is not "#":
+                    place_details = self.get_position(place['posid'], True)
+                    print(place_details)
+                    print(i, "> ", place_details)
+                    place_str += " " + place_details['path']
+                else:
+                    print("###, nema cestu")
+                place_str += place['info'][0]['name'] + ", "
+
+
 
             try:
                 name = component.get('stock')[0]['name']
@@ -699,6 +711,16 @@ class print_bom(BaseHandler):
             pdf.cell(0, 5, str(i)+'.', border=0)
 
 
+            # placement = ""
+            # for k, place in enumerate(item_places):
+            #     if k > 0:
+            #         placement += ", "
+            #     placement += place['info'][0]['name']
+
+            pdf.set_xy(15, first_row+j*rowh + 3.5)
+            pdf.cell(0, 5, place_str)
+
+
             pdf.set_xy(15, first_row+j*rowh + 11)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
@@ -731,14 +753,6 @@ class print_bom(BaseHandler):
             #pdf.cell(0, 5, str(', '.join(str(category))), border=0)
             pdf.cell(0, 5, str(category), border=0)
 
-            placement = ""
-            for k, place in enumerate(item_places):
-                if k > 0:
-                    placement += ", "
-                placement += place['info'][0]['name']
-
-            pdf.set_xy(15, first_row+j*rowh + 3.5)
-            pdf.cell(0, 5, placement)
 
 
             pdf.line(10,first_row+j*rowh + 16, 200, first_row+j*rowh + 16)

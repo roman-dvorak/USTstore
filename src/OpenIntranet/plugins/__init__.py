@@ -300,11 +300,36 @@ class BaseHandler(tornado.web.RequestHandler):
     Ze zadaneho ObjectID skladu vrati informace o pozici
     '''
 
-    def get_position(self, position: bson.ObjectId):
-        position = self.mdb.store_positions.aggregate([
-            {"$match": {'_id': position}}
-        ])
-        return (list(position)[0])
+    def get_position(self, position: bson.ObjectId, show_path = False):
+
+        q = [{"$match": {"_id": position}}]
+
+        if show_path:
+            q +=[{
+                "$graphLookup": {
+                    "from": 'store_positions',
+                    "startWith": "$parent",
+                    "connectFromField": "position.info.parent",
+                    "connectToField": "_id",
+                    "as": "full_path",
+                    "depthField": "depth",
+                }
+             }
+         ]
+        position = self.mdb.store_positions.aggregate(q)
+        position = list(position)[0]
+
+        if show_path:
+            print(position)
+            position['full_path'] = sorted(position['full_path'], key = lambda i: i['depth'])
+
+            path_addr = ""
+            for path in position['full_path']:
+                path_addr +=  path['name'] + "/"
+            position['path'] = "/"+path_addr
+
+        return position
+
 
     def component_get_counts(self, id, warehouse=None):
         out = list(self.mdb.stock.aggregate([
@@ -498,6 +523,7 @@ class BaseHandler(tornado.web.RequestHandler):
             q += [{"$match": {"info.warehouse": stock}}]
         if primary:
             q += [{"$match": {"primary": primary}}]
+
         data = list(self.mdb.stock.aggregate(q))
         print(bson.json_util.dumps(data, indent=4))
         return data
