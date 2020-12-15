@@ -22,3 +22,9 @@
 [submodule "src/OpenIntranet/static/bootstrap"]
 	path = src/OpenIntranet/static/bootstrap
 	url = git@github.com:twbs/bootstrap.git
+[submodule "src/OpenIntranet/static/bootstrap-select"]
+	path = src/OpenIntranet/static/bootstrap-select
+	url = https://github.com/snapappointments/bootstrap-select.git
+[submodule "src/OpenIntranet/static/select2-bootstrap4-theme"]
+	path = src/OpenIntranet/static/select2-bootstrap4-theme
+	url = git@github.com:ttskch/select2-bootstrap4-theme.git

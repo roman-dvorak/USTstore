@@ -1,0 +1,82 @@
+<form id="form_component_move"> {% module xsrf_form_html() %}
+<div class="p-3">
+<div class="h3"> Změna pozice sáčku </div>
+
+
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Sáček</label>
+    <select class="id_input form-control table_style col-10 " name='packet_to_move'>
+      <option value="none" selected default disabled>Vyberte sáček</option>
+      {% for i, sup in enumerate(packets) %}
+        <option value="{{sup['_id']}}">{{i}}, {{sup['_id']}}, {{sup.get('position', 'null')}}</option>
+      {% end %}
+    </select>
+
+  </div>
+
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Nová pozice</label>
+    <span class="col-10 col-form-label form-control">
+    <select class="id_input id_position_input packet_dst_position form-control" name='position'>
+    </select>
+    </span>
+    <small class="form-text text-muted">Jsou zobrazeny pouze pozice v aktuálně otevřeném skladu.</small>
+
+
+  </div>
+
+
+	<div class="form-group row">
+		<button type="submit" class="form-control table_style btn btn-primary col">Uložit</button>
+	</div>
+</div>
+</form>
+
+<hr class="mt-0 mb-0">
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+<script>
+
+$('.packet_dst_position').select2({
+  ajax: {
+    delay: 250,
+    url: '/store/api/get_positions/list/?type=select',
+    dataType: 'json',
+    type: 'POST',
+    width: '100%',
+    //data: {''}
+    processResults: function (data) {
+      var result = [{"id": 'none', "text": "Mimo skladu"}]
+      result = result.concat($.map(data, function(obj) {
+            return { "id": obj.id, "text": obj.text };
+        }))
+      return {'results': result}
+    }
+  },
+  escapeMarkup: function (text) { return text; },
+  templateSelection: function (state) {
+    var $state = $(
+      '<span>' + state.text + " <small>(" + state.id + ')</small></span>'
+    );
+    return $state;
+  },
+});
+
+
+$('#form_component_move').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'do_relocate/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+        }
+    });
+});
+
+</script>

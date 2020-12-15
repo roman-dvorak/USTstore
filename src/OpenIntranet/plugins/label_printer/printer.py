@@ -18,14 +18,6 @@ from bson import ObjectId
 from plugins import BaseHandler
 
 
-
-class print_home(BaseHandler):
-
-    def get(self):
-        print("Tisk home page   ...")
-        self.render('print.home.hbs')
-
-
 class print_label_default(BaseHandler):
     def get(self):
         print("Tisk home page   ...")

@@ -4,8 +4,8 @@
 import tornado.escape
 import tornado.web
 import tornado.websocket
-from . import Intranet
-from . import BaseHandler
+from .. import Intranet
+from .. import BaseHandler
 #from pyoctopart.octopart import Octopart
 import json
 import bson
@@ -33,14 +33,17 @@ def get_plugin_handlers():
              (r'/{}/api/item/(.*)/buy_request'.format(plugin_name), api_buyrequest_json),
              (r'/{}/api/item/(.*)/suppliers'.format(plugin_name), api_suppliers),
              (r'/{}/api/products/'.format(plugin_name), api_products_json),
-             (r'/{}/api/get_parameters/list/'.format(plugin_name), api_parameters_list),
+             #(r'/{}/api/get_parameters/list/'.format(plugin_name), api_parameters_list),
              (r'/{}/api/get_positions/list/'.format(plugin_name), api_positions_list),
+             (r'/{}/api/get_positions/list/(.*)'.format(plugin_name), api_positions_list),
              (r'/{}/api/set_positions/update/'.format(plugin_name), api_update_position),
              (r'/{}/api/set_positions/move/'.format(plugin_name), api_move_position),
 
              (r'/{}/api/get_categories/list/'.format(plugin_name), api_categories_list),
+             (r'/{}/api/get_categories/list/(.*)'.format(plugin_name), api_categories_list),
              (r'/{}/api/set_categories/move/'.format(plugin_name), api_move_category),
              (r'/{}/api/set_categories/update/'.format(plugin_name), api_update_category),
+             (r'/{}/api/get_parameters/list/'.format(plugin_name), api_parameters_list),
 
              (r'/%s/newprint' %plugin_name, newprint),
              (r'/%s/api/(.*)/' %plugin_name, api),
@@ -166,8 +169,8 @@ class api_products_json(BaseHandler):
                 {"$sort" : {"category": 1,"_id": 1} },
                 {"$match": {'$or':[
                                     {'_id': { '$regex': search, '$options': 'ix'}},
-                                    {'name': { '$regex': search, '$options': 'ix'}},
-                                    {'description': { '$regex': search, '$options': 'ix'}} ]}
+                                    {'name': { '$regex': search, '$options': 'i'}},
+                                    {'description': { '$regex': search, '$options': 'i'}} ]}
                 },{
                     "$match": {'category': {polarity: selected}}
                 },{
@@ -219,6 +222,7 @@ class api_products_json(BaseHandler):
             #         "as": "category"
             #     }
             # }]
+        print(agq)
 
         dbcursor = self.mdb.stock.aggregate(agq)
         dout['data'] = list(dbcursor)
@@ -245,47 +249,49 @@ class api_get_items_by_position(BaseHandler):
 
         self.write(bson.json_util.dumps(data))
 
-
-class api_parameters_list(BaseHandler):
-    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
-
-    def post(self):
-        self.set_header('Content-Type', 'application/json')
-
-        search = self.get_argument('term', '')
-        print("vyhledavam dle", search)
-
-        agq = [{"$match": {'$or':[
-                        {'name': { '$regex': search, '$options': 'ix'}},
-                        {'lang.en': { '$regex': search, '$options': 'ix'}},
-                        {'lang.cs': { '$regex': search, '$options': 'ix'}}
-                    ]}
-                }]
-
-        dout = list(self.mdb.parameters.aggregate(agq))
-
-        data = {
-            'total_count': len(dout),
-            'incomplete_results': False,
-            'items': dout,
-        }
-        self.write(bson.json_util.dumps(data))
+#
+# class api_parameters_list(BaseHandler):
+#     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
+#
+#     def post(self):
+#         self.set_header('Content-Type', 'application/json')
+#
+#         search = self.get_argument('term', '')
+#         print("vyhledavam dle", search)
+#
+#         agq = [{"$match": {'$or':[
+#                         {'name': { '$regex': search, '$options': 'ix'}},
+#                         {'lang.en': { '$regex': search, '$options': 'ix'}},
+#                         {'lang.cs': { '$regex': search, '$options': 'ix'}}
+#                     ]}
+#                 }]
+#
+#         dout = list(self.mdb.parameters.aggregate(agq))
+#
+#         data = {
+#             'total_count': len(dout),
+#             'incomplete_results': False,
+#             'items': dout,
+#         }
+#         self.write(bson.json_util.dumps(data))
 
 # list of positions in current stock
 class api_positions_list(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
-        oid = bson.ObjectId(self.get_cookie("warehouse", None))
+        print("api_positions_list")
         self.set_header('Content-Type', 'application/json')
-        print(oid)
+        wid = bson.ObjectId(self.get_cookie("warehouse", None))
         jstree = bool(self.get_argument('jstree', False))
-        print("jstree", jstree, bool(jstree))
+        type = self.get_argument('type', 'jstree')
+        print("type", type)
 
-        dbcursor = self.warehouse_get_positions(oid)
-        dout = list(dbcursor)
-        output = bson.json_util.dumps(dout)
+        if type == 'jstree':
+            dout = list(self.warehouse_get_positions(wid))
+            output = bson.json_util.dumps(dout)
+            print("Chceme jstree")
+            print('warehouse', wid)
 
-        if jstree:
             new = []
             for i, out in enumerate(dout):
                 pos = {}
@@ -302,6 +308,31 @@ class api_positions_list(BaseHandler):
             output = bson.json_util.dumps(new)
             print(output)
 
+        elif type == 'select':
+            print('Chceme select2')
+
+            question = self.get_argument('q', None)
+            print(question)
+            new = []
+
+            dout = list(self.warehouse_get_positions(wid, q = question))
+            output = bson.json_util.dumps(dout)
+
+            for i, out in enumerate(dout):
+                pos = {}
+                pos['_id'] = str(out['_id'])
+                pos['id'] = str(out['_id'])
+                #pos['id'] = out['name']
+                pos['text'] = out['name'] + " <small>({})</small>".format(out['text'])
+                pos['parent'] = "#"
+                pos['li_attr'] = {"name": out['name'], 'text': out['text']}
+                if len(out['name'].split('/')) > 1:
+                    pos['parent'] = '/'.join(out['name'].split('/')[:1])
+                pos['parent'] = str(out.get('parent', '#'))
+                new.append(pos)
+            output = bson.json_util.dumps(new)
+            #print(output)
+
         self.write(output)
 
 
@@ -311,9 +342,11 @@ class api_categories_list(BaseHandler):
     def post(self):
         self.set_header('Content-Type', 'application/json')
         jstree = bool(self.get_argument('jstree', False))
+        type = self.get_argument('type', 'jstree')
+        print("api_categories_list .. ", type)
 
-        dout = list(self.mdb.category.find({}))
-        if jstree:
+        if type == 'jstree':
+            dout = list(self.mdb.category.find({}))
             new = []
             for i, out in enumerate(dout):
                 pos = {}
@@ -325,8 +358,33 @@ class api_categories_list(BaseHandler):
                 new.append(pos)
             output = bson.json_util.dumps(new)
 
+        elif type == 'select':
+            q = self.get_argument('q', None)
+            query = []
+
+            if q:
+                print("Dotaz,", q)
+                query += [{"$match": {'$or':[
+                    {'name': { '$regex': q, '$options': 'i'}},
+                    {'name_cs': { '$regex': q, '$options': 'i'}},
+                    {'description': { '$regex': q, '$options': 'i'}} ]}
+                }]
+
+            dout = list(self.mdb.category.aggregate(query))
+            # new = []
+            # for i, out in enumerate(dout):
+            #     pos = {}
+            #     pos['_id'] = str(out['_id'])
+            #     pos['id'] = str(out['_id'])
+            #     pos['text'] = "{} <small>({})</small>".format(out['name'], out['description'])
+            #     pos['li_attr'] = {"name": out['name'], 'text': out['description']}
+            #     pos['parent'] = str(out.get('parent', '#'))
+            #     new.append(pos)
+            output = bson.json_util.dumps(dout)
+
         else:
-            output = list(self.mdb.category.find({}))
+            dout = list(self.mdb.category.find({}))
+            output = bson.json_util.dumps(list(self.mdb.category.find({})))
 
         self.write(output)
 
@@ -419,7 +477,15 @@ class api_update_category(BaseHandler):
                     'parent': parent}
 
             self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
-        self.write("OK")
+        self.write("{'state': 'OK'}")
+
+class api_parameters_list(BaseHandler):
+    def get(self):
+        self.set_header('Content-Type', 'application/json')
+        dout = list(self.mdb.parameters.aggregate([]))
+
+        output = bson.json_util.dumps(dout)
+        self.write(output)
 
 
 class api(BaseHandler):
@@ -428,7 +494,6 @@ class api(BaseHandler):
         self.set_header('Content-Type', 'application/json')
 
         if data == 'product':
-
             print(self.request.arguments.get('selected[]', None))
             #ZDE POSILAT JEN ID jako je to nize....
             id = bson.ObjectId(self.get_argument('value', ''))
@@ -436,12 +501,53 @@ class api(BaseHandler):
             self.component_update_counts(id)
             update_article_price(self.mdb.stock, id)
             dout = list(self.mdb.stock.aggregate([
-                    {'$match': {self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))}},
-                    {'$addFields': {'price_buy_last': {'$avg':{'$slice' : ['$history.price', -1]}}}
+                    {
+                        '$match': {
+                            self.get_argument('key', '_id'): ObjectId(self.get_argument('value', ''))
+                        }
+                    },
+                    {"$lookup":
+                         {
+                           "from": 'store_positions',
+                           "localField":'position.posid',
+                           "foreignField": '_id',
+                           "as": 'positions'
+                         }
+                    },
+
+                    {"$lookup":
+                         {
+                           "from": 'category',
+                           "localField":'category',
+                           "foreignField": '_id',
+                           "as": 'categories'
+                         }
+                    },
+
+                    {
+                        '$addFields': {
+                            'price_buy_last': {
+                                '$avg': {
+                                    '$slice' : ['$history.price', -1]
+                                }
+                            }
+                        }
                         # tady 'avg' je jen z duvodu, aby to nevracelo pole ale rovnou cislo ($slice vraci pole o jednom elementu)
                     },
-                    {'$addFields': {'price_buy_avg': {'$avg': '$history.price'}}},
-                    {'$addFields': {'count': {'$sum': '$history.bilance'}}}
+                    {
+                        '$addFields': {
+                                'price_buy_avg':  {
+                                    '$avg': '$history.price'
+                                }
+                            }
+                    },
+                    {
+                        '$addFields': {
+                            'count':  {
+                                '$sum': '$history.bilance'
+                            }
+                        }
+                    }
                 ]))
 
             # counta = self.mdb.stock.aggregate([
@@ -626,8 +732,230 @@ class api(BaseHandler):
             print("Output type", output_type)
             if output_type == "html_tab":
                 self.set_header('Content-Type', 'text/html; charset=UTF-8')
-                print(dout)
                 self.render('store/store.api.history_tab_view.hbs', dout = dout, parent = self)
+                return None
+
+        elif data == 'get_packets':
+            print("> [get_packets]")
+            output_type = self.get_argument('output', 'json')
+            # dbcursor = self.mdb.stock.aggregate([
+            #         {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
+            #         {"$unwind": '$packets'},
+            #         {"$sort" : {"packets._id": -1}},
+            #     ], useCursor = True)
+            # dout = list(dbcursor)
+
+
+            '''
+db.getCollection('stock').aggregate([
+
+{"$match": {'_id': ObjectId('5c70984512875079b91f8949')}},
+{"$unwind": '$packets'},
+{"$lookup": {"from": 'stock_operation', "localField":'packets._id', "foreignField": 'pid', "as": 'packets.operations'}},
+{"$unwind": '$packets.operations'},
+{"$replaceRoot": { "newRoot": "$packets" }},
+{"$lookup": {"from": 'store_positions', "localField":'position', "foreignField": '_id', "as": 'position'}},
+{ "$set": { "position": { "$first": "$position" }} },{
+  $graphLookup: {
+     from: "store_positions",
+     startWith: "$position.parent",
+     connectFromField: "parent",
+     connectToField: "_id",
+     as: "position.path"
+  }
+},
+{"$set": {"position.path": { $concatArrays: ["$position.path.name", ["$position.name"]]}} },
+{"$lookup":
+     {
+       "from": 'warehouse',
+       "localField":'position.warehouse',
+       "foreignField": '_id',
+       "as": 'warehouse'
+     }
+ },
+ { "$set": { "warehouse": { "$first": "$warehouse" }} },
+
+ { "$group":
+     {
+        "_id": '$_id',
+        "root": { "$first": "$$ROOT" },
+        "operations": { "$push": "$operations" }
+     }
+ },
+{ "$set": { "root.operations": "$operations" } },
+{ "$replaceWith": "$root" },
+
+ { "$addFields": {
+      "count":  {"$sum": "$operations.count"},
+      "price":
+         { "$function":
+            {
+               "body": function(prices, counts) {
+                 let total_counts = Array.sum(counts);
+                 var tmp_count = total_counts;
+                 var total_price = 0;
+
+                 var c = counts.reverse();
+                 var p = prices.reverse();
+
+                 for(i in c){
+                     if(c[i] > 0){
+                         if(c[i] < tmp_count){
+                             total_price += (c[i]*p[i]);
+                             tmp_count -= c[i]
+                          }
+                          else{
+                             total_price += (tmp_count*p[i]);
+                             tmp_count = 0;
+                          }
+                      }
+
+                  }
+                  return total_price;
+
+               },
+               "args": ["$operations.unit_price", "$operations.count"],
+               "lang": "js"
+            }
+         }
+    }
+ },
+
+ { "$facet":
+   {
+      "uncategorised": [ {"$match": {'warehouse._id': {"$exists": 0}}}],
+      "current_warehouse": [ {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': ObjectId("5c67444e7e875154440cc28f")}} ],
+      "other_warehouse": [ {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': {"$ne": ObjectId("5c67444e7e875154440cc28f")}}} ],
+      "external_warehouse": [ {"$match": {'warehouse.external': {"$exists": 1}}}, {"$match": {'warehouse.external': true}} ]
+   }
+}
+
+
+])
+
+            '''
+            dbcursor = self.mdb.stock.aggregate([
+                    {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
+
+                    {"$unwind": '$packets'},
+                    {"$lookup": {"from": 'stock_operation', "localField":'packets._id', "foreignField": 'pid', "as": 'packets.operations'}},
+                    {"$unwind": '$packets.operations'},
+                    {"$replaceRoot": { "newRoot": "$packets" }},
+                    {"$lookup": {"from": 'store_positions', "localField":'position', "foreignField": '_id', "as": 'position'}},
+                    { "$set": { "position": { "$first": "$position" }} },{
+                      "$graphLookup": {
+                         "from": "store_positions",
+                         "startWith": "$position.parent",
+                         "connectFromField": "parent",
+                         "connectToField": "_id",
+                         "as": "position.path"
+                      }
+                    },
+                    {"$set": {"position.path": { "$concatArrays": ["$position.path.name", ["$position.name"]]}} },
+                    {"$lookup":
+                         {
+                           "from": 'warehouse',
+                           "localField":'position.warehouse',
+                           "foreignField": '_id',
+                           "as": 'warehouse'
+                         }
+                     },
+                     { "$set": { "warehouse": { "$first": "$warehouse" }} },
+                     { "$group":
+                         {
+                            "_id": '$_id',
+                            "root": { "$first": "$$ROOT" },
+                            "operations": { "$push": "$operations" }
+                         }
+                     },
+                    { "$set": { "root.operations": "$operations" } },
+                    { "$replaceWith": "$root" },
+
+
+                     { "$addFields": {
+                          "count":  {"$sum": "$operations.count"},
+                          "price":
+                             { "$function":
+                                {
+                                   "body": '''function(prices, counts) {
+                                     let total_counts = Array.sum(counts);
+                                     var tmp_count = total_counts;
+                                     var total_price = 0;
+
+                                     var c = counts.reverse();
+                                     var p = prices.reverse();
+
+                                     for(i in c){
+                                         if(c[i] > 0){
+                                             if(c[i] < tmp_count){
+                                                 total_price += (c[i]*p[i]);
+                                                 tmp_count -= c[i]
+                                              }
+                                              else{
+                                                 total_price += (tmp_count*p[i]);
+                                                 tmp_count = 0;
+                                              }
+                                          }
+
+                                      }
+                                      return total_price;
+
+                                   }''',
+                                   "args": ["$operations.unit_price", "$operations.count"],
+                                   "lang": "js"
+                                }
+                             }
+                        }
+                     },
+                     { "$sort" : {'_id' : -1} },
+                     { "$facet":
+                       {
+                          "current_warehouse": [{"$match": {"count": {"$ne": 0}}}, {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': self.get_warehouse().get('_id') }} ],
+                          "other_warehouse": [{"$match": {"count": {"$ne": 0}}}, {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': {"$ne": self.get_warehouse().get('_id') }}} ],
+                          "uncategorised": [{"$match": {"count": {"$ne": 0}}}, {"$match": {'warehouse._id': {"$exists": 0}}}],
+                          "external_warehouse": [{"$match": {"count": {"$ne": 0}}}, {"$match": {'warehouse.external': {"$exists": 1}}}, {"$match": {'warehouse.external': True}} ],
+                          "null": [{"$match": {"count": {"$eq": 0}}}]
+                       }
+                    }
+
+                ], useCursor = True)
+            dout = list(dbcursor)
+
+            # for cat in dout[0]:
+            #     cat_count = 0
+            #     for packet_n, packet in enumerate(dout[0][cat]):
+            #         array = []
+            #         packet_count = 0
+            #         packet_price = 0
+            #         operations = packet['operations']
+            #         for operation in operations:
+            #             array += [{"type": operation['type'], "count": operation['count'], "unit_prince": operation['unit_price']}]
+            #             packet_count += operation['count']
+            #         tmp_count = packet_count
+            #         for operation in reversed(operations):
+            #             # if operation['count'] < 0:
+            #             #     tmp_count += operation['count']
+            #             if operation['count'] > 0 and tmp_count > 0:
+            #                 print(tmp_count, operation['count'], operation['unit_price'] )
+            #                 if tmp_count >= operation['count']:
+            #                     packet_price += operation['count'] * operation['unit_price']
+            #                     tmp_count -= operation['count']
+            #                     print("A")
+            #                 else:
+            #                     packet_price += tmp_count * operation['unit_price']
+            #                     tmp_count = 0
+            #                     print("B")
+            #         dout[0][cat][packet_n]['packet_count'] = packet_count
+            #         dout[0][cat][packet_n]['packet_price'] = packet_price
+            #         cat_count += packet_count;
+            #     out[0][cat][packet_n]['packet_count'] = packet_count
+
+            print("SKLAD", self.get_warehouse().get('_id'))
+
+            if output_type == "html_tab":
+                self.set_header('Content-Type', 'text/html; charset=UTF-8')
+                # print(dout)
+                self.render('store/store.api.packets_tab_view.hbs', dout = dout, parent = self)
                 return None
 
         elif data == 'update_category':
@@ -773,6 +1101,7 @@ class operation(BaseHandler):
             position = self.get_argument('position')
             packet = self.get_argument('packet')
             description = self.get_argument('description', '')
+            description_operation = self.get_argument('description_operation', '')
             bilance = self.get_argument('count', 0)
             bilance_plan = self.get_argument('count_planned', None)
             invoice = self.get_argument('invoice', None)
@@ -799,17 +1128,31 @@ class operation(BaseHandler):
                 packet_data = {'$push':
                         {
                         'packets':
-                            {
+                        {
                             '_id': packet_id,
                             'type': 'zip_bag',
                             'supplier': supplier,
-                            'count': float(bilance),
+                            # 'count': float(bilance),
+                            #'reserved': 0,
                             'position': position,
-                            'created': datetime.datetime.now()
-                            }
+                            'description': description,
+                            'operations': [
+                                {
+                                    'count': float(bilance),
+                                    'unit_price': float(price),
+                                    'type': 'buy',
+                                    'date': datetime.datetime.now(),
+                                    'user': self.logged,
+                                    'invoice': invoice,
+                                    'supplier': supplier,
+                                    'description': description_operation,
+                                }
+                            ]
                         }
+                      }
                     }
-                self.mdb.stock.update(query_data, packet_data)
+                out = self.mdb.stock.update(query_data, packet_data)
+                print("Pridavam sacek", out)
 
             # Pridavam do existujiciho packetu
             #else:

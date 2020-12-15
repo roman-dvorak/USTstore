@@ -1,0 +1,545 @@
+{% extends "../base.hbs" %}
+{% block title %}UST intranet | Home{%end%}
+{% block body %}
+{#% set permis = parent.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']) %#}
+
+
+<style>
+
+body{
+  background-color: #f8f9fa !important;
+}
+
+.editable{
+
+}
+.editable:hover {
+  background-color: lightgray;
+}
+
+.material-icons{
+  font-size: initial;
+}
+
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+
+<script>
+
+
+function select_package_formatter(data) {
+    if (!data.id) {
+      return data.text;
+    }
+    console.log('aa', data);
+    return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
+}
+
+</script>
+
+
+<div class="container-fluid row justify-content-center" style="min-height: 100%;">
+  <div class="col-6 my-2 mr-1 p-0 bg-white rounded box-shadow">
+    <div class="d-flex">
+      <div class="d-inline-block p-2">
+        <img style="width: 200pt; height: 200pt;">
+      </div>
+      <div class="d-inline-stretch p-2">
+        <div class="row">
+          <div class="col"><span class="editable editable-name h1" param_name="component_name">{{component.get('name', 'Beze jména')}}</span> <span class="btn-sm badge badge-secondary"onclick="copyToClipboard('{{component.get('_id', 'null')}}')">Id: {{component.get('_id', 'null')}}</span></div>
+        </div>
+
+        <div class="row">
+          <div class="col editable editable-categories">Categories: {% for cat in component['categories'] %} <span class="badge badge-info">{{cat['path']}}{{cat['name']}}</span>{% end %} </div>
+        </div>
+
+
+        <div class="row">
+          <div class="col">Tags: {% for tag in component['tags'] %} <span class="badge badge-info">{{tag['id']}}</span>{% end %} </div>
+        </div>
+
+
+        <div class="row">
+          <div class="col-4" data-toggle="popover" title="V aktuálním skladu; {{warehouse['name']}}">{{warehouse['code'].upper()}}:</div>
+          <div class="col"> <span class="badge big badge-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"> <span class="material-icons">store</span> {{"{} ks".format(current_warehouse.get('count', 0) - current_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(current_warehouse.get('count', 0))}})</span> </span>
+            <span class="badge badge-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
+        </div>
+        </div>
+
+        <div class="row">
+          <div class="col-4" data-toggle="popover" title="Ve všech skladech">Celkem:</div>
+          <div class="col"> <span class="badge big badge-primary"> <span class="material-icons">business</span> {{"{} ks".format(other_warehouse.get('count', 0) - other_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(other_warehouse.get('count', 0))}})</span> </span>
+            <span class="badge badge-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
+
+        </div>
+        </div>
+
+        <!-- <div class="row">
+          <div class="col-4">Ostatní sklady:</div>
+          <div class="col"> <span class="badge big badge-primary"> 800 ks </span>, <span class="badge small">(R: 10ks, O: 20ks)</span></div>
+        </div>
+ -->
+
+        <div class="row">
+          <div class="col-4" data-toggle="popover" title="Nákupní ceny vycházejí z provedených nákupů">Nákupní ceny:</div>
+          <div class="col">
+            <span class="badge badge-primary" data-toggle="popover" title="Cena posledního nákupu"><span class="material-icons">update</span> {{prices.get('last_price', 'null')}} czk </span>
+            <span class="badge badge-primary" data-toggle="popover" title="Nejnižší cena nákupu"><span class="material-icons">vertical_align_bottom</span> {{prices.get('min_price', 'null')}} czk </span>
+            <span class="badge badge-primary" data-toggle="popover" title="Průměrná cena nákupu"><span class="material-icons">vertical_align_center</span> {{round(prices.get('avg_price', 0), 4)}} czk</span>
+            <span class="badge badge-primary" data-toggle="popover" title="Nejvyšší cena nákupu"><span class="material-icons">vertical_align_top</span> {{prices.get('max_price', 'null')}} czk</span>
+          </div>
+        </div>
+
+
+
+        <div class="row">
+          <div class="col-4">Prodejní cena:</div>
+          <div class="col">
+            <span class="badge badge-success" data-toggle="popover" title="Prodejní cena"> <span class="material-icons">add</span> --- czk </span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <p class="editable editable-description mx-2" style="max-height: 7em; overflow-y: scroll;">{%raw component.get('description', 'Popis není k dispozici').replace('\n', '<br>') %}</p>
+
+
+    <div>
+      <ul class="nav nav-tabs pt-0 px-3" id="myTab" role="tablist">
+
+        <li class="nav-item" role="presentation">
+          <a class="nav-link active" id="home-tab" data-toggle="tab" href="#param_tab" role="tab" aria-controls="param_tab" aria-selected="true">Parametry</a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="profile-tab" data-toggle="tab" href="#docs" role="tab" aria-controls="docs" aria-selected="false">Dokumenty</a>
+        </li>
+
+
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="profile-tab" data-toggle="tab" href="#prices" role="tab" aria-controls="prices" aria-selected="false">Ceny</a>
+        </li>
+
+
+
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="suppliers-tab" data-toggle="tab" href="#suppliers" role="tab" aria-controls="suppliers" aria-selected="false">Dodavatelé</a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-ex  panded="false">Operace<span class="caret"></span></a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" id="oper-buy-tab" data-toggle="tab" href="#oper_buy" role="tab" aria-controls="oper_buy" aria-selected="false"> <span class="material-icons">add</span> Nákup (příjem do skladu)</a>
+            <a class="dropdown-item" id="oper-sell-tab" data-toggle="tab" href="#oper_sell" role="tab" aria-controls="oper_sell" aria-selected="false" disabled> <span class="material-icons">remove</span> Prodej (Výdej ze skladu)</a>
+            <a class="dropdown-item" id="oper-transfere-tab" data-toggle="tab" href="#oper_transfere" role="tab" aria-controls="oper_transfere" aria-selected="false"> <span class="material-icons">swap_horiz</span> Přesun mezi sáčky</a>
+            <a class="dropdown-item" id="oper-service-tab" data-toggle="tab" href="#oper_service" role="tab" aria-controls="oper_service" aria-selected="false"> <span class="material-icons">settings_ethernet</span> Servisní odběr</a>
+            <a class="dropdown-item" id="oper-move-tab" data-toggle="tab" href="#oper_move" role="tab" aria-controls="oper_move" aria-selected="false"> <span class="material-icons">loop</span> Změna pozice</a>
+            <a class="dropdown-item" id="oper-next-tab" data-toggle="tab" href="#oper_next" role="tab" aria-controls="oper_next" aria-selected="false"> <span class="material-icons">next</span> Další</a>
+
+          </div>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Historie</a>
+        </li>
+      </ul>
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="param_tab" role="tabpanel" aria-labelledby="home-tab">
+          <div>
+            {% module Template("store/store.component.view.parameters.hbs", parameters=parameters) %}
+          </div>
+
+        </div>
+        <div class="tab-pane fade" id="docs" role="tabpanel" aria-labelledby="profile-tab">
+            Tady bude seznam dokumentů, např PDF .. půjde přidat "externí pdf" (tj. link) nebo ke stažení z owncloudu
+        </div>
+
+        <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
+          {% try %}{% include store.component.oper.supplier.hbs %}{% except%} Chyba...   {% end%}
+        </div>
+
+        <div class="tab-pane fade" id="oper_buy" role="tabpanel" aria-labelledby="oper-buy-tab">
+          {% try %}{% include store.component.oper.buy.hbs %}{% except%} Chyba...    {% end%}
+        </div>
+        <div class="tab-pane fade" id="oper_sell" role="tabpanel" aria-labelledby="oper-sell-tab">
+            Manuální prodej ze skladu
+        </div>
+
+        <div class="tab-pane fade" id="oper_transfere" role="tabpanel" aria-labelledby="oper-transfere-tab">
+          {% try %}{% include store.component.oper.transfere.hbs %}{% except%} Chyba...   {% end%}
+        </div>
+
+        <div class="tab-pane fade" id="oper_move" role="tabpanel" aria-labelledby="oper-move-tab">
+          {% try %}{% include store.component.oper.move.hbs %}{% except%} Chyba...   {% end%}
+        </div>
+
+
+        <div class="tab-pane fade" id="oper_service" role="tabpanel" aria-labelledby="oper-service-tab">
+          {% try %}{% include store.component.oper.service.hbs %}{% except%} Chyba...   {% end%}
+        </div>
+
+
+        <div class="tab-pane fade" id="store_overview" role="tabpanel" aria-labelledby="store-overview-tab">
+          Přehled skladových zásob
+        </div>
+        <div class="tab-pane fade" id="store_packets" role="tabpanel" aria-labelledby="store-packets-tab">
+          Přehled sáčků (packets)
+        </div>
+
+        <div class="tab-pane fade" id="oper_next" role="tabpanel" aria-labelledby="oper-next-tab">
+          Další operace
+          <button class="form-control btn btn-primary" id="create_duplicate">Vytořit novou součástu z této</button>
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+<div style="height:15cm;"></div>
+    <div class="pt-5 mt-5">
+<hr>
+Tohle jsou moje testovací data ... ty tu nebudou:<br><br>
+      {{component}}
+
+      <hr>
+      {%raw dumps(current_warehouse, indent=4, sort_keys=True) %}
+      <hr>
+      {%raw dumps(other_warehouse, indent=4, sort_keys=True) %}
+
+      <hr>
+      {%raw dumps(packets, indent=4, sort_keys=True) %}
+    </div>
+
+  </div>
+
+  <div class="col-4 my-2 ml-1 p-0 bg-white rounded box-shadow">
+    <div id="packet_placeholder"> Načítání ... </div>
+  </div>
+
+
+</div>
+
+
+
+<!-- ############## MOdaly -->
+
+
+<!-- Modal na upravu nazvu polozky -->
+<div class="modal" tabindex="-1" role="dialog" id="modal_set_name">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+        <form id="form_set_name"> {% module xsrf_form_html() %}
+      <div class="modal-header">
+        <h5 class="modal-title">Upravit název položky</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Položka (_id)</label>
+          <div class="col-sm-9">
+            <input type="text" readonly class="form-control-plaintext" name="key" value="{{component.get('_id')}}">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Nový název</label>
+          <div class="col-sm-9">
+            <input type="text" class="form-control" name="new_name" value="{{component.get('name', 'bez názvu')}}">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+  $('#form_set_name').submit(function(e){
+    e.preventDefault();
+    console.log($(this).serialize());
+    $.ajax({
+        url: 'set_name/',
+        type: 'post',
+        data:$(this).serialize(),
+        success:function(){
+          location.reload();
+        }
+    });
+});
+</script>
+
+
+<!-- Modal na upravu kategorii polozky -->
+<div class="modal" tabindex="-1" role="dialog" id="modal_set_categories">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+        <form id="form_set_categories"> {% module xsrf_form_html() %}
+      <div class="modal-header">
+        <h5 class="modal-title">Upravit kategorie položky</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Položka (_id)</label>
+          <div class="col-sm-9">
+            <input type="text" readonly class="form-control-plaintext" name="id" value="{{component.get('_id')}}">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Kategorie</label>
+          <div class="col-sm-9">
+              <div class="form-control table_style col-sm-9"><select class="form-control" name="categories" multiple="multiple" id="categories_edit">
+              </select></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.select2-selection__choice {
+    border: 1px solid black;
+    float: left;
+    margin: 2px;
+    padding: 1px;
+    list-style-type: none;
+}
+.select2-search--inline{
+    list-style-type: none;
+}
+</style>
+<script type="text/javascript">
+  $('#form_set_categories').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url: 'set_categories/',
+        type: 'POST',
+        data:$(this).serialize(),
+        success: function(e){
+          console.log("Uspesna aktualizace");
+          location.reload(true);
+        },
+        error: function(a, b, c){
+          console.log("Chyba", a, b, c);
+        }
+    });
+});
+
+
+function categories_list_template(data) {
+    if (!data.data) {
+      return null;
+    }
+    return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
+}
+
+function format(item) {
+    var originalOption = item.element;
+    var originalText = item.text;
+    return originalText + ' ..... ' + '<span class="newTxt">' + $(originalOption).data('mytxt') + '</span>';
+    }
+
+$('#categories_edit').select2({
+    width: '100%',
+    tags: true,
+    multiple: true,
+    ajax: {
+      url: '/store/api/get_categories/list/?type=select',
+      type: "POST",
+      dataType: 'json',
+      processResults: function (data) {
+          //console.log(data)
+          return {
+              results: $.map(data, function (item) {
+                  //console.log(item);
+                  return {
+                      data: item,
+                      text: item.name,
+                      id: item._id.$oid,
+                      selected: true,
+                  }
+              })
+          };
+      }
+    },
+  templateResult: categories_list_template,
+  //productTemplate: categories_list_template,
+  formatResult: format,
+  formatSelection: format,
+  escapeMarkup: function(m) { return m; }
+});
+
+
+{% for i in component['categories'] %}
+$("#categories_edit").select2("trigger", "select", {
+    data: { id: "{{i['_id']}}", text: "{{i['name']}}" }
+});
+{% end %}
+
+</script>
+
+
+
+
+<!-- Modal na upravu popisku polozky -->
+<div class="modal" tabindex="-1" role="dialog" id="modal_set_description">
+  <div class="modal-dialog  modal-lg" role="document">
+    <form id="form_set_description"> {% module xsrf_form_html() %}
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Upravit popis položky</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Položka (_id)</label>
+          <div class="col-sm-9">
+            <input type="text" readonly class="form-control-plaintext" name="key" value="{{component.get('_id')}}">
+          </div>
+        </div>
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">Popis položky</label>
+          <div class="col-sm-9">
+            <textarea class="form-control" name="new_description" rows="10">{{component.get('description', '')}}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button submit="button" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+    </form>
+
+  </div>
+</div>
+<script type="text/javascript">
+  $('#form_set_description').submit(function(e){
+    e.preventDefault();
+    console.log($(this).serialize());
+    $.ajax({
+        url: 'set_description/',
+        type: 'post',
+        data:$(this).serialize(),
+        success:function(){
+          location.reload();
+        }
+    });
+});
+</script>
+
+
+
+<script type="text/javascript">
+$( document ).ready(function() {
+    var new_component = false;
+
+    if(!new_component){
+      draw_packets();
+    }
+
+    $(".editable-name").dblclick(function(){
+      $('#modal_set_name').modal('show');
+  });
+
+    $(".editable-categories").dblclick(function(){
+      $('#modal_set_categories').modal('show');
+  });
+
+
+    $(".editable-description").dblclick(function(){
+      $('#modal_set_description').modal('show');
+  });
+
+});
+
+
+
+$(document).on("click", ".operation_packet_transfere_in",function() {
+      $('#myTab a[href="#oper_transfere"]').tab('show');
+      $("[name='destination']").val($(this).attr('pid')).change();
+});
+
+$(document).on("click", ".operation_packet_transfere_out",function() {
+      $('#myTab a[href="#oper_transfere"]').tab('show');
+      $("[name='source']").val($(this).attr('pid')).change();
+});
+$(document).on("click", ".operation_packet_service",function() {
+      $('#myTab a[href="#oper_service"]').tab('show');
+      $("[name='packet_to_service']").val($(this).attr('pid')).change();
+      console.log(this);
+});
+$(document).on("click", ".operation_packet_print",function() {
+      console.log(this);
+});
+
+
+
+
+function draw_packets(){
+    $('#packet_placeholder').empty();
+    $.ajax({
+        type: "POST",
+        url: "/store/api/get_packets/",
+        data: {
+            'key':'{{component.get('_id', 'null')}}',
+            'output': 'html_tab'
+        },
+        success: function( data, textStatus, jQxhr ){
+            $("#packet_placeholder").html(data);
+            $("#store_packets").html(data);
+
+        }
+    });
+
+}
+
+
+
+
+$("#create_duplicate").click(function(){
+    $.ajax({
+        type: "POST",
+        url: "do_duplicate/",
+        data: {},
+        success: function( data, textStatus, jQxhr ){
+            console.log(data['new_component']);
+            alert("Budete přesměrováni na novou součástu "+data['new_component']+'.');
+            window.location.href = '/store/component/'+data['new_component']+'/'
+        }
+    });
+});
+
+$(".copy_content").dblclick(function(){
+    console.log(this);
+    copyToClipboard();
+});
+
+function copyToClipboard(text) {
+    var dummy = document.createElement("textarea");
+    dummy.style.display = 'none'
+    document.body.appendChild(dummy);
+    dummy.value = text;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+}
+
+</script>
+{% end %}

@@ -289,12 +289,22 @@ class BaseHandler(tornado.web.RequestHandler):
         ]))[0]
         return (warehouse)
 
-    def warehouse_get_positions(self, warehouse):
-        data = list(self.mdb.store_positions.aggregate([
-            {"$match": {'warehouse': warehouse}},
-            # {"$project": {''}}
-        ]))
-        return (data)
+    def warehouse_get_positions(self, warehouse, q = None, n = None, p = None):
+        '''
+
+        '''
+        query = []
+
+        if q:
+            query += [{"$match": {'$or':[
+                        {'text': {'$regex': q, '$options': 'i'}},
+                        {'name': {'$regex': q, '$options': 'i'}}
+                    ]}}]
+
+        query += [ {"$match": {'warehouse': warehouse}}]
+
+        data = list(self.mdb.store_positions.aggregate(query))
+        return list(data)
 
     '''
     Ze zadaneho ObjectID skladu vrati informace o pozici

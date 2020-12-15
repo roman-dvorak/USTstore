@@ -1,0 +1,71 @@
+<table class="table table-striped table-hover">
+<tbody>{% for param in parameters %}
+    <tr>
+        <td>{{param['m']['name']}} <small class="text-muted">({{param['m']['key']}})</small></td>
+        <td><b>{{param['v']['value']}} {{param['m']['Unit']['symbol']}}</b></td>
+    </tr>
+{% end %}</tbody>
+<form id="form_parameter_set"> {% module xsrf_form_html() %}<tr>
+<th style="width: 25%">
+    <span class="form-control">
+      <select class="param_key_list form-control" name='parameter'>
+      </select>
+    </span>
+</th>
+<th>
+  <div class="input-group">
+    <input type="text" class="form-control" aria-label="value" name="value">
+    <div class="input-group-append">
+      <input type="text" class="form-control input-group-text" aria-label="value" disabled name="unit" style="max-width: 5em;">
+      <button class="btn btn-outline-secondary" type="submit">Přidat</button>
+    </div>
+  </div>
+</th>
+</tr></form>
+</table>
+
+
+<script>
+
+function parameters_list_template(data) {
+    if (!data.id) {
+      return data.text;
+    }
+    return '<span>'+ data.text + ', ' + data.data.Unit.symbol+ ', <small>' + data.data.key + '</small></span>';
+}
+
+$('.param_key_list').select2({
+  ajax: {
+    url: '/store/api/get_parameters/list/',
+    dataType: 'json',
+    type: 'GET',
+    width: '100%',
+    processResults: function (data) {
+      console.log(data);
+      result = $.map(data, function(obj) {
+            return { "id": obj.key, "text": obj.name, "data": obj };
+        });
+      return {'results': result};
+    },
+  },
+  templateResult: parameters_list_template,
+  productTemplate: parameters_list_template,
+  escapeMarkup: function(m) { return m; }
+});
+
+$('#form_parameter_set').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'set_param/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+        }
+    });
+});
+
+</script>

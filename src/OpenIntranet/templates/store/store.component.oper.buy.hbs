@@ -1,0 +1,147 @@
+<form id="form_component_buy"> {% module xsrf_form_html() %}
+<div class="p-3">
+<div class="h3"> Nákup do skladu </div>
+
+	<div class="form-group form-row">
+		<label class="col-2 col-form-label">Počet ks</label>
+		<input class="form-control table_style col-2" type="number" id="compo_count" min="0" value="0" name="count">
+		<label class="col-2 col-form-label">Cena (za ks)</label>
+		<input class="form-control table_style col-2" type="number" id="compo_price" step = 0.00001 value="0" name="price">
+    <label class="col-2 col-form-label">Cena celkem</label>
+    <input class="form-control table_style col-2" type="number" disabled value="---">
+	</div>
+	<div class="form-group form-row request-hide">
+		<label class="col-sm-2 col-form-label">Dodavatel</label>
+		<select class="form-control table_style col-4" name='supplier'>
+			{% for i, sup in enumerate(component.get('supplier',[])) %}
+				<option value="{{i}}">{{i}}, {{sup['supplier']}}, {{sup.get('symbol', 'null')}}</option>
+			{% end %}
+		</select>
+		<label class="col-sm-2 col-form-label">Faktura, objednávka </label>
+		<select class="form-control table_style col-4" disabled></select>
+	</div>
+	<div class="form-group form-row">
+		<label class="col-sm-2 col-form-label">Poznámka sáčku</label>
+		<!-- <input class="form-control table_style col-sm-10" type="text" id="compo_description" value=""> -->
+    <textarea class="form-control table_style col-sm-10" type="text" id="compo_description" rows="4" name="description">
+    </textarea>
+	</div>
+
+	<div class="form-group form-row">
+		<label class="col-sm-2 col-form-label">Poznámka operace</label>
+		<input class="form-control table_style col-sm-10" type="text" id="compo_operation_description" value="" name="operation_description">
+	</div>
+
+	<div class="form-group form-row request-hide">
+		<label class="col-sm-2 col-form-label">Packet</label>
+		<select class="form-control table_style col-sm-10" id="compo_packet" name="packet">
+        <option value="new">Create new packet</option>
+	      {% for i, sup in enumerate(packets) %}
+	        <option value="{{sup['_id']}}">{{i}}, {{sup['_id']}} {#{sup.get('position', 'null')}#}</option>
+	      {% end %}
+		</select>
+	</div>
+
+	<div class="form-group form-row request-hide">
+		<label class="col-sm-2 col-form-label">Pozice</label>
+    <span class="col-10 col-form-label form-control">
+  		<select class="form-control table_style col-sm-10 packet_buy_dst_position" id="compo_position" name="position"></select>
+    </span>
+    <small class="form-text text-muted">Jsou zobrazeny pouze pozice v aktuálně otevřeném skladu.</small>
+	</div>
+	<div class="form-group row">
+		<button type="submit" class="form-control table_style btn btn-primary col">Uložit</button>
+	</div>
+</div>
+</form>
+
+<hr class="mt-0 mb-0">
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+
+<script type="text/javascript">
+	var compo_counts = 0;
+	var compo_new_count = 0;
+
+	function compo_update() {
+		for(c in compo_counts){
+			if(compo_counts[c]['_id'] === $('#compo_stock').val()){
+				compo_new_count = Number(compo_counts[c]['count']) + Number($("#compo_offset").val());
+				break;
+			}
+		}
+		$('#compo_new_count').text(compo_new_count);
+        compo_update_request();
+	}
+
+
+  function check_update_push(){
+
+    // Je nenulovy pocet kusu?
+    if( !($("#compo_count").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadán pocet kusu'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+
+
+    return true;
+  }
+
+
+
+  $('.packet_buy_dst_position').select2({
+    ajax: {
+      delay: 250,
+      url: '/store/api/get_positions/list/?type=select',
+      dataType: 'json',
+      type: 'POST',
+      width: '100%',
+      //data: {''}
+      processResults: function (data) {
+        var result = [{"id": 'none', "text": "Mimo skladu"}]
+        result = result.concat($.map(data, function(obj) {
+              return { "id": obj.id, "text": obj.text };
+          }))
+        return {'results': result}
+      }
+    },
+    escapeMarkup: function (text) { return text; },
+    templateSelection: function (state) {
+      var $state = $(
+        '<span>' + state.text + " <small>(" + state.id + ')</small></span>'
+      );
+      return $state;
+    },
+  });
+
+
+$('#form_component_buy').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'do_buy/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+          //location.reload();
+        }
+    });
+});
+
+
+</script>

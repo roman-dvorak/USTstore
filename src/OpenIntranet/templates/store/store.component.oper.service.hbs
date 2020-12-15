@@ -1,0 +1,55 @@
+<form id="form_component_service"> {% module xsrf_form_html() %}
+<div class="p-3">
+<div class="h3"> Servisní operace se sáčkem </div>
+
+
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Sáček</label>
+    <select class="id_input form-control table_style col-10 " name='packet_to_service'>
+      <option value="none" selected default disabled>Vyberte sáček</option>
+      {% for i, sup in enumerate(packets) %}
+        <option value="{{sup['_id']}}">{{i}}, {{sup['_id']}}, {{sup.get('position', 'null')}}</option>
+      {% end %}
+    </select>
+
+  </div>
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label" input_mode='numeric' pattern="[-+=]?\d*" title="Do pole lze zapsat zapsat relativní počty pomocí +, -. Nebo zadat aktuální absolutní počet kusů pomocí znaku '='." >Počet</label>
+    <input class="count form_control col" name="count" type="text">
+  </div>
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Popis</label>
+    <input class="count form_control col" name="description" type="text">
+  </div>
+
+
+	<div class="form-group row">
+		<button type="submit" class="form-control table_style btn btn-primary col">Uložit</button>
+	</div>
+</div>
+</form>
+
+<hr class="mt-0 mb-0">
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+<script>
+
+
+$('#form_component_service').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'do_service/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+        }
+    });
+});
+
+</script>

@@ -78,15 +78,15 @@
   <div class="card-body">
 
     <div class="card-title">
-      <h5>Kategorie</h5> 
+      <h5>Kategorie</h5>
       <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
       <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
       <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
       <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
     </div>
-    
+
     <div id="category-tree">
-      
+
     </div>
 
   </div>
@@ -272,7 +272,7 @@
       </li>
     </ul>
     <div class="tab-content p-1">
-    <div class="tab-pane fade" role="tabpanel" id="nav-filter-categories"> 
+    <div class="tab-pane fade" role="tabpanel" id="nav-filter-categories">
       Zruseno - presunuto doleva
     </div>
 
@@ -628,7 +628,7 @@ function update_view(){
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
-        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b>";
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <a href='/store/component/"+element['_id'].$oid+"/'>edit</a>";
         tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
@@ -643,7 +643,8 @@ function update_view(){
         catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
 
         var name = ""+element['_id'].$oid+"";
-        tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id'].$oid+'")');
+        // tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id'].$oid+'")');
+        // tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
         tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
 
         if ($('#display_select').val() == 'table'){
