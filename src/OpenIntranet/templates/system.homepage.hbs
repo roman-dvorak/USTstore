@@ -171,6 +171,11 @@ var positions_tree = $('#positions-tree').jstree({
       'title': 'Edit',
       'label': 'Edit',
       'action': function (node) { return edit_position(node, $(node)); }
+    },
+    'print':{
+      'title': 'Tisknout štítky',
+      'label': 'Tisknout štítky',
+      'action': function (node) { return print_labels_in_position(node, $(node)); }
     }
   }
 }
@@ -208,6 +213,18 @@ function new_position(){
 
 function edit_position(data, node){
   load_position_modal(data.reference[0].parentNode)
+}
+
+function print_labels_in_position(data, node){
+  console.log(data, node);
+  var posid = $(data.reference[0].parentNode).attr('id');
+    $.ajax({
+      type: "POST",
+      url: "/labels/print_labels_in_position",
+      data: {'posid': posid},
+      //success: success,
+      //dataType: dataType
+    });
 }
 
 function do_print(){
@@ -255,7 +272,7 @@ function push_actual_store() {
       success: function( data, textStatus, jQxhr ){
         console.log(data);
         Lobibox.notify('success', {msg: 'Sklad nastaven'});
-        location.reload(); 
+        location.reload();
 
       },
       error: function( jqXhr, textStatus, errorThrown ){
@@ -409,7 +426,7 @@ function do_edit_category(){
 //       success: function( data, textStatus, jQxhr ){
 //         console.log(data);
 //         Lobibox.notify('success', {msg: 'Sklad nastaven'});
-//         location.reload(); 
+//         location.reload();
 
 //       },
 //       error: function( jqXhr, textStatus, errorThrown ){
