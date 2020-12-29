@@ -43,47 +43,47 @@ body{
       </div>
       <div class="d-inline-stretch p-2">
         <div class="row">
-          <div class="col"><span class="editable editable-name h1" param_name="component_name">{{component.get('name', 'Beze jména')}}</span> <span class="btn-sm badge badge-secondary"onclick="copyToClipboard('{{component.get('_id', 'null')}}')">Id: {{component.get('_id', 'null')}}</span></div>
+          <div class="col"><span class="editable editable-name h1" param_name="component_name">{{component.get('name', 'Beze jména')}}</span> <span class="btn-sm badge bg-secondary"onclick="copyToClipboard('{{component.get('_id', 'null')}}')">Id: {{component.get('_id', 'null')}}</span></div>
         </div>
 
         <div class="row">
-          <div class="col editable editable-categories">Categories: {% for cat in component['categories'] %} <span class="badge badge-info">{{cat['path']}}{{cat['name']}}</span>{% end %} </div>
+          <div class="col editable editable-categories">Categories: {% for cat in component['categories'] %} <span class="badge bg-info">{{cat['path']}}{{cat['name']}}</span>{% end %} </div>
         </div>
 
 
         <div class="row">
-          <div class="col">Tags: {% for tag in component['tags'] %} <span class="badge badge-info">{{tag['id']}}</span>{% end %} </div>
+          <div class="col">Tags: {% for tag in component['tags'] %} <span class="badge bg-info">{{tag['id']}}</span>{% end %} </div>
         </div>
 
 
         <div class="row">
           <div class="col-4" data-toggle="popover" title="V aktuálním skladu; {{warehouse['name']}}">{{warehouse['code'].upper()}}:</div>
-          <div class="col"> <span class="badge big badge-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"> <span class="material-icons">store</span> {{"{} ks".format(current_warehouse.get('count', 0) - current_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(current_warehouse.get('count', 0))}})</span> </span>
-            <span class="badge badge-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
+          <div class="col"> <span class="badge big bg-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"> <span class="material-icons">store</span> {{"{} ks".format(current_warehouse.get('count', 0) - current_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(current_warehouse.get('count', 0))}})</span> </span>
+            <span class="badge bg-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
         </div>
         </div>
 
         <div class="row">
           <div class="col-4" data-toggle="popover" title="Ve všech skladech">Celkem:</div>
-          <div class="col"> <span class="badge big badge-primary"> <span class="material-icons">business</span> {{"{} ks".format(other_warehouse.get('count', 0) - other_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(other_warehouse.get('count', 0))}})</span> </span>
-            <span class="badge badge-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
+          <div class="col"> <span class="badge big bg-primary"> <span class="material-icons">business</span> {{"{} ks".format(other_warehouse.get('count', 0) - other_warehouse.get('reserv', 0))}} <span class="small">({{"{} ks".format(other_warehouse.get('count', 0))}})</span> </span>
+            <span class="badge bg-secondary"><span class="material-icons"> local_shipping </span> -- ks <span class="material-icons"> shopping_cart </span> -- ks</span>
 
         </div>
         </div>
 
         <!-- <div class="row">
           <div class="col-4">Ostatní sklady:</div>
-          <div class="col"> <span class="badge big badge-primary"> 800 ks </span>, <span class="badge small">(R: 10ks, O: 20ks)</span></div>
+          <div class="col"> <span class="badge big bg-primary"> 800 ks </span>, <span class="badge small">(R: 10ks, O: 20ks)</span></div>
         </div>
  -->
 
         <div class="row">
           <div class="col-4" data-toggle="popover" title="Nákupní ceny vycházejí z provedených nákupů">Nákupní ceny:</div>
           <div class="col">
-            <span class="badge badge-primary" data-toggle="popover" title="Cena posledního nákupu"><span class="material-icons">update</span> {{prices.get('last_price', 'null')}} czk </span>
-            <span class="badge badge-primary" data-toggle="popover" title="Nejnižší cena nákupu"><span class="material-icons">vertical_align_bottom</span> {{prices.get('min_price', 'null')}} czk </span>
-            <span class="badge badge-primary" data-toggle="popover" title="Průměrná cena nákupu"><span class="material-icons">vertical_align_center</span> {{round(prices.get('avg_price', 0), 4)}} czk</span>
-            <span class="badge badge-primary" data-toggle="popover" title="Nejvyšší cena nákupu"><span class="material-icons">vertical_align_top</span> {{prices.get('max_price', 'null')}} czk</span>
+            <span class="badge bg-primary" data-toggle="popover" title="Cena posledního nákupu"><span class="material-icons">update</span> {{prices.get('last_price', 'null')}} czk </span>
+            <span class="badge bg-primary" data-toggle="popover" title="Nejnižší cena nákupu"><span class="material-icons">vertical_align_bottom</span> {{prices.get('min_price', 'null')}} czk </span>
+            <span class="badge bg-primary" data-toggle="popover" title="Průměrná cena nákupu"><span class="material-icons">vertical_align_center</span> {{round(prices.get('avg_price', 0), 4)}} czk</span>
+            <span class="badge bg-primary" data-toggle="popover" title="Nejvyšší cena nákupu"><span class="material-icons">vertical_align_top</span> {{prices.get('max_price', 'null')}} czk</span>
           </div>
         </div>
 
@@ -92,7 +92,7 @@ body{
         <div class="row">
           <div class="col-4">Prodejní cena:</div>
           <div class="col">
-            <span class="badge badge-success" data-toggle="popover" title="Prodejní cena"> <span class="material-icons">add</span> --- czk </span>
+            <span class="badge bg-success" data-toggle="popover" title="Prodejní cena"> <span class="material-icons">add</span> --- czk </span>
           </div>
         </div>
 

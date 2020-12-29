@@ -8,7 +8,6 @@ Lobibox.notify.DEFAULTS = $.extend({}, Lobibox.notify.DEFAULTS, {
 	soundPath: '/static/lobibox/sounds/'
 });
 
-$.fn.select2.defaults.set( "theme", "bootstrap" );
 
 var stocks_info = []
 
