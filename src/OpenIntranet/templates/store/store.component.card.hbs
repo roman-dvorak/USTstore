@@ -22,20 +22,16 @@ body{
 }
 
 </style>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 
 <script>
-
-
-function select_package_formatter(data) {
-    if (!data.id) {
-      return data.text;
-    }
-    console.log('aa', data);
-    return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
-}
-
+  function select_package_formatter(data) {
+      if (!data.id) {
+        return data.text;
+      }
+      console.log('aa', data);
+      return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
+  }
 </script>
 
 
