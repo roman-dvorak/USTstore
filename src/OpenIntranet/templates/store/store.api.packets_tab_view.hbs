@@ -50,9 +50,9 @@
         <!-- <span class="hist_element" style="width: 15%;">{{row.get('bilance', '--')}} ks</span><span class="hist_element" style="width: 15%;">{{row.get('price', '--')}} Czk</span> -->
     </div>
     <div class="" data-toggle="popover" title="Actual total values of packages, LIFO prices">
-         <span class="badge big badge-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"><span class="material-icons">store</span> {{"{:.2f}".format(row['count'])}} ks</span>
-         <span class="badge big badge-secondary" data-toggle="popover" title="Cena za kus"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price']/row['count'] if row['count'] else 0)}} Czk/ks</span>
-         <span class="badge big badge-success" data-toggle="popover" title="Cena sáčku"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price'])}} Czk</span>
+         <span class="badge big bg-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"><span class="material-icons">store</span> {{"{:.2f}".format(row['count'])}} ks</span>
+         <span class="badge big bg-secondary" data-toggle="popover" title="Cena za kus"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price']/row['count'] if row['count'] else 0)}} Czk/ks</span>
+         <span class="badge big bg-success" data-toggle="popover" title="Cena sáčku"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price'])}} Czk</span>
     </div>
     <div class="hist_line font-weight-light">{{row.get('description', 'None')}}</div>
     <div class="d-inline-block">

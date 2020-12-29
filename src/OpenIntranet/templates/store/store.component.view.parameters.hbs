@@ -8,17 +8,14 @@
 <form id="form_parameter_set"> {% module xsrf_form_html() %}<tr>
 <th style="width: 25%">
     <span class="form-control">
-      <select class="param_key_list form-control" name='parameter'>
-      </select>
+      <select class="param_key_list form-control" name='parameter'></select>
     </span>
 </th>
 <th>
   <div class="input-group">
-    <input type="text" class="form-control" aria-label="value" name="value">
-    <div class="input-group-append">
+      <input type="text" class="form-control" aria-label="value" name="value">
       <input type="text" class="form-control input-group-text" aria-label="value" disabled name="unit" style="max-width: 5em;">
       <button class="btn btn-outline-secondary" type="submit">Přidat</button>
-    </div>
   </div>
 </th>
 </tr></form>
@@ -34,6 +31,7 @@ function parameters_list_template(data) {
     return '<span>'+ data.text + ', ' + data.data.Unit.symbol+ ', <small>' + data.data.key + '</small></span>';
 }
 
+$(function() {
 $('.param_key_list').select2({
   ajax: {
     url: '/store/api/get_parameters/list/',
@@ -51,7 +49,7 @@ $('.param_key_list').select2({
   templateResult: parameters_list_template,
   productTemplate: parameters_list_template,
   escapeMarkup: function(m) { return m; }
-});
+});  });
 
 $('#form_parameter_set').submit(function(e){
     e.preventDefault();
