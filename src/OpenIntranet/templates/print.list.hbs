@@ -1,0 +1,118 @@
+
+
+{%for group in groups %}
+<div class="card label_group" ondrop="drop(event)" ondragover="handleDragOver(event)" group_id="{{group['_id']}}">
+  <div class="card-body" data-toggle="collapse" data-target="#{{group['_id']}}_list" aria-expanded="true" aria-controls="{{group['_id']}}_list">
+    <div class="d-flex w-100 justify-content-between">
+      <h3><input type="checkbox" class="label_groups_chbx" value="{{group['_id']}}"> {{group['name']}} {% if '_id' in group.get('labels', [{}])[0] %}<span class="badge badge-pill badge-primary group-count">{{len(group.get('labels', []))}}</span>{%end%} </h3>
+      <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Netištěno</div></small>
+    </div>
+  </div>
+  <div class="container collapse" id="{{group['_id']}}_list"">
+    <div class="list-group pb-3 label_list">
+      {%for label in group.get('labels', []) %} {% if '_id' in label %}
+        <div class="list-group-item list-group-item-action flex-column align-items-start" draggable="true" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)"  style='cursor: move;' label_id="{{label['_id']}}" >
+        <div class="d-flex w-100 justify-content-between">
+          <div><h5> <a class="" href="/store/component/{{label['item'][0]['_id']}}/">{{label['item'][0]['name']}}</a> <small class="text-muted">{{label['item'][0]['_id']}}</small></h5>
+
+          </div>
+          <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Typ: {{label['type']}}</div></small>
+        </div>
+        <div class="d-flex w-100 justify-content-between">
+          <div>{{label['item'][0]['description'][:1000]}}</div>
+          <div>
+            <span type="button" class="btn btn-sm btn-outline-danger p-0" onClick="delete_label(this)"><span class="material-icons">clear</span></span>
+          </div>
+        </div>
+
+        </div>
+      {% end %}{%end%}
+    </div>
+  </div>
+
+</div>
+{% end %}
+
+
+<script>
+
+var source_element = null;
+var dest_element = null;
+
+function handleDragStart(e) {
+    console.log("DragStart", e);
+    source_element = e.target;
+  }
+
+  function handleDragEnd(e) {
+    var label_group = $(dest_element).parentsUntil('', ".label_group").last();
+    var group_id = $(label_group).attr('group_id');
+    var label_id = $(source_element).attr('label_id');
+    var dest_labels_list = $(label_group).find(".label_list").last();
+
+    $('.group-count').remove();
+
+
+    $.ajax('/labels/set_label_group', {
+      method: 'POST',
+      data: { 'label': label_id, 'group': group_id },
+      success: function (data, status, xhr) {
+        console.log(data);
+        $(source_element).detach().appendTo(dest_labels_list);
+      },
+      error: function (jqXhr, textStatus, errorMessage) { }
+    });
+
+    console.log("Přesouvam", label_id, "do", group_id);
+  }
+
+  function delete_label(e){
+    console.log(e);
+    var label_row = $(e).parents("[label_id]").last();
+    var label_id = $(e).parents("[label_id]").last().attr('label_id');
+    console.log(label_id);
+
+    $.ajax('/labels/remove_label', {
+      method: 'POST',
+      data: { 'label': label_id},
+      success: function (data, status, xhr) {
+        console.log(data);
+        $(label_row).detach();
+      },
+      error: function (jqXhr, textStatus, errorMessage) { }
+    });
+
+  }
+
+  function drop(e) {
+    console.log("drop", e);
+    var data = e.dataTransfer;
+    dest_element = e.target;
+  }
+
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+
+    return false;
+  }
+
+  function handleDragEnter(e) {
+    console.log("event", e);
+    console.log(this.classList);
+    this.classList.add('over');
+  }
+
+  function handleDragLeave(e) {
+    console.log("leave", e);
+    console.log(this.classList);
+    this.classList.remove('over');
+  }
+
+function handleDrop(e) {
+  e.stopPropagation(); // stops the browser from redirecting.
+  return false;
+}
+
+</script>

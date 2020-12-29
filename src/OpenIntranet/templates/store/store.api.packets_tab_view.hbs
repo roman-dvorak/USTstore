@@ -72,7 +72,7 @@
         <button class="btn btn-primary btn-sm p-1 operation_packet_transfere_out" pid="{{row['_id']}}" data-toggle="popover" title="Přesun do jiného sáčku" ><span class="material-icons">unarchive</span></button>
         <button class="btn btn-primary btn-sm p-1 operation_packet_transfere_in" pid="{{row['_id']}}" data-toggle="popover" title="Přesun do tohoto sáčku" ><span class="material-icons">archive</span></button>
         <button class="btn btn-primary btn-sm p-1 operation_packet_service" pid="{{row['_id']}}" data-toggle="popover" title="Servisní odběr" ><span class="material-icons"> settings_ethernet </span></button>
-        <button class="btn btn-primary btn-sm p-1 operation_packet_print" pid="{{row['_id']}}" data-toggle="popover" title="Tisknout štítek" disabled><span class="material-icons">print</span></button>
+        <button class="btn btn-primary btn-sm p-1 operation_packet_print" pid="{{row['_id']}}" data-toggle="popover" title="Tisknout štítek"><span class="material-icons">print</span></button>
         <button class="btn btn-primary btn-sm p-1 operation_packet_set_position" pid="{{row['_id']}}" data-toggle="popover" title="Změna pozice sáčku"><span class="material-icons">loop</span></button>
     </div>
 {#{{row}}#}
@@ -96,6 +96,31 @@
 $(document).on("click", ".operation_packet_set_position",function() {
       $('#myTab a[href="#oper_move"]').tab('show');
       console.log(this);
+});
+
+//$(document).on("click", ".operation_packet_print",function() {
+$('.operation_packet_print').off().on("click", function(){
+      var id = $(this).attr('pid');
+
+      $.ajax('/labels/add_packet_to_group', {
+        type: 'POST',
+        data: { 'packet': id },
+        success: function (data, status, xhr) {
+        Lobibox.notify('success', {
+            size: 'mini',
+            delayIndicator: true,
+            msg: 'Úspěšně přidáno do seznamu'
+          });
+        },
+        error: function (jqXhr, textStatus, errorMessage) { Lobibox.notify('error', {
+            size: 'mini',
+            delayIndicator: true,
+            msg: 'Nelze přídat do seznamu'
+          });
+        },
+      
+      });
+
 });
 
 

@@ -2,6 +2,8 @@
 {% block title %} | Adresář{%end%}
 {% block body %}
 
+<script src="/static/jsrender/jsrender.min.js"></script>
+
 <div class="container h-100">
 
 <h1> Tistk štítků </h1>
@@ -17,87 +19,43 @@
       <li>Skrýt vytištěné
       <li>tagy?
       </ul>
+
+      <div>
+        <span class="action-print btn btn-sm btn-primary">Tisk</span>
+      </div>
   </div>
 </div>
 
-
-<div class="card">
-  <div class="card-body">
-    <h3>Nezařazeno</h3>
+  <div id="group_list">
   </div>
-
-
-  <div class="container mb-3">
-    <div class="list-group">
-      <div class="list-group-item list-group-item-action flex-column align-items-start">
-        Štítek 1
-      </div>
-      <div class="list-group-item list-group-item-action flex-column align-items-start">
-        Štítek 2
-      </div>
-    </div>
-  </div>
-
 </div>
+<script>
+$.ajax('/labels/get_grouped_labels', {
+  type: 'GET',
+  //data: { 'packet': id },
+  success: function (data, status, xhr) {
+    console.log(data);
+    $("#group_list").html(data);
+
+  },
+  error: function (jqXhr, textStatus, errorMessage) { }
+});
 
 
-<div class="card">
-  <div class="card-body" data-toggle="collapse" data-target="#ouoeuoeuoeU_list" aria-expanded="true" aria-controls="ouoeuoeuoeU_list">
+$('.action-print').on("click", function(){
+  var checked = $(".label_groups_chbx:checked").map( function() { return $(this).val() }).get();
+  console.log(checked);
 
-    <div class="d-flex w-100 justify-content-between">
-      <h4 class="mb-1">Název skupiny</h4>
-      <small class="text-muted"><div>Jan Chroust; 2020-10-11 00:00:00</div><div>Jan chroust; Vytištěno</div></small>
-    </div>
-  </div>
+  let url = 'labels/print?'; // parametr n je zde z d
+  checked.forEach((x, i) => {
+    if(i != 0){ url += "&"; }
+      url += 'group[]='+x;
+  });
+  window.open(url, '_blank');
 
-
-  <div class="container mb-3 collapse" id="ouoeuoeuoeU_list">
-    <div class="list-group">
-      <div class="list-group-item list-group-item-action d-flexflex-column align-items-start">
-        <div>oeuoeuoeuou ID <small>Sáček</small></div>
-        <div>1 ks </div>
-      <small class="text-muted"><div>Jan Chroust; 2020-10-11 00:00:00</div></small>
-      </div>
-      <div class="list-group-item list-group-item-action flex-column align-items-start">
-        Štítek 2
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="card">
-  <div class="card-body">
-    <div class="d-flex w-100 justify-content-between">
-      <h4 class="mb-1"><input type="checkbox"> <span>Objednávka xxxx</span></h4>
-      <small class="text-muted"><div>Roman Dvořák; 2020-10-11 00:00:00</div><div>Netištěno</div></small>
-    </div>
-    <div>
-      <span class="badge badge-pill badge-primary">Objednávka</span>
-      <span class="badge badge-pill badge-primary">TME</span>
-
-    </div>
-  </div>
+});
 
 
-  <div class="container mb-3">
-    <div class="list-group">
-      <div class="list-group-item list-group-item-action flex-column align-items-start">
-        Štítek 1
-      </div>
-      <div class="list-group-item list-group-item-action flex-column align-items-start">
-        Štítek 2
-      </div>
-    </div>
-  </div>
-
-</div>
-
-
-
-</div>
-
-
-
+</script>
 
 {% end %}{# block body#}
