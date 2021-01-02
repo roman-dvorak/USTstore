@@ -16,6 +16,10 @@ Tyto a další nedostatky nás vedly k vytvoření open-source intranetu, kde bu
 
 Z tohoto důvodu budeme určitě rádi, pokud najdeme partnera pro spolupráci na tomto typu projektu. 
 
+## Současná implementace
+
+
+
 ## Seznam plánovaných modulů
 
 Následující moduly jsou v různé fázi rozpracovanosti, některé jsou již implementovány do současné struktury intranetu, jiné čekají na konkretizace svojí definice a následnou implementaci. 
