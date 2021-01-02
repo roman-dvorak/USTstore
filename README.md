@@ -1,6 +1,6 @@
 # UST - OpenIntranet
 
- [Návody a popis](https://github.com/UniversalScientificTechnologies/OpenIntranet/wiki)
+Systém umožňující správu v organizaci zabývající se řešením open-source projektů. 
 
 ## Motivace
 
@@ -19,6 +19,7 @@ Z tohoto důvodu budeme určitě rádi, pokud najdeme partnera pro spolupráci n
 ## Současná implementace
 
 
+ [Návody a popis](https://github.com/UniversalScientificTechnologies/OpenIntranet/wiki)
 
 ## Seznam plánovaných modulů
 
