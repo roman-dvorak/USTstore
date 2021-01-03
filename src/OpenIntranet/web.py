@@ -155,19 +155,20 @@ class WebApp(tornado.web.Application):
                     module = importlib.import_module('plugins.'+plugin_file)
                 else:
                     module = importlib.import_module('plugins')
-                
+
                 plugin_handlers = module.get_plugin_handlers()
                 plugin_info = module.get_plugin_info()
                 plugin_name = plugin_info.get("name", module.__name__)
 
                 handlers += plugin_handlers
                 plugin_infos[plugin_name] = plugin_info
-            
+
             except Exception as e:
-                print(plugin_file)
+                print("chyba", plugin_file)
                 print(e)
-           
-            
+        # print(handlers)
+
+
 
 
         #for file_name in os.listdir(plugins_dir_name):

@@ -1,0 +1,102 @@
+<form id="form_component_transfere"> {% module xsrf_form_html() %}
+<div class="p-3">
+<div class="h3"> Přesun mezi sáčky </div>
+
+
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Zdrojový sáček</label>
+    <select class="form-control table_style col-4" name='source'>
+      <option value="none" selected>Vyberte sáček</option>
+      {% for i, sup in enumerate(packets) %}
+        <option value="{{sup['_id']}}">{{i}}, {{sup['_id']}}, {{sup.get('position', 'null')}}</option>
+      {% end %}
+    </select>
+
+    <label class="col-sm-2 col-form-label">Počet</label>
+    <input class="form-control col-4" type="number" name="count" value="0" min="0">
+  </div>
+
+
+  <div class="form-group form-row">
+    <label class="col-sm-2 col-form-label">Cílový sáček</label>
+    <select class="form-control table_style col-4" name='destination'>
+      <option value="none" selected>Nový sáček</option>
+      {% for i, sup in enumerate(packets) %}
+        <option value="{{sup['_id']}}">{{i}}, {{sup['_id']}}, {{sup.get('position', 'null')}}</option>
+      {% end %}
+    </select>
+  </div>
+
+	<div class="form-group form-row">
+		<label class="col-sm-2 col-form-label">Poznámka operace</label>
+		<input class="form-control table_style col-sm-10" type="text" id="compo_operation_description" value="" name="operation_description">
+	</div>
+
+	<div class="form-group row">
+		<button type="submit" class="form-control table_style btn btn-primary col">Uložit</button>
+	</div>
+</div>
+</form>
+
+<hr class="mt-0 mb-0">
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+
+<script type="text/javascript">
+	var compo_counts = 0;
+	var compo_new_count = 0;
+
+	function compo_update() {
+		for(c in compo_counts){
+			if(compo_counts[c]['_id'] === $('#compo_stock').val()){
+				compo_new_count = Number(compo_counts[c]['count']) + Number($("#compo_offset").val());
+				break;
+			}
+		}
+		$('#compo_new_count').text(compo_new_count);
+        compo_update_request();
+	}
+
+
+  function check_update_push(){
+
+    // Je nenulovy pocet kusu?
+    if( !($("#compo_count").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadán pocet kusu'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+
+
+    return true;
+  }
+
+
+$('#form_component_transfere').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'do_move/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+        }
+    });
+});
+
+</script>

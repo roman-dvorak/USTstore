@@ -78,117 +78,22 @@
   <div class="card-body">
 
     <div class="card-title">
-      <h5>Kategorie</h5> 
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
+      <h5>Kategorie</h5>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
     </div>
-    
+
     <div id="category-tree">
-      
+
     </div>
 
   </div>
 </div>
 
 
-<div class="card" style="min-height: min-content;">
-<div class="card-body">
-<div class="row">
-    <div style="height: 43pt;" class="col-12"><svg id="selected-barcode" preserveAspectRatio="none" style="width: 100%; height: 41pt;"></svg></div>
-    <div style="width: 100%;" id="selected-tags" class="pl-3 pb-2 pr-3"></div>
 
-  	<div class="col-12">
-
-        <div class="form-group form-inline">
-            <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
-        </div>
-
-        <div class="form-group form-inline">
-            <label class="col-4">{{_('Component ID')}}</label>
-            <input type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-id" value="" onchange="update_product('id')">
-        </div>
-
-        <div class="form-group form-inline">
-            <label class="col-4">{{_('Component name')}}</label>
-            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-name-name" value="" ></>
-        </div>
-
-        <div class="form-group form-inline">
-            <label class="col-4">Cena posl. nákupu</label>
-            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_last" value=""></>
-        </div>
-
-        <div class="form-group form-inline">
-            <label class="col-4">Cena nákupu prům.</label>
-            <input readonly type="text" class="form-control form-control-sm selected-name col-8" id="selected-price_buy_avg" value=""></>
-        </div>
-
-		<div class="form-group form-inline">
-		    <label class="col-4">Cena prodejní</label>
-		    <input readonly type="number" class="form-control form-control-sm col-8" name="selected-price" id="selected-price" value="" step="0.01" onchange="update_product('price')">
-		</div>
-
-
-
-		  <div class="form-group">
-		    <label for="exampleFormControlTextarea1">Popis</label>
-		    <textarea readonly class="form-control" id="selected-description" rows="4" onchange="update_product('description')"></textarea>
-		</div>
-  </div>
-
-
-  <div class="col-12">
-  <div class="form-group">
-    <label for="exampleFormControlTextarea1">Kategorie <span id="selected-category-name"></span></label>
-  	<select class="form-control js-example-basic-multiple" name="states[]" multiple="multiple" id="selected-category" onchange="update_product('category', this, null)">
-		{% for cat in category %}
-			<option value="{{cat['_id']}}"><b>{{cat['name']}}</b> - <small>{{cat.get('path', '/')}}{{cat['name']}}</small></option>
-		{% end %}
-	</select></div>
-  </div>
-
-
-{% if permis %}
-  <div class="col-12">
-	  <div class="form-group col">
-	      <label for="exampleFormControlTextarea1">Operace</label>
-	  	  <div id="selected_operations">
-	  	  	<div class="btn-group btn-group-justified">
-            <div class="btn-group" role="group">
-                <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons">playlist_add</i></button>
-                <div class="dropdown-menu form-group p-0" aria-labelledby="btnGroupDrop1">
-                  <input class="form-control" type="number" id="add_to_cart_count" min="0" value="0">
-                  <button class="form-control btn btn-success" onclick="add_to_cart_count(null, '#add_to_cart_count')">Přidat</button>
-                </div>
-            </div>
-				  	<button type="button" class="btn btn-primary" onclick="load_modal_operation('buy')">Nákup</button>
-            <button type="button" class="btn btn-primary">Prodej</button>
-            <button type="button" class="btn btn-primary" onclick="load_modal_operation('service')">Servisní odběr</button>
-            <button type="button" class="btn btn-primary" onclick="OpenArticleEdit()"><i class="material-icons">edit</i></button>
-				</div>
-	  	  </div>
-	  </div>
-  </div>
-{% end %}
-
-  <div class="col-12 row" style="margin: 0pt;">
-    <label class="col-12 bg-danger">Skladové zásoby:</label>
-    <div id="stock_bilance"></div>
-  </div>
-  <div class="col-12 row" style="margin: 0pt;">
-    <label class="col-12">Dodavatel</label>
-    <div id="supplier_list" style="width: 100%;">
-    </div>
-  </div>
-</div>
-</div>
-
-
-	<button class="btn btn-success" onclick="new_component()"><i class="material-icons">add</i></button>
-
-  	</div><!-- </form> -->
 </div>
 
 <div class="card" style="">
@@ -203,51 +108,9 @@
 
   		    <div class="display_helper" id="display_helper_std">
   		    	Standartní zobrazeni nema žádná nastavení
-
-  		    </div>
-
-  		    <div class="display_helper" id="display_helper_table">
-  		    	Výchozí sklad:
-  		    		<select id="display_sklad">
-  		    			<option value="pha01">PHA01</option>
-  		    			<option value="sob01">SOB01</option>
-  		    		</select>
-
-  		    	Kontrolovat kontrola TAGu:
-  		    		<select id="display_tag">
-                <option value="inventura2019">inventura2019</option>
-                <option value="inventura2018">inventura2018</option>
-  		    		</select>
   		    </div>
 
   	</div>
-
-    {% if permis %}<div class="card-footer">
-  			<label>Multiply:</label>
-  			<input type="number" name="" id="print_multiply" value="1" min="1", max="10" step="1">
-  			<label>Skip:</label>
-  			<input type="number" name="" id="print_skip" value="0" min="0", max="50" step="1">
-  			<label>Label template:</label>
-  			<select id="print_template">
-  				<option value="105x74_simple">105 x 74 mm portrait</option>
-  				<option value="105x48_panorama">105 x 48 mm panorama</option>
-  				<option value="70x40_simple">70 x 40 mm</option>
-  				<option value="70x42-3_simple">70 x 42,3 mm</option>
-  				<option value="souhrn_01">Souhrn základní</option>
-  			</select>
-  			<select id="print_type">
-  				<option value="pdf">PDF</option>
-  			</select>
-  			<button class="btn btn-primary" onclick="preparePrint()">Tisk</button>
-  			<hr>
-  			<button onclick="select_all_products(1)">Vybrat cely list</button>
-  			<button onclick="select_all_products(0)">Odznacit cely list</button>
-  	</div>{%end%}
-
-
-	{% if permis %}<!-- Trigger the modal with a button -->
-	<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#modal_cat"  onclick="mcat_update()">Nastaveni kategorii</button>
-  {% end %}
 
   </div></div>
 
@@ -272,7 +135,7 @@
       </li>
     </ul>
     <div class="tab-content p-1">
-    <div class="tab-pane fade" role="tabpanel" id="nav-filter-categories"> 
+    <div class="tab-pane fade" role="tabpanel" id="nav-filter-categories">
       Zruseno - presunuto doleva
     </div>
 
@@ -351,25 +214,10 @@
 </div></div>                                                              <!-- Konec divu WRPPPER a ROW -->
 
 
-{% module Template('store/store.modal.component.edit.hbs', permis=permis, category=category) %}
-{% module Template('store/store.modal.component.edit.scripts.hbs') %}
+{#% module Template('store/store.modal.component.edit.hbs', permis=permis, category=category) %#}
+{#% module Template('store/store.modal.component.edit.scripts.hbs') %#}
 
 
-<!-- Modal - pro produktove operace -->
-<div id="modal_operation" class="modal hide fade" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-
-    <!-- Modal content-->
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Operace s produktem</h4>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-operation-content">
-      </div>
-    </div>
-  </div>
-</div>
 
 
 <script type="text/javascript">
@@ -431,66 +279,6 @@ load_category_tree();
 
 </script>
 
-
-<script type="text/javascript">
-
-  // Vyvoreni nove kategorie (uprava) a kontrola, že jsou všechna pole vyplněna
-  {% if permis %}function mcat_update_push(){
-    if ( $('#mcat_cat_name').val() && $('#mcat_cat_name_cs').val() && $('#mcat_cat_path').val() ){
-  		$.ajax({
-  			type: "POST",
-  			url: "/store/api/update_category/",
-  			data: {
-  				'name': $('#mcat_cat_name').val(),
-  				'name_cs': $('#mcat_cat_name_cs').val(),
-  				'path': $('#mcat_cat_path').val(),
-  				'description': $('#mcat_cat_desc').val(),
-  			},
-  			success: function( data, textStatus, jQxhr ){
-  				mcat_update();
-  			},
-  			error: function( jqXhr, textStatus, errorThrown ){
-  				console.log( errorThrown );
-  			}
-  		});
-    }else{
-      Lobibox.notify('error', {
-        msg: 'Vyplňte všechna pole..',
-        icon: false,
-      });
-    }
-	}
-
-  function mcat_load_existing(id, cs, ds, path){
-    $('#mcat_cat_name').val(id);
-    $('#mcat_cat_name_cs').val(cs);
-    $('#mcat_cat_desc').val(ds);
-    $('#mcat_cat_path').val(path);
-  }{%end%}
-
-
-	function mcat_update(){
-		$.ajax({
-			type: "POST",
-			url: "/store/api/get_categories/",
-			data: {
-			},
-			success: function( data, textStatus, jQxhr ){
-				console.log(data, textStatus);
-				$('#mcat_param_list').empty();
-				for (var i = data.length - 1; i >= 0; i--) {
-					console.log(data[i]);
-          document.getElementById('mcat_param_list').innerHTML += "<span onclick=\"mcat_load_existing('"+data[i]['name']+
-                                    "', '"+data[i]['name']+"', '"+data[i]['description']+"', '"+data[i].get('path', '/')+"')\">" + "<i class='material-icons'>edit</i>" + "</span>"
-          document.getElementById('mcat_param_list').innerHTML +=  data[i].get('path', '/') +"<b>"+ data[i]['name'] + "</b>  <small>" + data[i]['name'] + "</small><br>";
-				}
-			},
-			error: function( jqXhr, textStatus, errorThrown ){
-				console.log( errorThrown );
-			}
-		});
-	}
-</script>
 
 		<template id="products-template_std">
 			<div class="card product_list_element">
@@ -628,7 +416,7 @@ function update_view(){
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
-        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b>";
+        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <a href='/store/component/"+element['_id'].$oid+"/'>edit</a>";
         tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
@@ -643,15 +431,16 @@ function update_view(){
         catch(err){	tmpl.querySelector('.category_name').innerText = "err";}
 
         var name = ""+element['_id'].$oid+"";
-        tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id'].$oid+'")');
+        // tmpl.querySelector('.product_list_element').setAttribute('onclick', 'load_product("'+element['_id'].$oid+'")');
+        // tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
         tmpl.querySelector('.product_list_element').setAttribute('ondblclick', 'OpenArticleEdit("'+element['_id'].$oid+'");');
 
         if ($('#display_select').val() == 'table'){
-            try{var warehouse_count = element.overview.stocks[Cookies.get("warehouse")].count.onstock;}
-            catch(err){var warehouse_count = 0; console.log(err);}
+            //try{var warehouse_count = element.overview.stocks[Cookies.get("warehouse")].count.onstock;}
+            //catch(err){var warehouse_count = 0; console.log(err);}
             // console.log(warehouse_count)
-            tmpl.querySelector('.stock_count').innerHTML = "<b>"+warehouse_count +
-                      "</b><small class='text-muted'> (" + element.overview.count.onstock + ")</small>";
+            //tmpl.querySelector('.stock_count').innerHTML = "<b>"+warehouse_count +
+            //          "</b><small class='text-muted'> (" + element.overview.count.onstock + ")</small>";
             if (element.tags){
 
               if(_.findKey(element.tags, { 'id': "inventura2020"})){
@@ -659,7 +448,7 @@ function update_view(){
               }
             }
 
-            tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
+            //tmpl.querySelector('.stock_count').setAttribute('onchange', 'update_product_from_line("stock_count","'+element['_id'].$oid+'", this.value, "'+$('#display_sklad').val()+'")');
         }
 
         if(current_detail == element['_id']){
@@ -702,32 +491,6 @@ function update_product_from_line(type, product_name, value, add1=null, add2=nul
 			});
 	}
 
-	if(type=="tag"){
-		console.log("tag ma byt:", product_name, value);
-		$.ajax({
-				type: "POST",
-				url: "/store/api/update_tag/",
-				data: {'component':product_name,
-					   'tag': $('#display_tag').val(),
-					   'state': value,
-					},
-				success: function( data, textStatus, jQxhr ){
-					//alert('Data sucessfuly updated');
-					Lobibox.notify('success', {
-						title: 'Položka zaktualizována',
-						msg: 'Počet skladových zásob',
-						delay: 3000
-					});
-				},
-				error: function( jqXhr, textStatus, errorThrown ){
-					console.log( errorThrown );
-					Lobibox.notify('error', {
-						msg: 'Aktualizace neproběhla úspěšně: ' + errorThrown,
-						icon: false,
-					});
-				}
-			});
-	}
 }
 
 
@@ -872,7 +635,7 @@ function load_product(id, open = false){
 					if(element.tags === undefined) element['tags']={};
 					for(var i in element.tags){
             var tag = element.tags[i];
-						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag.id || 'err'+'</span>';
+						document.getElementById('selected-tags').innerHTML += '<span class="badge bg-pill bg-primary">'+tag.id || 'err'+'</span>';
 					}
 
 

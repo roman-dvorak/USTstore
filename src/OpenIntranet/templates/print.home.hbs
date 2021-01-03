@@ -2,22 +2,60 @@
 {% block title %} | Adresář{%end%}
 {% block body %}
 
+<script src="/static/jsrender/jsrender.min.js"></script>
+
 <div class="container h-100">
 
 <h1> Tistk štítků </h1>
 
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">Filtr</h5>
 
-<div class="list-group">
-  <a href="/labels/packet" class="list-group-item list-group-item-action">Štítky sáčků</a>
-  <a href="#" class="list-group-item list-group-item-action disabled">Štítky pozic</a>
-  <a href="#" class="list-group-item list-group-item-action disabled"> Zatím neznámý typ štítku</a>
-  <a href="#" class="list-group-item list-group-item-action disabled"> Zatím neznámý typ štítku</a>
-  <a href="#" class="list-group-item list-group-item-action disabled"> Zatím neznámý typ štítku</a>
+    <ul>
+      <li>Vyhledávání v názvu
+      <li>Autor skupiny (primárně zobrazovat moje, veřejné/sdíleno se mnou, všichni, uživatel 1, uživatel 2 - od třetí položky to bude vyžadovat vyšší práva)
+      <li>Datum - od do
+      <li>Skrýt vytištěné
+      <li>tagy?
+      </ul>
+
+      <div>
+        <span class="action-print btn btn-sm btn-primary">Tisk</span>
+      </div>
+  </div>
 </div>
 
+  <div id="group_list">
+  </div>
 </div>
+<script>
+$.ajax('/labels/get_grouped_labels', {
+  type: 'GET',
+  //data: { 'packet': id },
+  success: function (data, status, xhr) {
+    console.log(data);
+    $("#group_list").html(data);
+
+  },
+  error: function (jqXhr, textStatus, errorMessage) { }
+});
 
 
+$('.action-print').on("click", function(){
+  var checked = $(".label_groups_chbx:checked").map( function() { return $(this).val() }).get();
+  console.log(checked);
 
+  let url = 'labels/print?'; // parametr n je zde z d
+  checked.forEach((x, i) => {
+    if(i != 0){ url += "&"; }
+      url += 'group[]='+x;
+  });
+  window.open(url, '_blank');
+
+});
+
+
+</script>
 
 {% end %}{# block body#}
