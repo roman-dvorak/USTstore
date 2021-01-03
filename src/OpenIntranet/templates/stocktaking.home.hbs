@@ -95,7 +95,7 @@
 
                 {% if stocktaking %}
                 <div class="card-header bg-success">
-                  Právě je otevřena inventura <code>{{stocktaking['name']}}</code>. 
+                  Právě je otevřena inventura <code>{{stocktaking['name']}}</code>.
                 </div>
                 {% else %}
                 <div class="card-header bg-danger text-white">
@@ -104,8 +104,8 @@
                 {% end %}
                 <div class="card-body row">
 
-                    <div class="form-group col-lg-12 col-md-6"><div class="row">
-                        <label class="col-sm-3 col-form-label">SKU</label>
+                    <div class="form-group col-lg-12 col-md-12"><div class="row">
+                        <label class="col-form-label">pid <span class="small fw-light text-muted">(packet id)</span></label>
                         <div class="input-group col-sm-9">
                           <input class="form-control" type="text" id="sku_search" onchange="reload_sku()">
                           <div class="input-group-append">
@@ -114,8 +114,8 @@
                         </div>
                     </div></div>
 
-                    <div class="form-group col-lg-12 col-md-6 form-group-sm"><div class="row">
-                        <label class="col-sm-3 col-form-label">_ID</label>    
+                    <div class="form-group col-lg-12 col-md-12 form-group-sm"><div class="row">
+                        <label class="col-form-label">cid <span class="small fw-light text-muted">(component id)</span></label>
                         <div class="input-group col-sm-9">
                           <input class="form-control" type="text" id="id_val" disabled>
                           <div class="input-group-append">
@@ -124,17 +124,17 @@
                         </div>
                     </div></div>
 
-                    <div class="form-group col-lg-12 col-md-6"><div class="row">
+                    <div class="form-group col-lg-12 col-md-12"><div class="row">
                         <label class="col-sm-3 col-form-label">Name</label>
                         <div class="col-sm-9"><input class="form-control" type="text" id="all_search" disabled></div>
                     </div></div>
                     <div>
 
                     </div>
-                    <div id="next_operation" class=" display-5 text-muted col-md-6">
+                    <div id="next_operation" class=" display-5 text-muted col-md-12">
                         Načtěte další kód...
                     </div>
-                    <div class="col-lg-12 col-md-6">
+                    <div class="col-lg-12 col-md-12">
                         <div class="col text-center align-middle display-4 shadow alert alert-success">
                           <div class="old_val_text"> <span id="val_old">000.00</span> ks</div>
                           <div class="old_val_spinner spinner-grow text-success" role="status" style="display: none;"><span class="sr-only">Loading...</span></div>
@@ -194,22 +194,29 @@
 
         <div class="col-6 col-md-6 col-lg-7">
             <div class="card">
-                <div class="card-body row">
-                    
+                <div class="card-body">
+                <div class="row">
+                </div>
+                <div class="row">
                     <div class="form-group row col-lg-12 col-md-6">
                       <label class="col-sm-2 col-form-label">Pozice</label>
-                      <div class="col-sm-10"><select class="form-control" id="position_select">
+                      <div class="col-sm-10"><span class="form-control"><select class="form-control" id="position_select">
                         {%for place in places %} <option value="{{place['_id']}}">{{place['name']}} | {{place['text']}}</option>{%end%}
-                      </select></div>
+                      </select></span></div>
                     </div>
 
                     <div class="form-group row col-lg-12 col-md-6">
                       <label class="col-sm-2 col-form-label">Automaticky přidat</label>
                       <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add" checked disabled></div>
                     </div>
-
+                </div>
               </div>
             </div>
+
+
+          <div class="col-12 card card-body h4 m-0">
+                  Seznam sáčků v pozici
+          </div>
 
           <div class="row">
               <div class="col-6"><div class="card">
@@ -263,7 +270,7 @@
 
         $.ajax({
           type: "POST",
-          url: "/stocktaking/get_item/",
+          url: "/stocktaking/get_packet/",
           data: {
             '_id': $('#sku_search').val(),
             'stocktaking_position': $('#position_select').val(),
@@ -281,14 +288,14 @@
                 $("#val_old").empty();
 
                // console.log("Artikl:", data);
-                
+
         // Zjisti, jestli uz to bylo inventurovane
                 for (rec_i in data.item.history){
                   var history = data.item.history[rec_i];
-                  if (history.operation == 'inventory' && history.inventory != undefined){
-                    if(history.inventory.$oid == data.inventory._id.$oid && history.stock.$oid == data.warehouse._id.$oid){
+                  if (history.type == 'inventory' && history.inventory != undefined){
+                    if(history.inventory.$oid == data.inventory._id.$oid){
                       first_time = false;
-                    } 
+                    }
                   }
                 }
 
@@ -306,7 +313,7 @@
                       delay: 3000
                   });
                 }
-                
+
                 // Vytvoreni seznamu aktualnich pozic
                 $('.component_positions_list').empty();
                 $('.component_positions_list_other').empty();
@@ -460,9 +467,9 @@
 </script>
 
 <script type="text/javascript">
-  
+
   $('#position_select').select2({
-  
+
   });
 
 
@@ -562,7 +569,7 @@
 
 function add_history(name, count, status = null){
   console.log(name, count, status);
-  
+
   switch(status){
     case 'success':
       var background = 'lightgreen';
@@ -593,7 +600,7 @@ function add_history(name, count, status = null){
 
 
 <script type="text/javascript">
-  
+
   function update_list_of_position(){
         console.log("Obnova seznamu pozic");
         $(".list_of_position_spinner").show();
@@ -601,7 +608,7 @@ function add_history(name, count, status = null){
         $('#list_of_position_done').empty();
         $.ajax({
           type: "GET",
-          url: "/store/api/items/by_position/",
+          url: "/store/api/packets/by_position/",
           //contentType : 'application/json',
           data: {
                 //'selected': active_categories(),
@@ -613,40 +620,41 @@ function add_history(name, count, status = null){
               console.log('/products/', data, textStatus);
               for (var i = 0; i < data.length; i++) {
                   var x = data[i];
+                  var pid = data[i].packets['_id']["$oid"]
                   //console.log(x);
                   var first_time = true;
 
                   for (rec_i in x.history){
                     var rec = x.history[rec_i];
-                    if (rec.operation == 'inventory'){
-                      //console.log("inventura", rec);
+                    if (rec.type == 'inventory'){
+                      console.log("inventura", rec);
                       //console.log(x);
                       if (rec.inventory != undefined && rec.inventory.$oid == inventory){
                         first_time = false;
-                      } 
+                      }
                     }
                   }
 
 
                   if (first_time) {
                     //console.log("poprve", x);
-                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
-                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x.packets._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store/component/'+x._id.$oid+'/" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
                     text += x.name + "</span></div>";
                     $( "#list_of_position_pending" ).append( text );
 
                   }else{
                     //console.log("opakovane", x);
-                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x._id.$oid+'\')"> compare_arrows </a>';
-                    text += '<a href="/store#'+x._id.$oid+'" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
-                    text += x.name + "</span></div>";
+                    var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x.packets._id.$oid+'\')"> compare_arrows </a>';
+                    text += '<a href="/store/component/'+x._id.$oid+'/" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
+                    text += x.name + "<small>" + x.packets._id.$oid + "</small></span></div>";
                     $( "#list_of_position_done" ).append( text );
                   }
 
               }
 
               $(".list_of_position_spinner").hide();
-              
+
               //update_view();
           },
           error: function( jqXhr, textStatus, errorThrown ){
@@ -661,7 +669,7 @@ function add_history(name, count, status = null){
 
   update_list_of_position();
   $("#position_select").on('select2:select', function (e) {update_list_of_position(); });
-  
+
 
 </script>
 

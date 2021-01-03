@@ -4,7 +4,7 @@
 <div class="card label_group" ondrop="drop(event)" ondragover="handleDragOver(event)" group_id="{{group['_id']}}">
   <div class="card-body" data-toggle="collapse" data-target="#{{group['_id']}}_list" aria-expanded="true" aria-controls="{{group['_id']}}_list">
     <div class="d-flex w-100 justify-content-between">
-      <h3><input type="checkbox" class="label_groups_chbx" value="{{group['_id']}}"> {{group['name']}} {% if '_id' in group.get('labels', [{}])[0] %}<span class="badge badge-pill badge-primary group-count">{{len(group.get('labels', []))}}</span>{%end%} </h3>
+      <h3><input type="checkbox" class="label_groups_chbx" value="{{group['_id']}}"> {{group['name']}} {% if '_id' in group.get('labels', [{}])[0] %}<span class="badge rounded-pill bg-primary group-count">{{len(group.get('labels', []))}}</span>{%end%} </h3>
       <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Netištěno</div></small>
     </div>
   </div>

@@ -79,10 +79,10 @@
 
     <div class="card-title">
       <h5>Kategorie</h5>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
-      <a href="#" class="badge badge-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
+      <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('deselect_all')">Odznačit vše</a>
     </div>
 
     <div id="category-tree">
@@ -635,7 +635,7 @@ function load_product(id, open = false){
 					if(element.tags === undefined) element['tags']={};
 					for(var i in element.tags){
             var tag = element.tags[i];
-						document.getElementById('selected-tags').innerHTML += '<span class="badge badge-pill badge-primary">'+tag.id || 'err'+'</span>';
+						document.getElementById('selected-tags').innerHTML += '<span class="badge bg-pill bg-primary">'+tag.id || 'err'+'</span>';
 					}
 
 

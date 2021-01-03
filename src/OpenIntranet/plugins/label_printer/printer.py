@@ -71,8 +71,8 @@ class print_label(BaseHandler):
 
                 # nazev soucastky
                 pdf.set_font('pt_sans-bold', '', 12)
-                pdf.set_xy(x0+4, y0+6.5)
-                pdf.cell(70-4, 0, label['component']['name'][:25], align = 'L')
+                pdf.set_xy(x0+4, y0+4.5)
+                pdf.cell(70-8, 4.5, label['component']['name'][:25], align = 'L', border=1)
 
                 # # bile pozadi pod carovym kodem
                 # pdf.set_fill_color(255,255,255)
