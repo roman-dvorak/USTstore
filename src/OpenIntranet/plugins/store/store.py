@@ -29,6 +29,7 @@ def get_plugin_handlers():
              (r'/%s/' %plugin_name, hand_bi_home),
              (r'/%s/print/' %plugin_name, print_layout),
              (r'/{}/api/items/by_position/'.format(plugin_name), api_get_items_by_position),
+             (r'/{}/api/packets/by_position/'.format(plugin_name), api_get_packets_by_position),
              (r'/{}/api/item/(.*)/'.format(plugin_name), api_item_json),
              (r'/{}/api/item/(.*)/buy_request'.format(plugin_name), api_buyrequest_json),
              (r'/{}/api/item/(.*)/suppliers'.format(plugin_name), api_suppliers),
@@ -238,7 +239,6 @@ class api_get_items_by_position(BaseHandler):
 
     def get(self):
         position = bson.ObjectId(self.get_argument('position'))
-        #stock = self.get_argument('this_stock')
 
         data = self.mdb.stock.aggregate([
             {'$match': {'position.posid': position}},
@@ -249,33 +249,31 @@ class api_get_items_by_position(BaseHandler):
 
         self.write(bson.json_util.dumps(data))
 
-#
-# class api_parameters_list(BaseHandler):
-#     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
-#
-#     def post(self):
-#         self.set_header('Content-Type', 'application/json')
-#
-#         search = self.get_argument('term', '')
-#         print("vyhledavam dle", search)
-#
-#         agq = [{"$match": {'$or':[
-#                         {'name': { '$regex': search, '$options': 'ix'}},
-#                         {'lang.en': { '$regex': search, '$options': 'ix'}},
-#                         {'lang.cs': { '$regex': search, '$options': 'ix'}}
-#                     ]}
-#                 }]
-#
-#         dout = list(self.mdb.parameters.aggregate(agq))
-#
-#         data = {
-#             'total_count': len(dout),
-#             'incomplete_results': False,
-#             'items': dout,
-#         }
-#         self.write(bson.json_util.dumps(data))
+class api_get_packets_by_position(BaseHandler):
+    role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
 
-# list of positions in current stock
+    def get(self):
+        position = bson.ObjectId(self.get_argument('position'))
+        #stock = self.get_argument('this_stock')
+
+        data = self.mdb.stock.aggregate([
+            {'$match': {'packets.position': position}},
+            {'$unwind': "$packets"},
+            {'$project' : { 'name' : 1 , 'description' : 1, 'packets':1} },
+            {'$lookup':{
+                'from': 'stock_operation',
+                'localField': "packets._id",
+                'foreignField': "pid",
+                'as': 'history'
+                }
+            }
+        ])
+
+        data = list(data)
+
+        self.write(bson.json_util.dumps(data))
+
+
 class api_positions_list(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
@@ -738,102 +736,7 @@ class api(BaseHandler):
         elif data == 'get_packets':
             print("> [get_packets]")
             output_type = self.get_argument('output', 'json')
-            # dbcursor = self.mdb.stock.aggregate([
-            #         {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
-            #         {"$unwind": '$packets'},
-            #         {"$sort" : {"packets._id": -1}},
-            #     ], useCursor = True)
-            # dout = list(dbcursor)
 
-
-            '''
-db.getCollection('stock').aggregate([
-
-{"$match": {'_id': ObjectId('5c70984512875079b91f8949')}},
-{"$unwind": '$packets'},
-{"$lookup": {"from": 'stock_operation', "localField":'packets._id', "foreignField": 'pid', "as": 'packets.operations'}},
-{"$unwind": '$packets.operations'},
-{"$replaceRoot": { "newRoot": "$packets" }},
-{"$lookup": {"from": 'store_positions', "localField":'position', "foreignField": '_id', "as": 'position'}},
-{ "$set": { "position": { "$first": "$position" }} },{
-  $graphLookup: {
-     from: "store_positions",
-     startWith: "$position.parent",
-     connectFromField: "parent",
-     connectToField: "_id",
-     as: "position.path"
-  }
-},
-{"$set": {"position.path": { $concatArrays: ["$position.path.name", ["$position.name"]]}} },
-{"$lookup":
-     {
-       "from": 'warehouse',
-       "localField":'position.warehouse',
-       "foreignField": '_id',
-       "as": 'warehouse'
-     }
- },
- { "$set": { "warehouse": { "$first": "$warehouse" }} },
-
- { "$group":
-     {
-        "_id": '$_id',
-        "root": { "$first": "$$ROOT" },
-        "operations": { "$push": "$operations" }
-     }
- },
-{ "$set": { "root.operations": "$operations" } },
-{ "$replaceWith": "$root" },
-
- { "$addFields": {
-      "count":  {"$sum": "$operations.count"},
-      "price":
-         { "$function":
-            {
-               "body": function(prices, counts) {
-                 let total_counts = Array.sum(counts);
-                 var tmp_count = total_counts;
-                 var total_price = 0;
-
-                 var c = counts.reverse();
-                 var p = prices.reverse();
-
-                 for(i in c){
-                     if(c[i] > 0){
-                         if(c[i] < tmp_count){
-                             total_price += (c[i]*p[i]);
-                             tmp_count -= c[i]
-                          }
-                          else{
-                             total_price += (tmp_count*p[i]);
-                             tmp_count = 0;
-                          }
-                      }
-
-                  }
-                  return total_price;
-
-               },
-               "args": ["$operations.unit_price", "$operations.count"],
-               "lang": "js"
-            }
-         }
-    }
- },
-
- { "$facet":
-   {
-      "uncategorised": [ {"$match": {'warehouse._id': {"$exists": 0}}}],
-      "current_warehouse": [ {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': ObjectId("5c67444e7e875154440cc28f")}} ],
-      "other_warehouse": [ {"$match": {'warehouse._id': {"$exists": 1}}}, {"$match": {'warehouse._id': {"$ne": ObjectId("5c67444e7e875154440cc28f")}}} ],
-      "external_warehouse": [ {"$match": {'warehouse.external': {"$exists": 1}}}, {"$match": {'warehouse.external': true}} ]
-   }
-}
-
-
-])
-
-            '''
             dbcursor = self.mdb.stock.aggregate([
                     {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
 
@@ -921,42 +824,28 @@ db.getCollection('stock').aggregate([
                 ], useCursor = True)
             dout = list(dbcursor)
 
-            # for cat in dout[0]:
-            #     cat_count = 0
-            #     for packet_n, packet in enumerate(dout[0][cat]):
-            #         array = []
-            #         packet_count = 0
-            #         packet_price = 0
-            #         operations = packet['operations']
-            #         for operation in operations:
-            #             array += [{"type": operation['type'], "count": operation['count'], "unit_prince": operation['unit_price']}]
-            #             packet_count += operation['count']
-            #         tmp_count = packet_count
-            #         for operation in reversed(operations):
-            #             # if operation['count'] < 0:
-            #             #     tmp_count += operation['count']
-            #             if operation['count'] > 0 and tmp_count > 0:
-            #                 print(tmp_count, operation['count'], operation['unit_price'] )
-            #                 if tmp_count >= operation['count']:
-            #                     packet_price += operation['count'] * operation['unit_price']
-            #                     tmp_count -= operation['count']
-            #                     print("A")
-            #                 else:
-            #                     packet_price += tmp_count * operation['unit_price']
-            #                     tmp_count = 0
-            #                     print("B")
-            #         dout[0][cat][packet_n]['packet_count'] = packet_count
-            #         dout[0][cat][packet_n]['packet_price'] = packet_price
-            #         cat_count += packet_count;
-            #     out[0][cat][packet_n]['packet_count'] = packet_count
-
-            print("SKLAD", self.get_warehouse().get('_id'))
-
             if output_type == "html_tab":
                 self.set_header('Content-Type', 'text/html; charset=UTF-8')
                 # print(dout)
                 self.render('store/store.api.packets_tab_view.hbs', dout = dout, parent = self)
                 return None
+
+        elif data == 'get_component_docs':
+            print("> [get_component_docs]")
+            output_type = self.get_argument('output', 'json')
+
+            if output_type == "html_tab":
+
+
+                dbcursor = self.mdb.stock.aggregate([
+                    {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
+
+                ], useCursor = True)
+
+                dout = list(dbcursor)
+                self.render('store/store.api.component_docs_view.hbs', dout = dout, parent = self)
+
+
 
         elif data == 'update_category':
             self.LogActivity(module = 'store', operation = 'update_category', data={'category': self.get_argument('name')})

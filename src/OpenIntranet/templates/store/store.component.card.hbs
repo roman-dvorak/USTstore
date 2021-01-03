@@ -22,16 +22,20 @@ body{
 }
 
 </style>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
 
 <script>
-  function select_package_formatter(data) {
-      if (!data.id) {
-        return data.text;
-      }
-      console.log('aa', data);
-      return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
-  }
+
+
+function select_package_formatter(data) {
+    if (!data.id) {
+      return data.text;
+    }
+    console.log('aa', data);
+    return '<span><span class="text-muted">'+ data.data.path +'</span>' + data.data.name + '<span class="small text-muted"> (' + data.data.description + ')</span>';
+}
+
 </script>
 
 
@@ -147,7 +151,9 @@ body{
 
         </div>
         <div class="tab-pane fade" id="docs" role="tabpanel" aria-labelledby="profile-tab">
-            Tady bude seznam dokumentů, např PDF .. půjde přidat "externí pdf" (tj. link) nebo ke stažení z owncloudu
+            Tady bude seznam dokumentů, příloh, obrázků... Bude to rozdělené dle kategorií
+            {#% module Template("store/store.api.component.view.documents.hbs", parameters=parameters) %#}
+            <div id="docs_list"></div>
         </div>
 
         <div class="tab-pane fade" id="suppliers" role="tabpanel" aria-labelledby="suppliers-tab">
@@ -448,6 +454,7 @@ $( document ).ready(function() {
 
     if(!new_component){
       draw_packets();
+      draw_docs();
     }
 
     $(".editable-name").dblclick(function(){
@@ -503,7 +510,22 @@ function draw_packets(){
 
         }
     });
+}
 
+function draw_docs(){
+    $('#docs_list').empty();
+    $.ajax({
+        type: "POST",
+        url: "/store/api/get_component_docs/",
+        data: {
+            'key':'{{component.get('_id', 'null')}}',
+            'output': 'html_tab'
+        },
+        success: function( data, textStatus, jQxhr ){
+            $("#docs_list").html(data);
+
+        }
+    });
 }
 
 
