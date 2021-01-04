@@ -37,3 +37,43 @@ function get_current_stock(){
 }
 
 get_stocks();
+
+
+
+function copyToCLipboard(el){
+    console.log("COPY", el);
+    var data = el.getAttribute('copy')
+    var dummy = document.createElement("input");
+    document.body.appendChild(dummy);
+    dummy.setAttribute("value", data);
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+    console.log("Copy", data);
+}
+
+
+
+var barcode_input_history = [];
+
+function barcode_input(data){
+  var element = barcode_input_history.pop();
+	console.log("Barcode inpur", element);
+  $(element).val(data).trigger('change');
+}
+
+// virtualni nacteni kodu
+$(document).on("click", ".barcode-value", function() {
+      console.log("Dummy barcode reader", this);
+      var data = $(this).attr('data');
+      barcode_input(data);
+});
+
+$(document).on("focus", ".id_input", function() {
+      console.log("ID input", this);
+      barcode_input_history.push(this);
+});
+$(document).on('select2:opening', '.id_input', function () {
+      console.log("ID input SELECT", this);
+      barcode_input_history.push(this);
+});

@@ -1,0 +1,127 @@
+<style type="text/css">
+    .hist_element_row{
+        width: 100%;
+    }
+
+    .hist_line{
+        width: 100%;
+
+    }
+    .hist_element{
+        display: inline-block;
+    }
+
+</style>
+
+{% set packet_status_dict = {'current_warehouse': 'Aktuálně vybraný sklad',
+        'other_warehouse': 'Ostatní sklady',
+        'uncategorised': 'Sáčky mimo skladu',
+        'external_warehouse': 'Sklady zákazníků',
+        'null': 'Prázdné a staré sáčky'}
+        %}
+
+
+<div class="card m-0 p-0">
+
+{% for type in dout[0]%}
+{%if len(dout[0][type])%}
+  <div class="card-header" data-toggle="collapse" data-target="#{{type}}" aria-expanded="true" aria-controls="{{type}}">
+  {%if len(dout[0][type])%}<b>{%end%}{{packet_status_dict.get(type, type) }}{%if len(dout[0][type])%}</b>{%end%} ({{len(dout[0][type])}})
+  </div>
+  <ul class="list-group list-group-flush collapse" id="{{type}}">
+  {% for i in dout[0][type]%}<li class="list-group-item p-0">
+
+  {%set row = i %}
+
+ <div class="card-body" >
+    <div class="hist_line">
+        <span class="hist_element text-muted " style="width: 100%;" data-toggle="popover" title="{{row}}" >{{row.get('_id').generation_time}} <a href="/store/packet/{{row.get('_id')}}/" class="text-muted small" target="_blank" rel="noopener noreferrer">({{row.get('_id')}}</a><span class="material-icons barcode-value" data="{{row['_id']}}">code</span>)
+
+    </div>
+    <div class="hist_line">
+        <span class="editable operation_packet_set_position" pid="{{row['_id']}}">
+          {% if 'warehouse' in row %}
+          <span class="barcode-value" data="{{row['warehouse']['_id']}}"></span> <span class="hist_element" style="width: 100%;"><span class="text-muted">{{row['warehouse']['name'] }}/</span>{%raw "<span class='text-muted'>/</span>".join(row['position']['path'])%} <small class="text-muted">({{row['warehouse']['_id']}})</small></span>
+          {% else %}
+          <span class="hist_element text-muted" style="width: 100%;"> Bez umístění </span>
+          {% end %}
+        </span>
+        <span class="text-muted">Dodavatel:</span> <span>{{row['supplier']}}</span>
+        <!-- <span class="hist_element" style="width: 15%;">{{row.get('bilance', '--')}} ks</span><span class="hist_element" style="width: 15%;">{{row.get('price', '--')}} Czk</span> -->
+    </div>
+    <div class="" data-toggle="popover" title="Actual total values of packages, LIFO prices">
+         <span class="badge big bg-primary" data-toggle="popover" title="K dispozici (celkem ve skladu včetně rezervovaných)"><span class="material-icons">store</span> {{"{:.2f}".format(row['count'])}} ks</span>
+         <span class="badge big bg-secondary" data-toggle="popover" title="Cena za kus"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price']/row['count'] if row['count'] else 0)}} Czk/ks</span>
+         <span class="badge big bg-success" data-toggle="popover" title="Cena sáčku"><span class="material-icons">toll</span> {{"{:.2f}".format(row['price'])}} Czk</span>
+    </div>
+    <div class="hist_line font-weight-light">{{row.get('description', 'None')}}</div>
+    <div class="d-inline-block">
+
+      <div class="d-inline-block">
+        {% for operation in row.get('operations', []) %}
+          <div class="d-inline-block p-2 bg-light card m-0 text-secondary small" data-toggle="popover" title="{{operation['date']}} ({{operation['user']}}) <br><br>{{operation}}" data-content="{{operation}}">
+              {{"{:.2f}".format(operation['count'])}} ks <br>
+              {{"{:.2f}".format(operation['unit_price'])}} Czk/ks<br>
+              {{"{:.2f}".format(operation['unit_price']*operation['count'])}} Czk<br>
+          </div>
+        {% end %}
+      </div>
+    </div>
+    <div class="">
+
+        <button class="btn btn-primary btn-sm p-1 operation_packet_transfere_out" pid="{{row['_id']}}" data-toggle="popover" title="Přesun do jiného sáčku" ><span class="material-icons">unarchive</span></button>
+        <button class="btn btn-primary btn-sm p-1 operation_packet_transfere_in" pid="{{row['_id']}}" data-toggle="popover" title="Přesun do tohoto sáčku" ><span class="material-icons">archive</span></button>
+        <button class="btn btn-primary btn-sm p-1 operation_packet_service" pid="{{row['_id']}}" data-toggle="popover" title="Servisní odběr" ><span class="material-icons"> settings_ethernet </span></button>
+        <button class="btn btn-primary btn-sm p-1 operation_packet_print" pid="{{row['_id']}}" data-toggle="popover" title="Tisknout štítek"><span class="material-icons">print</span></button>
+        <button class="btn btn-primary btn-sm p-1 operation_packet_set_position" pid="{{row['_id']}}" data-toggle="popover" title="Změna pozice sáčku"><span class="material-icons">loop</span></button>
+    </div>
+{#{{row}}#}
+</div>
+{% end %} <!-- schovat nepouzivane kategorie skladu -->
+
+{#
+ <div class="card-body small text-muted text-small">
+   Packets: {{row}}
+</div>
+#}
+</li>{% end %}
+
+  </ul>
+{% end %}
+
+
+<script>
+
+
+$(document).on("click", ".operation_packet_set_position",function() {
+      $('#myTab a[href="#oper_move"]').tab('show');
+      console.log(this);
+});
+
+//$(document).on("click", ".operation_packet_print",function() {
+$('.operation_packet_print').off().on("click", function(){
+      var id = $(this).attr('pid');
+
+      $.ajax('/labels/add_packet_to_group', {
+        type: 'POST',
+        data: { 'packet': id },
+        success: function (data, status, xhr) {
+        Lobibox.notify('success', {
+            size: 'mini',
+            delayIndicator: true,
+            msg: 'Úspěšně přidáno do seznamu'
+          });
+        },
+        error: function (jqXhr, textStatus, errorMessage) { Lobibox.notify('error', {
+            size: 'mini',
+            delayIndicator: true,
+            msg: 'Nelze přídat do seznamu'
+          });
+        },
+      
+      });
+
+});
+
+
+</script>

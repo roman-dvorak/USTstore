@@ -53,6 +53,12 @@ $('#inputBARCODE_edit').on('change',function(e){
 // NASTAVENI MODALU PRO UPRAVU POLOZKY
 // nacneni polozky dle jmena
 function OpenArticleEdit(name = null, clear = true, show = true){
+  console.log("odkaz");
+  // this.preventDefault();
+  window.open("/store/component/"+name+"/", "_blank");
+}
+
+function OpenOldArticleEdit(name = null, clear = true, show = true){
     console.log('OpenArticleEdit', name, clear, show);
     if (clear == true){ClearArticleEdit();}
 
@@ -160,8 +166,10 @@ function OpenArticleEdit(name = null, clear = true, show = true){
                   draw_supplier();
                   draw_stock(element.count_part);
                   draw_warehouse_positions(element);
+                  draw_packets(element);
                   draw_tags();
                   draw_barcodes(element['barcode']);
+                  draw_packets(element['_id'].$oid);
                   draw_history(element['_id'].$oid);
 
                   //$('#modal-edit-component').modal('show');
@@ -451,7 +459,7 @@ function draw_stock(count){
               var html = "<div class='card m-0 p-2 mr-2 bg-light'>"+ s.code + "<br>" + lc.count.onstock + "<small class='text-muted'>(" + lc.count.requested +",  "+  lc.count.ordered +")</small> </div>";
             }
             $("#inputSTOCK_list").append(html);
-        
+
         }catch(err) {
             var html = "<div class='card m-0 p-2 mr-2'> ERR </div>";
             $("#inputSTOCK_list").append(html);
@@ -473,7 +481,45 @@ function draw_warehouse_positions(positions){
         $("#inputPOSITION_list").append(html);
     }
 }
-  
+
+
+
+function draw_packets(element){
+    console.info("[draw_packets]");
+
+    $("#inputPACKET_list").empty();
+    console.log(element);
+
+    if('packets' in element){
+      packets = element.packets;
+      console.log("Mam packets", packets);
+
+      $('#inputPACKET_list').append(JSON.stringify(packets));
+
+      var html = "";
+
+      html += "<br><div>";
+      for(packet in packets){
+        if(packets[packet]['position']){
+          packet_pos = packets[packet].position.$oid;
+        }else{
+          packet_pos = "Nezařazeno";
+        }
+        console.log(packet)
+        html += "<div> "
+        html += packets[packet].count;
+        html += ", " + packet_pos;
+        html += "</div>"
+      }
+      html += "</div>";
+      $('#inputPACKET_list').append(html);
+
+
+    }else{
+      $('#inputPACKET_list').text("Polozka neobsahuje žádný sáček. ");
+    }
+}
+
 
 
 
@@ -533,6 +579,22 @@ function draw_history(id){
         },
         success: function( data, textStatus, jQxhr ){
             $("#inputHISTORY_edit").html(data);
+
+        }
+    });
+}
+
+function draw_packets(id){
+    $('#inputPACKET_display').empty();
+    $.ajax({
+        type: "POST",
+        url: "/store/api/get_packets/",
+        data: {
+            'key':id,
+            'output': 'html_tab'
+        },
+        success: function( data, textStatus, jQxhr ){
+            $("#inputPACKET_display").html(data);
 
         }
     });

@@ -10,9 +10,12 @@
 {% end %}
 <div class="container">
 
+<h3> Nákup do skladu </h3>
+<hr class="mt-0 mb-0">
+
 	<div class="form-group row">
 		<label class="col-sm-2 col-form-label">Požadavek</label>
-		<input class="form-control table_style col-sm-10" type="checkbox" id="compo_requested"></input>
+		<input class="form-control table_style col-sm-10 disabled" type="checkbox" id="compo_requested" disabled></input>
 	</div>
 
 	<div class="form-group row">
@@ -27,22 +30,40 @@
 		<label class="col-sm-2 col-form-label">Dodavatel</label>
 		<select class="form-control table_style col-sm-10">
 			{% for i, sup in enumerate(article.get('supplier',[])) %}
-				<option value="i">{{sup}}</option>
+				<!-- <option value="i">{{sup}}</option> -->
+				<option value="i">{{sup['supplier']}}, {{sup['symbol']}}</option>
 			{% end %}
 		</select>
 	</div>
 	<div class="form-group row .bg-danger request-hide">
-		<label class="col-sm-2 col-form-label">Faktura </label>
+		<label class="col-sm-2 col-form-label">Faktura, objednávka </label>
 		<select class="form-control table_style col-sm-10" disabled></select>
 	</div>
 	<div class="form-group row">
-		<label class="col-sm-2 col-form-label">Poznámka </label>
-		<input class="form-control table_style col-sm-10" type="text" id="compo_description" value="">
+		<label class="col-sm-2 col-form-label">Poznámka sáčku</label>
+		<!-- <input class="form-control table_style col-sm-10" type="text" id="compo_description" value=""> -->
+    <textarea class="form-control table_style col-sm-10" type="text" id="compo_description" rows="4">
+    </textarea>
+	</div>
+
+	<div class="form-group row">
+		<label class="col-sm-2 col-form-label">Poznámka operace</label>
+		<input class="form-control table_style col-sm-10" type="text" id="compo_operation_description" value="">
 	</div>
 
 	<div class="form-group row request-hide">
-		<label class="col-sm-2 col-form-label">Sklad</label>
-		<select class="form-control table_style col-sm-10" id="compo_stock">
+		<label class="col-sm-2 col-form-label">Packet</label>
+		<select class="form-control table_style col-sm-10" id="compo_packet">
+        <option value="new">Create new packet</option>
+        <!-- TODO: Seznam existujicich balicku -->
+		</select>
+	</div>
+
+	<div class="form-group row request-hide">
+		<label class="col-sm-2 col-form-label">Pozice</label>
+		<select class="form-control table_style col-sm-10" id="compo_position">
+           <!-- TODO: Seznam pozic aktivniho skladu -->
+           	<option value="None">Nezařazeno (například při převozu)</option>
            {% for stock in stocks %}
            	<option value="{{stock['_id']}}"><b>{{stock['code']}}</b> | {{stock['name']}}</option>
            {% end %}
@@ -58,8 +79,8 @@
     {%for req in request %} <li>{{req['bilance']}} {{req['description']}} {{req.get('status', 0)}}{% end %}
     </ul>
 </div>
-<hr>
-<small class="tetx-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
+<hr class="mt-0 mb-0">
+<small class="text-muted">Veškeré operace jsou logovány a zpětně dohledatelné.</small>
 
 <script type="text/javascript">
 	var compo_counts = 0;
@@ -76,33 +97,63 @@
         compo_update_request();
 	}
 
+
+  function check_update_push(){
+
+    // Je nenulovy pocet kusu?
+    if( !($("#compo_count").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadán pocet kusu'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+    // Je nenulova cena?
+    if( !($("#compo_price").val() > 0)){
+      Lobibox.notify('error', {msg: 'Nebyla zadána nakupni cena'});
+      return false;
+    }
+
+
+
+    return true;
+  }
+
 	function compo_update_push(){
-	    $.ajax({
-	      type: "POST",
-	      url: "/store/operation/buy_push/",
-	      data: {
-	        'component': current_detail,
+      if (check_update_push()){
+  	    $.ajax({
+  	      type: "POST",
+  	      url: "/store/operation/buy_push/",
+  	      data: {
+  	        'component': current_detail,
             'request': $("#compo_requested").is(":checked"),
-	        'stock': $("#compo_stock").val(),
-	        'count': $("#compo_count").val(),
-	        'price': $("#compo_price").val(),
-	        'invoice': $("#compo_invoice").val(),
-	        'description': $('#compo_description').val()
-	      },
-	      success: function( data, textStatus, jQxhr ){
-	      	console.log(data);
-	      	$('#modal_operation').modal('hide');
-            Lobibox.notify('success', {msg: 'Polozka ulozena'});
+  	        'position': $("#compo_position").val(),
+  	        'packet': $("#compo_packet").val(),
+  	        'count': $("#compo_count").val(),
+  	        'price': $("#compo_price").val(),
+  	        'invoice': $("#compo_invoice").val(),
+  	        'description': $('#compo_description').val(),
+  	        'description_operation': $('#compo_operation_description').val()
+  	      },
+  	      success: function( data, textStatus, jQxhr ){
+  	      	console.log(data);
+  	      	$('#modal_operation').modal('hide');
+              Lobibox.notify('success', {msg: 'Polozka ulozena'});
 
-	        $("#modal-operation-content").modal('hide');
-        	$("#modal_oper_place").hide();
+  	        $("#modal-operation-content").modal('hide');
+          	$("#modal_oper_place").hide();
 
-	      },
-	      error: function( jqXhr, textStatus, errorThrown ){
-	        console.log( errorThrown );
-			Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
-	      }
-	    });
+  	      },
+  	      error: function( jqXhr, textStatus, errorThrown ){
+  	        console.log( errorThrown );
+  			Lobibox.notify('error', {msg: 'Polozka nebyla ulozena'});
+  	      }
+  	    });
+      }
 	}
 
     function compo_update_request(){

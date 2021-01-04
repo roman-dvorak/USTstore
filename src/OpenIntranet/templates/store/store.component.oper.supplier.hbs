@@ -1,0 +1,79 @@
+<div class="card mx-2">
+  {% for i, x in enumerate(component.get('supplier', [])) %}
+    <div class="card-header">{{i}}, <b>{{x['supplier']}}</b>, {{x.get('symbol','null')}} <span></span> <a class="material-icons" href="{{x.get('full_url','')}}" target="_blank">link</a>
+      <span class="material-icons">add_shopping_cart</span>
+      <span class="material-icons">been</span>
+    </div>
+    <div class="card-body">
+      <span class="small text-muted">{{x}}</span>
+    </div>
+  {% end %}
+
+</div>
+<form id="form_component_suppiler">
+  <div>
+    <div class="form-group row">
+    <label class="col-sm-3 col-form-label" data-toggle="tooltip" title="Pro vytvoření nového dodavatele zvolte <b>ID= -1</b>. Při zvolení jiného bude existující dodavatel přepsát.">ID <i class="material-icons text-muted">help</i></label>
+    <input class="form-control table_style col-sm-9" type="number" min="-1" value="-1" max="{{len(component.get('supplier', []))}}" name="id">
+  </div>
+    <div class="form-group row">
+    <label class="col-sm-3 col-form-label">Dodavatel</label>
+        <div class="form-control table_style col-sm-9"><select class="form-control" name='supplier' id="component_supplier"></select></div>
+    </div>
+  <div class="form-group row">
+    <label class="col-sm-3 col-form-label">Symbol, Obj. číslo</label>
+    <input class="form-control table_style col-sm-9" type="text" name="symbol">
+  </div>
+  <div class="form-group row">
+    <label class="col-sm-3 col-form-label">URL</label>
+    <input class="form-control table_style col-sm-9" type="text" name="url">
+  </div>
+  <div class="form-group row">
+    <button class="form-control table_style btn btn-primary col col-sm-9 offset-sm-3" type="submit">Uložit</button>
+  </div>
+</div>
+</form>
+
+
+<script>
+
+
+$('#component_supplier').select2({
+    width: '100%',
+    tags: true,
+    ajax: {
+      url: '/store/api/get_suppliers/',
+      type: "POST",
+      dataType: 'json',
+      processResults: function (data) {
+          console.log(data)
+          return {
+              results: $.map(data, function (item) {
+                  console.log(item);
+                  return {
+                      text: item,
+                      id: item
+                  }
+              })
+          };
+      }
+    }
+});
+
+
+$('#form_component_suppiler').submit(function(e){
+    e.preventDefault();
+    data = $(this).serialize();
+    console.log(data);
+    $.ajax({
+        url: 'set_supplier/',
+        type: 'POST',
+        data: data,
+        success:function(d){
+          alert(d);
+          location.reload();
+        }
+    });
+});
+
+</script>

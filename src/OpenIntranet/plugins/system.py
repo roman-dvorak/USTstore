@@ -5,19 +5,27 @@ from bson import ObjectId
 from plugins import BaseHandler, get_company_info, get_dpp_params
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+    plugin_name = get_plugin_info()["name"]
+
     handlers = [
-        (r'/{}/parameters'.format(module), plugin.ParametersHandler),
-        (r'/{}/api/objectid'.format(module), plugin.ApiObjectIdHandler),
-        (r'/{}'.format(module), plugin.SystemHandler),
-        (r'/{}/'.format(module), plugin.SystemHandler), ]
+        (r'/{}/parameters'.format(plugin_name), ParametersHandler),
+        (r'/{}/api/objectid'.format(plugin_name), ApiObjectIdHandler),
+        (r'/{}'.format(plugin_name), SystemHandler),
+        (r'/{}/'.format(plugin_name), SystemHandler), ]
     return handlers
 
 
-def plug_info():
+def get_plugin_info():
     return {
-        "module": "system",
-        "name": "system"
+        "name": "system",
+        "entrypoints": [
+            {
+                "title": "Systém",
+                "url": "/system",
+                "icon": "settings",
+            }
+        ]
     }
 
 
@@ -86,6 +94,8 @@ class ParametersHandler(BaseHandler):
                                          {"$set": dpp_params})
 
         self.redirect("/system/parameters")
+
+
 
 
 class ApiObjectIdHandler(BaseHandler):

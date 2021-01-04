@@ -12,20 +12,22 @@ import urllib
 import datetime
 
 
-def make_handlers(module, plugin):
+def get_plugin_handlers():
+        plugin_name = get_plugin_info()["name"]
+
         return [
-             (r'/{}'.format(module), plugin.home),
-             (r'/{}/'.format(module), plugin.home),
-             #(r'/{}/test'.format(module), plugin.test),
-             #(r'/{}/print/(.*)/'.format(module), plugin.api_print),
-             #(r'/{}/api/add_to_cart'.format(module), plugin.api_addToCart),
-             #(r'/{}/api/new_cart'.format(module), plugin.api_new_cart),
+             (r'/{}'.format(plugin_name), home),
+             (r'/{}/'.format(plugin_name), home),
+             #(r'/{}/test'.format(plugin_name), test),
+             #(r'/{}/print/(.*)/'.format(plugin_name), api_print),
+             #(r'/{}/api/add_to_cart'.format(plugin_name), api_addToCart),
+             #(r'/{}/api/new_cart'.format(plugin_name), api_new_cart),
         ]
 
-def plug_info():
+def get_plugin_info():
     return{
-        "module": "development",
-        "name": "Vývvoj",
+        "name": "development",
+        "entrypoints": []
     }
 
 
