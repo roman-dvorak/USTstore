@@ -428,30 +428,40 @@ class api_move_position(BaseHandler):
         self.write("OK")
 
 class api_update_position(BaseHandler):
+    # Aktualizace stavu skladové pozice
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
     def post(self):
+
+        parent = self.get_argument('parent', None)
         cid = self.get_argument("id", None)
+
         if cid == 'new':
             cid = bson.ObjectId()
+            parent = "#"
         else:
             cid = bson.ObjectId(cid)
 
-        parent = self.get_argument('parent', '#')
-        if parent != '#':
+        if parent and parent != '#':
             parent = bson.ObjectId(parent)
 
-        print(parent, cid)
 
         if cid != parent:
             data = {'_id': cid,
                     'name': self.get_argument('name'),
                     'text': self.get_argument('text', 'not_set'),
-                    'parent': parent,
+                    #'parent': parent,
                     'position': '#',
                     'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
 
-            self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
-        self.write("OK")
+            if parent:
+                data['parent'] = parent
+
+            self.mdb.store_positions.update({'_id': data['_id']}, {"$set": data}, upsert=True)
+
+            self.write("OK")
+
+        else:
+            self.write("Error, stejný rodic")
 
 class api_update_category(BaseHandler):
     role_module = ['store-sudo', 'store-access', 'store-manager', 'store_read']
