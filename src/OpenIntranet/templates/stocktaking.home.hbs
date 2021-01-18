@@ -153,7 +153,7 @@
 
                     <div class="col-lg-12 col-md-6">
                       <div class="text-center align-middle display-4 shadow alert alert-warning"><div class="row">
-                          <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div>
+                          <!-- <div class="col text-center align-middle display-4" id="holder_percent"><span id="val_percent">---</span>%</div> -->
                           <div class="col text-center align-middle display-4" id="holder_delta"><span id="val_delta">+----</span>ks</div>
                       </div></div>
                     </div>
@@ -199,15 +199,17 @@
                 </div>
                 <div class="row">
                     <div class="form-group row col-lg-12 col-md-6">
-                      <label class="col-sm-2 col-form-label">Pozice</label>
-                      <div class="col-sm-10"><span class="form-control"><select class="form-control" id="position_select">
+                      <label class="col-3 col-form-label">Pozice</label>
+                      <div class="col-9"><select class="form-control" id="position_select">
                         {%for place in places %} <option value="{{place['_id']}}">{{place['name']}} | {{place['text']}}</option>{%end%}
-                      </select></span></div>
+                      </select></div>
                     </div>
 
                     <div class="form-group row col-lg-12 col-md-6">
-                      <label class="col-sm-2 col-form-label">Automaticky přidat</label>
-                      <div class="col-sm-10"><input class="form-control" type="checkbox" id="position_add" checked disabled></div>
+                      <label class="col-3 col-form-label">Změnit pozici</label>
+                      <div class="col-3"><input class="form-check-input" type="checkbox" id="position_add" checked disabled></div>
+                      <label class="col-3 col-form-label">Tisknout nové štítky</label>
+                      <div class="col-3"><input class="form-check-input" type="checkbox" id="position_add" disabled></div>
                     </div>
                 </div>
               </div>
@@ -292,8 +294,9 @@
         // Zjisti, jestli uz to bylo inventurovane
                 for (rec_i in data.item.history){
                   var history = data.item.history[rec_i];
-                  if (history.type == 'inventory' && history.inventory != undefined){
-                    if(history.inventory.$oid == data.inventory._id.$oid){
+                  if (history.type == 'inventory' && history.inventory_id != undefined){
+                    console.log(history.inventory_id);
+                    if(history.inventory_id.$oid == data.inventory._id.$oid){
                       first_time = false;
                     }
                   }
@@ -347,14 +350,14 @@
                 //$('#positions').val(pos_text);
 
                 try{
-                  $("#val_old").text(data.item.overview.stocks[data.warehouse._id.$oid].count.onstock);
+                  $("#val_old").text(data.packet_count.packet_count);
                 }catch(e){
                   $("#val_old").text(0);
                 }
 
 
-                $("#val_price").text(data.article_unit_price*$("#val_old").text());
-                $("#val_unit_price").text(data.article_unit_price);
+                $("#val_unit_price").text(data.packet_count.packet_price/$("#val_old").text());
+                $("#val_price").text(data.packet_count.packet_price);
 
                 // hide loader spinner
                 $(".old_val_spinner").hide();
@@ -381,14 +384,14 @@
 
     function after_count_edit(){
         try{
-          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+          var old_val = item.packet_count.packet_count || 0;
         }catch(e){
           var old_val = 0;
         }
         if ($("#new_count").val() == ""){
             $("#new_count").val(old_val);
         }
-        //$("#val_percent").text(item.count / $("#new_count").val());
+        //$("#val_percent").text( $("#new_count").val() / $("#val_old").text() );
         $("#val_delta").text($("#new_count").val() - old_val);
         $("#btn_send").prop('disabled', false);
         $("#btn_send").focus();
@@ -409,7 +412,7 @@
         $("#sku_search").focus();
 
         try{
-          var old_val = item.item.overview.stocks[item.warehouse._id.$oid].count.onstock || 0;
+          var old_val = item.packet_count.packet_count || 0;
         }catch(e){
           var old_val = 0;
         }
@@ -418,7 +421,7 @@
           type: "POST",
           url: "/stocktaking/save_item/",
           data: {
-            '_id': $('#id_val').val(),
+            'pid': $('#sku_search').val(),
             'description': $('#note').val(),
             'bilance': $("#new_count").val() - old_val,
             'absolute': $("#new_count").val()
@@ -627,9 +630,9 @@ function add_history(name, count, status = null){
                   for (rec_i in x.history){
                     var rec = x.history[rec_i];
                     if (rec.type == 'inventory'){
-                      console.log("inventura", rec);
+                      //console.log("inventura", rec.inventory_id);
                       //console.log(x);
-                      if (rec.inventory != undefined && rec.inventory.$oid == inventory){
+                      if (rec.inventory_id != undefined && rec.inventory_id.$oid == inventory){
                         first_time = false;
                       }
                     }
@@ -647,7 +650,7 @@ function add_history(name, count, status = null){
                     //console.log("opakovane", x);
                     var text = '<div><a href="#" class="material-icons" onclick="do_stocktaking_by_id(\''+x.packets._id.$oid+'\')"> compare_arrows </a>';
                     text += '<a href="/store/component/'+x._id.$oid+'/" class="material-icons" target="__blank__"> open_in_new </a><span class="list_name">';
-                    text += x.name + "<small>" + x.packets._id.$oid + "</small></span></div>";
+                    text += x.name + "</span></div>";
                     $( "#list_of_position_done" ).append( text );
                   }
 

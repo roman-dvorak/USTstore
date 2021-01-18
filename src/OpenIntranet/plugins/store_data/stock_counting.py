@@ -29,15 +29,38 @@ def getInventory(component, fro = None, to = None, use_count = False):
 
     return (count, price)
 
-def getInventoryRecord(component, inventory, stock):
+def getInventoryRecord(mdb, pid):
+    query = [
+        {'$match': {"pid": pid, "type": "inventory"}},
+    ]
+    out = list(mdb.stock_operation.aggregate(query))
+    
+    return out
+
+def isInventoryDone(mdb, pid, inventory = None):
+    if not inventory:
+        inventory = getInventoryId(mdb)
+    inventories = getInventoryRecord(mdb, pid)
     count = 0
-    price = 0    
-    for x in reversed(component.get('history', [])):
-        if x.get('operation', None) == 'inventory' and x.get('inventory', None) == inventory and x.get('stock', None) == stock['_id']:
-            price = x.get('price', None)
-            count = x.get('bilance', None)
-            return(x)
-    return None
+    for i in inventories:
+        if i.get('inventory_id', None) == inventory:
+            count += 1
+    return count
+
+## 
+##   Vrati ID aktualni inventury
+##
+def getInventoryId(mdb):
+    current_id = mdb.intranet.find_one({'_id': 'stock_taking'})
+    return current_id.get('current', None)
+
+##
+##  Vrati informace o aktualni inventure
+##
+def getInventoryData(mdb):
+    current_id = getInventoryId(mdb)
+    current = list(self.mdb.stock_taking.find({'_id': current_id}))[0]
+    return current
 
 def getPrice(component):
     count = component['count']

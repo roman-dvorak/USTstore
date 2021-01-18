@@ -21,7 +21,7 @@ import sys
 from plugins.helpers.warehouse import *
 
 sys.path.append("..")
-from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory, getInventoryRecord
+from plugins.store_data.stock_counting import getLastInventory, getPrice, getInventory, getInventoryRecord, isInventoryDone, getInventoryId
 
 
 def get_plugin_handlers():
@@ -128,15 +128,7 @@ class view_categories(BaseHandler):
 
                 #module['inventory'] = getLastInventory(module, datetime.datetime(2018, 10, 1), False)
                 module['inventory'] = getInventoryRecord(module, current, self.get_warehouse())
-                #if module['inventory']:
-                #    module['count'] = module['inventory']
-                #module['inventory'] = bool(module['inventory'])
 
-                #module['price_sum'] = getPrice(module)
-                #if module['count'] > 0:
-                #   module['price'] = module['price_sum']/module['count']
-                #else:
-                #    module['price'] = 0
 
 
                 module['inventory_2018'] = {'bilance_count': None, 'bilance_price': None}
@@ -157,6 +149,67 @@ class view_categories(BaseHandler):
 
 
         self.render("stocktaking.view.categories.hbs", data=data, category = data, warehouses = warehouses )
+
+
+def get_packet_count(mdb, packet_id):
+    query = [
+        { '$match': {"pid": packet_id}},
+        { "$group": {
+            '_id': 'pid',
+            'operations': { "$push": "$$ROOT" }
+            }
+        },
+        { "$addFields": {
+                "packet_count":  {"$sum": "$operations.count"},
+                "packet_reserv":  {"$sum": "$operations.reserv"},
+                "packet_ordered":  {"$sum": "$operations.ordered"},
+                "packet_price": {
+                "$function":
+                    {
+                        "body": '''function(prices, counts) {
+                         let total_counts = Array.sum(counts);
+                         var tmp_count = total_counts;
+                         var total_price = 0;
+
+                         var c = counts.reverse();
+                         var p = prices.reverse();
+
+                         for(i in c){
+                             if(c[i] > 0){
+                                 if(c[i] < tmp_count){
+                                     total_price += (c[i]*p[i]);
+                                     tmp_count -= c[i]
+                                  }
+                                  else{
+                                     total_price += (tmp_count*p[i]);
+                                     tmp_count = 0;
+                                  }
+                            }
+
+                         }
+                         return total_price;
+                        }''',
+                        "args": ["$operations.unit_price", "$operations.count"], "lang": "js"
+                    }
+                }
+            }
+        },
+        { "$project": { "packet_count": 1, "packet_reserv": 1, "packet_price": 1, "packet_ordered": 1, "_id": 0} },
+        # { "$group": {
+        #     '_id': 'null',
+        #     'count': {"$sum": '$packet_count'},
+        #     'price': {"$sum": '$packet_price'},
+        #     'reserv': {"$sum": '$packet_reserv'},
+        #     'ordered': {"$sum": '$packet_ordered'},
+        #     }
+        # }
+    ]
+    out = list(mdb.stock_operation.aggregate(query))
+    if len(out) > 0:
+        out = out[0]
+    else:
+        {}
+    return(out)
 
 
 class load_item(BaseHandler):
@@ -183,9 +236,12 @@ class load_item(BaseHandler):
         out['item'] = self.mdb.stock.find_one({'packets._id': packet_id})
         # out['article_unit_price'] = get_article_price(out['item'])
         # out['position'] = self.component_get_positions(id = packet_id)
+        out['packet_count'] = get_packet_count(self.mdb, packet_id)
         out['article_unit_price'] = 0
         out['position'] = self.component_get_positions(id = packet_id)
-        out['inventory'] = self.get_inventory()
+        out['stocktakings'] = getInventoryRecord(self.mdb, packet_id)
+        out['is_stocktaked'] = isInventoryDone(self.mdb, packet_id)
+        
 
         out = bson.json_util.dumps(out)
         self.write(out)
@@ -200,37 +256,48 @@ class save_stocktaking(BaseHandler):
         self.authorized(['inventory'], True)
         self.set_header('Content-Type', 'application/json')
         #stock = self.get_argument('stock', self.get_warehouse()['_id'])
-        description = self.get_argument('description', None)
-        bilance = self.get_argument('bilance')
-        absolute = self.get_argument('absolute')
-        item = self.get_argument('_id', None)
+        description = self.get_argument('description', "Inventura")
+        bilance = float(self.get_argument('bilance'))
+        absolute = float(self.get_argument('absolute'))
+        pid = self.get_argument('pid')
+        pid = bson.ObjectId(pid)
 
-        current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
-        if not current:
-            raise tornado.web.HTTPError(403)
+        # current_st = self.mdb.stock_taking.find_one({'_id': current})
+        #print("service_push >>", item, description, bilance, absolute)
+        # data = {
+        #         '_id': bson.ObjectId(),
+        #         'stock': self.get_warehouse()['_id'],
+        #         'operation': 'inventory',
+        #         'bilance': float(bilance),
+        #         'absolute': float(absolute),
+        #         'inventory': current,
+        #         'description': "{} | {}".format(current_st['name'], description),
+        #         'user':self.logged,
+        #         }
+
+        counts = get_packet_count(self.mdb, pid)
+
+        if absolute:
+            unit_price = float(counts.get('packet_price', 0))/absolute
         else:
+            unit_price = 0
 
-            current_st = self.mdb.stock_taking.find_one({'_id': current})
-            print("service_push >>", item, description, bilance, absolute)
-            data = {
-                    '_id': bson.ObjectId(),
-                    'stock': self.get_warehouse()['_id'],
-                    'operation': 'inventory',
-                    'bilance': float(bilance),
-                    'absolute': float(absolute),
-                    'inventory': current,
-                    'description': "{} | {}".format(current_st['name'], description),
-                    'user':self.logged,
-                    }
+        data = {
+            "pid" : pid,
+            "count" : bilance,
+            "absolute": absolute,
+            "unit_price" : unit_price,
+            "type" : "inventory",
+            "inventory_id": getInventoryId(self.mdb),
+            "date" : datetime.datetime.now(),
+            "user" : self.logged,
+            "invoice" : None,
+            "supplier" : None,
+            "description" : "{} | {}".format("inventura", description),
+        }
+        self.mdb.stock_operation.insert_one(data)
 
-            out = self.mdb.stock.update(
-                    {'_id': bson.ObjectId(item)},
-                    {
-                        '$push': {'history':data}
-                    }
-                )
-
-            self.write(bson.json_util.dumps(data))
+        self.write(bson.json_util.dumps(data))
 
 
 class stocktaking_events(BaseHandler):
