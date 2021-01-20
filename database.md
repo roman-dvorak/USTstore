@@ -19,11 +19,22 @@ db.createView("store_positions_complete", "store_positions", [
 },
 {
     "$addFields": {
-     "path_string": "$path.name"
+        "path_string": "$path.name"
     }
-  }
-]
-)
+},
+{
+   "$lookup": {
+       "from": 'warehouse',
+       "localField": 'warehouse',
+       "foreignField": '_id',
+       "as": 'warehouse',
+   }
+},
+{
+   "$set": { "warehouse": { "$first": "$warehouse" }}
+},
+
+])
 ```
 
 
@@ -46,6 +57,6 @@ db.createView("category_complete", "category",
      "path_string": "$path.name"
     }
   }
-]
-)
+
+])
 ```
