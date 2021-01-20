@@ -81,7 +81,7 @@ def get_component(db, id, current_warehouse=ObjectId("5c67444e7e875154440cc28f")
     output = {}
     basicdata_query = [
             { "$match": { "_id": id }},
-            { "$lookup": { "from": 'category', "localField":'category', "foreignField": '_id', "as": 'categories' }},
+            { "$lookup": { "from": 'category_complete', "localField": 'category', "foreignField": '_id', "as": 'categories' }},
             { "$unset": ["history", "packets", 'position', 'overview', 'stock', 'warehouse_unit_price']}
         ]
 

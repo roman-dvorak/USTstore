@@ -51,7 +51,7 @@ function select_package_formatter(data) {
         </div>
 
         <div class="row">
-          <div class="col editable editable-categories">Categories: {% for cat in component['categories'] %} <span class="badge bg-info">{{cat['path']}}{{cat['name']}}</span>{% end %} </div>
+          <div class="col editable editable-categories">Categories: {% for cat in component['categories'] %} <span class="badge bg-info">{{'/'.join(cat.get('path_string', [])+[cat['name']])}}</span>{% end %} </div>
         </div>
 
 
