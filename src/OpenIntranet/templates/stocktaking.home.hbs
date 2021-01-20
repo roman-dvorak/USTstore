@@ -475,6 +475,10 @@
 
   });
 
+  $('#position_select').change( function() {
+    update_list_of_position();
+  });
+
 
 </script>
 
@@ -671,7 +675,7 @@ function add_history(name, count, status = null){
   }
 
   update_list_of_position();
-  $("#position_select").on('select2:select', function (e) {update_list_of_position(); });
+  //$("#position_select").on('select2:select', function (e) {update_list_of_position(); });
 
 
 </script>

@@ -32,15 +32,16 @@ def barcode(hex):
     return code
 
 client = pymongo.MongoClient('localhost', 27017)
-db = client.USTdev
-#db = client.USTintranet
+#db = client.USTdev
+db = client.USTintranet
 
-for i in range(71):
+for i in range(5, 71):
     print(i)
     data = {
-            "name" : "PCB{:03d}",
-            "text" : "PCB kapsa {:03d}",
+            "name" : "PCB{:03d}".format(i),
+            "text" : "PCB kapsa {:03d}".format(i),
             "parent" : ObjectId("5c84f5b41287500b4e027fe1"),
             "warehouse" : ObjectId("5c67444e7e875154440cc28f")
         }
     print(data)
+    db.store_positions.insert_one(data)

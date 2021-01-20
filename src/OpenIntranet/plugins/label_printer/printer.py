@@ -48,7 +48,6 @@ class print_label(BaseHandler):
             for i, label in enumerate(data):
                 print(".....")
                 print(label)
-                packet = label['packet']
                 pdf.set_text_color(0)
 
                 ir = i + skip
@@ -64,78 +63,153 @@ class print_label(BaseHandler):
                 x0 = 70*cell
                 y0 = (297/7)*row
 
-                # Barevne pozadi stitku
-                #pdf.set_draw_color(231, 221, 25)
-                # pdf.set_fill_color(161, 255, 161)
-                # pdf.rect(x0, y0, w=70, h=297/7, style = 'F')
-
-                # nazev soucastky
-                pdf.set_font('pt_sans-bold', '', 12)
-                pdf.set_xy(x0+4, y0+4.5)
-                pdf.cell(70-8, 4.5, label['component']['name'][:25], align = 'L', border=1)
-
-                # # bile pozadi pod carovym kodem
-                # pdf.set_fill_color(255,255,255)
-                # pdf.rect(x0, y0+9, w=70, h=13.5, style = 'F')
-
-                # #carovy kod
-                # id = str(packet['_id'])
-                # barcode = str(int(id, 16))
-                # code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
-                print(label.keys())
-                id = str(label['_id'])
-
-                barcode = "[)>\u001E06"     # format 06 header
-                barcode += "\u001D1T{}".format(label['_id'])  ##
-                barcode += "\u001D1P{}".format(label['component']['_id'])       # component identificator by supplier
-                # barcode += "\u001D30P{}".format(label['component']['name'])    # Component identificator by supplier - 1st level
-                barcode += "\u001D5D{}".format(datetime.datetime.now().strftime("%y%m%d"))
-                barcode += "\u001E\u0004"   # end of barcode
-                encoder = DataMatrixEncoder(barcode)
-                encoder.save("static/tmp/barcode/%s.png"%(id))
-
-                pdf.set_xy(x0+70-20-4, y0+8+7)
-                pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
-                # pdf.set_font('pt_sans', '', 6)
-                # pdf.set_text_color(100)
-                # pdf.set_xy(x0+0, y0+7)
-                # pdf.cell(65, 0, id, align = 'R')
+                id = str(label['id'])
 
 
-                # Popis stitku
-                pdf.set_font('pt_sans', '', 8)
-                pdf.set_xy(x0+4, y0+17)
-                pdf.multi_cell(70-28, 2.8, label['component']['description'], align='L')
 
-                # pozice ve skaldu
+                if label['type'] == 'packet':
+                    packet = label['packet']
 
-                pdf.set_text_color(100)
-                pdf.set_xy(x0+4, y0+8.8)
-                if "warehouse" in label:
-                    pos = "/"
-                    for p in label['path']:
-                        pos += p['name'] + "/"
+                    pdf.set_text_color(150)
+                    pdf.set_font('pt_sans', '', 6)
+                    pdf.set_xy(x0+3, y0+1)
+                    pdf.cell(70-8, 4.5, "packet", align = 'L')
 
-                    pdf.set_font('pt_sans-bold', '', 10)
-                    pdf.write(5, label['warehouse']['code'].upper())
+                    
+                    # nazev soucastky
+                    
+                    pdf.set_text_color(0)
+                    pdf.set_font('pt_sans-bold', '', 12)
+                    pdf.set_xy(x0+4, y0+4.5)
+                    pdf.cell(70-8, 4.5, label['component']['name'][:25], align = 'L', border=1)
+
+                    print(label.keys())
+                    id = str(label['_id'])
+
+                    barcode = "[)>\u001E06"     # format 06 header
+                    barcode += "\u001D1T{}".format(label['id'])  ## Sacek
+                    barcode += "\u001D1P{}".format(label['component']['_id'])       # component identificator by supplier
+                    # barcode += "\u001D30P{}".format(label['component']['name'])    # Component identificator by supplier - 1st level
+                    barcode += "\u001D5D{}".format(datetime.datetime.now().strftime("%y%m%d"))
+                    barcode += "\u001E\u0004"   # end of barcode
+                    encoder = DataMatrixEncoder(barcode)
+                    encoder.save("static/tmp/barcode/%s.png"%(id))
+
+                    pdf.set_xy(x0+70-20-4, y0+8+7)
+                    pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
+                    # pdf.set_font('pt_sans', '', 6)
+                    # pdf.set_text_color(100)
+                    # pdf.set_xy(x0+0, y0+7)
+                    # pdf.cell(65, 0, id, align = 'R')
+
+
+                    # Popis stitku
                     pdf.set_font('pt_sans', '', 8)
-                    pdf.write(5, pos)
-                    pdf.set_font('pt_sans-bold', '', 10)
-                    pdf.write(5, label['position']['name'])
-                else:
-                    pdf.set_font('pt_sans', '', 10)
-                    pdf.write(5, "Mimo skladu")
+                    pdf.set_xy(x0+4, y0+17)
+                    pdf.multi_cell(70-28, 2.8, label['component']['description'], align='L')
 
-                if "category" in label:
-                    pos = []
-                    for c in label['category']:
-                        pos += [c['name']]
+                    # pozice ve skaldu
 
-                    pos = ','.join(pos)
+                    pdf.set_text_color(100)
+                    pdf.set_xy(x0+4, y0+8.8)
+                    if "warehouse" in label:
+                        pos = "/"
+                        for p in label['path']:
+                            pos += p['name'] + "/"
 
-                    pdf.set_xy(x0+4, y0+12)
-                    pdf.set_font('pt_sans', '', 10)
-                    pdf.write(5, pos)
+                        pdf.set_font('pt_sans-bold', '', 10)
+                        pdf.write(5, label['warehouse']['code'].upper())
+                        pdf.set_font('pt_sans', '', 8)
+                        pdf.write(5, pos)
+                        pdf.set_font('pt_sans-bold', '', 10)
+                        pdf.write(5, label['position']['name'])
+                    else:
+                        pdf.set_font('pt_sans', '', 10)
+                        pdf.write(5, "Mimo skladu")
+
+                    if "category" in label:
+                        pos = []
+                        for c in label['category']:
+                            pos += [c['name']]
+
+                        pos = ','.join(pos)
+
+                        pdf.set_xy(x0+4, y0+12)
+                        pdf.set_font('pt_sans', '', 10)
+                        pdf.write(5, pos)
+
+                if label['type'] == 'position':
+                    #packet = label['packet']
+                    position = label['position_label']
+                    
+                    ## Vzhled pozic
+                    pdf.set_fill_color(100,220,100)
+                    pdf.rect(x0+1, y0+1, w=70-1, h=297/7-2, style = 'F')
+
+                    pdf.set_text_color(100)
+                    pdf.set_font('pt_sans', '', 6)
+                    pdf.set_xy(x0+3, y0+1)
+                    pdf.cell(70-8, 4.5, "Pozice", align = 'L')
+
+
+
+
+                    pdf.set_text_color(0)
+                    pdf.set_font('pt_sans-bold', '', 12)
+                    pdf.set_xy(x0+4, y0+4.5)
+                    pdf.cell(70-8, 4.5, position['position']['name'], align = 'L', border=1)
+
+                    # # bile pozadi pod carovym kodem
+                    # pdf.set_fill_color(255,255,255)
+                    # pdf.rect(x0, y0+9, w=70, h=13.5, style = 'F')
+
+                    # #carovy kod
+                    # id = str(packet['_id'])
+                    # barcode = str(int(id, 16))
+                    # code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
+                    print(label.keys())
+                    #id = str(label['_id'])
+
+                    barcode = "[)>\u001E06"     # format 06 header
+                    barcode += "\u001D1L{}".format(id)  ##   Pozice
+                    #barcode += "\u001D1P{}".format(label['component']['_id'])       # component identificator by supplier
+                    #barcode += "\u001D5D{}".format(datetime.datetime.now().strftime("%y%m%d"))
+                    barcode += "\u001E\u0004"   # end of barcode
+                    encoder = DataMatrixEncoder(barcode)
+                    encoder.save("static/tmp/barcode/%s.png"%(id))
+
+                    pdf.set_xy(x0+70-20-4, y0+8+7)
+                    pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
+                    pdf.set_font('pt_sans', '', 6)
+                    pdf.set_text_color(100)
+                    pdf.set_xy(x0+0, y0+7)
+                    # pdf.cell(65, 0, , align = 'R')
+
+
+                    # Cesta
+
+
+                    pdf.set_xy(x0+4, y0+8.8)
+                    pdf.set_font('pt_sans-bold', '', 9)
+                    pdf.write(5, position['position']['warehouse']['code'].upper())
+                    pdf.set_font('pt_sans', '', 8)
+                    pdf.write(5, '/'+'/'.join(position['position']['path_string'])+"/")
+                    pdf.set_font('pt_sans-bold', '', 9)
+                    pdf.write(5, position['position']['name'])
+                    #pdf.multi_cell(70-28, 2.8, label['component']['description'], align='L')
+
+                    # pozice ve skaldu
+
+                    pdf.set_text_color(100)
+                    pdf.set_xy(x0+4, y0+8.8)
+
+                    print(">>>")
+                    print(label)
+                    
+
+
+                else: 
+                    pass
 
                 pdf.set_font('pt_sans', '', 7)
                 pdf.set_xy(x0, y0+37)
@@ -238,6 +312,20 @@ class print_label(BaseHandler):
                   "as": 'path_cat'
                }
             },
+
+
+# POZICE
+
+
+            {
+               "$lookup": {
+                   "from": 'store_positions_complete',
+                   "localField": 'id',
+                   "foreignField": '_id',
+                   "as": 'position_label.position',
+               }
+            },
+            {"$set": { "position_label.position": { "$first": "$position_label.position" }} },
 
 
         ]))

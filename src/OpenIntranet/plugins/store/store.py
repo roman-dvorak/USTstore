@@ -436,21 +436,21 @@ class api_update_position(BaseHandler):
         else:
             cid = bson.ObjectId(cid)
 
-        parent = self.get_argument('parent', '#')
-        if parent != '#':
+        parent = self.get_argument('parent', None)
+        if parent and parent != '#':
             parent = bson.ObjectId(parent)
 
         print(parent, cid)
 
         if cid != parent:
-            data = {'_id': cid,
-                    'name': self.get_argument('name'),
+            data = {'name': self.get_argument('name'),
                     'text': self.get_argument('text', 'not_set'),
-                    'parent': parent,
-                    'position': '#',
                     'warehouse': bson.ObjectId(self.get_cookie('warehouse'))}
 
-            self.mdb.store_positions.update({'_id': data['_id']}, data, upsert=True)
+            if parent:
+                data['parent'] = parent
+
+            self.mdb.store_positions.update({'_id': cid}, {"$set": data}, upsert=True)
         self.write("OK")
 
 class api_update_category(BaseHandler):
@@ -462,19 +462,19 @@ class api_update_category(BaseHandler):
         else:
             cid = bson.ObjectId(cid)
 
-        parent = self.get_argument('parent', '#')
-        if parent != '#':
+        parent = self.get_argument('parent', None)
+        if parent and parent != '#':
             parent = bson.ObjectId(parent)
-
         print(parent, cid)
 
         if cid != parent:
-            data = {'_id': cid,
-                    'name': self.get_argument('name'),
-                    'description': self.get_argument('description', ''),
-                    'parent': parent}
+            data = {'name': self.get_argument('name'),
+                    'description': self.get_argument('description', ''),}
 
-            self.mdb.category.update({'_id': data['_id']}, data, upsert=True)
+            if parent:
+                data['parent'] = parent
+
+            self.mdb.category.update({'_id': cid}, {"$set": data}, upsert=True)
         self.write("{'state': 'OK'}")
 
 class api_parameters_list(BaseHandler):

@@ -97,6 +97,16 @@ class get_grouped_labels(BaseHandler):
                     "as": "labels.item"
                }
             },
+            # {
+            #    "$lookup": {
+            #         "from": 'store_positions',
+            #         "let": { "position_id": "$labels.id" },
+            #         "pipeline": [
+            #             {"$match": { "$expr": { "$in": ["$$position_id", "$_id"]}}},
+            #         ],
+            #         "as": "labels.item"
+            #    }
+            # },
             {
                 "$group": {
                     "_id": '$_id',
@@ -183,6 +193,15 @@ class print_labels_in_position(BaseHandler):
         ]))
 
         # Vlozit vsechny sacky do tiskoveho seznamu
+        self.mdb.label_list.insert({
+                'type': 'position',
+                'id': posid,
+                'count': 1,
+                'group': group_id,
+                'author': self.actual_user['_id'],
+                'date': datetime.datetime.now()
+            })
+
         for packet in packets:
             self.mdb.label_list.insert({
                 'type': 'packet',

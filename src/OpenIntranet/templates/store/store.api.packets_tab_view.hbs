@@ -59,16 +59,18 @@
 
       <div class="d-inline-block">
         {% for operation in row.get('operations', []) %}
-          <div class="d-inline-block p-1 bg-light card m-0" data-toggle="popover" title="{{operation['date']}} ({{operation['user']}}) <br><br>{{operation}}" data-content="{{operation}}">
+          <div class="d-inline-block p-1 bg-light card m-0 mr-1 mb-2" data-toggle="popover" title="{{operation['date']}} ({{operation['user']}}) <br><br>{{operation}}" data-content="{{operation}}">
 
               {%if operation['type'] == 'inventory'%}<i class="bi bi-upc-scan"></i>
               {%elif operation['type'] == 'buy'%}<i class="bi bi-box-arrow-in-down-right"></i>
               {%elif operation['type'] == 'sell'%}<i class="bi bi-box-arrow-up-right"></i></i>
               {%elif operation['type'] == 'service'%}<i class="bi bi-box-arrow-down"></i>
               {%else%}<i class="bi bi-question-square"></i>{%end%}<br>
-              {{"{:.2f}".format(operation['count'])}} ks <br>
-              {{"{:.2f}".format(operation['unit_price'])}} Czk/ks<br>
-              {# {{"{:.2f}".format(operation['unit_price']*operation['count'])}} Czk<br>#}
+              <span class="small lh-1">
+                {{"{:.2f}".format(operation['count'])}} ks <br>
+                {{"{:.2f}".format(operation['unit_price'])}} Czk/ks<br>
+                {# {{"{:.2f}".format(operation['unit_price']*operation['count'])}} Czk<br>#}
+              </span>
           </div>
         {% end %}
       </div>

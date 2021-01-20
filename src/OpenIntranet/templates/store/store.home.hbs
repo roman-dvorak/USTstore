@@ -416,7 +416,7 @@ function update_view(){
         active_categories()
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
-        tmpl.querySelector('.product_list-name').innerHTML = "<b>"+element['name'] + "</b> <a href='/store/component/"+element['_id'].$oid+"/'>edit</a>";
+        tmpl.querySelector('.product_list-name').innerHTML = " <b>"+element['name'] + "</b> ";
         tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
