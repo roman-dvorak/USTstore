@@ -15,7 +15,7 @@
         {% if label['type'] == 'packet' %}
         <div class="list-group-item list-group-item-action flex-column align-items-start" draggable="true" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)"  style='cursor: move;' label_id="{{label['_id']}}" >
         <div class="d-flex w-100 justify-content-between">
-          <div><h5> <a class="" href="/store/component/{{label['item'][0]['_id']}}/">{{label['item'][0]['name']}}</a> <small class="text-muted">{{label['item'][0]['_id']}}</small></h5>
+          <div><h5> <i class="bi bi-box-seam"></i> <a class="" href="/store/component/{{label['item'][0]['_id']}}/">{{label['item'][0]['name']}}</a> <small class="text-muted">{{label['id']}}</small></h5>
 
           </div>
           <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Typ: {{label['type']}}</div></small>
@@ -32,16 +32,15 @@
 
         {% elif label['type'] == 'position' %}
         <div class="list-group-item list-group-item-action flex-column align-items-start" draggable="true" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)"  style='cursor: move;' label_id="{{label['_id']}}" >
-          {{label}}
 
           <div class="d-flex w-100 justify-content-between">
-          <div><h5> <a class="" >pozice</a> <small class="text-muted"></small></h5>
+          <div><h5> <i class="bi bi-geo"></i> pozice <small class="text-muted">{{label['id']}}</small></h5>
 
           </div>
           <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Typ: {{label['type']}}</div></small>
         </div>
         <div class="d-flex w-100 justify-content-between">
-          <div>popis</div>
+          <div>{{label}}</div>
           <div>
             <span type="button" class="btn btn-sm btn-outline-danger p-0" onClick="delete_label(this)"><span class="material-icons">clear</span></span>
           </div>

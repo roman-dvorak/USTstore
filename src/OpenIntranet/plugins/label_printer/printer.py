@@ -81,7 +81,7 @@ class print_label(BaseHandler):
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
                     pdf.set_xy(x0+4, y0+4.5)
-                    pdf.cell(70-8, 4.5, label['component']['name'][:25], align = 'L', border=1)
+                    pdf.cell(70-8, 4.5, label['component']['name'][:30], align = 'L', border=1)
 
                     print(label.keys())
                     id = str(label['_id'])
@@ -97,16 +97,11 @@ class print_label(BaseHandler):
 
                     pdf.set_xy(x0+70-20-4, y0+8+7)
                     pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
-                    # pdf.set_font('pt_sans', '', 6)
-                    # pdf.set_text_color(100)
-                    # pdf.set_xy(x0+0, y0+7)
-                    # pdf.cell(65, 0, id, align = 'R')
-
 
                     # Popis stitku
                     pdf.set_font('pt_sans', '', 8)
                     pdf.set_xy(x0+4, y0+17)
-                    pdf.multi_cell(70-28, 2.8, label['component']['description'], align='L')
+                    pdf.multi_cell(70-28, 2.8, label['component']['description'][:80], align='L')
 
                     # pozice ve skaldu
 
@@ -151,13 +146,15 @@ class print_label(BaseHandler):
                     pdf.set_xy(x0+3, y0+1)
                     pdf.cell(70-8, 4.5, "Pozice", align = 'L')
 
-
-
-
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
                     pdf.set_xy(x0+4, y0+4.5)
                     pdf.cell(70-8, 4.5, position['position']['name'], align = 'L', border=1)
+
+
+                    pdf.set_xy(x0+4, y0+13)
+                    pdf.set_font('pt_sans', '', 10)
+                    pdf.write(5, position['position']['text'])
 
                     # # bile pozadi pod carovym kodem
                     # pdf.set_fill_color(255,255,255)

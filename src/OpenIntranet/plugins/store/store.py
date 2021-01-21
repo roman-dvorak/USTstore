@@ -741,7 +741,7 @@ class api(BaseHandler):
                     {"$match": {"_id": bson.ObjectId(self.get_argument('key'))}},
 
                     {"$unwind": '$packets'},
-                    {"$lookup": {"from": 'stock_operation', "localField":'packets._id', "foreignField": 'pid', "as": 'packets.operations'}},
+                    {"$lookup": {"from": 'stock_operation', "localField": 'packets._id', "foreignField": 'pid', "as": 'packets.operations'}},
                     {"$unwind": '$packets.operations'},
                     {"$replaceRoot": { "newRoot": "$packets" }},
                     {"$lookup": {"from": 'store_positions', "localField":'position', "foreignField": '_id', "as": 'position'}},
@@ -918,11 +918,10 @@ class hand_bi_home(BaseHandler):
 
         if self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']):
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
+        
         else:
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-        print("..................")
-        print(self.get_warehouseses())
-
+        
 class operation(BaseHandler):
     role_module = ['store-sudo', 'store-manager']
     def post(self, data=None):
