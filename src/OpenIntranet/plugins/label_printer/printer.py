@@ -6,6 +6,7 @@ import tornado.web
 import tornado.websocket
 from .. import Intranet
 from .. import BaseHandler
+from ..store.packet_helper import get_packet
 import json
 import bson.json_util
 import urllib
@@ -72,23 +73,23 @@ class print_label(BaseHandler):
 
                     pdf.set_text_color(150)
                     pdf.set_font('pt_sans', '', 6)
-                    pdf.set_xy(x0+3, y0+1)
-                    pdf.cell(70-8, 4.5, "packet", align = 'L')
+                    pdf.set_xy(x0+4, y0+1)
+                    pdf.cell(70-8, 4.5, "Packet", align = 'L')
 
-                    
+
                     # nazev soucastky
-                    
+
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
-                    pdf.set_xy(x0+4, y0+4.5)
-                    pdf.cell(70-8, 4.5, label['component']['name'][:30], align = 'L', border=1)
+                    pdf.set_xy(x0+5, y0+4.5)
+                    pdf.cell(70-10, 4.5, label['component']['name'][:25], align = 'L', border=1)
 
                     print(label.keys())
                     id = str(label['_id'])
 
                     barcode = "[)>\u001E06"     # format 06 header
-                    barcode += "\u001D1T{}".format(label['id'])  ## Sacek
-                    barcode += "\u001D1P{}".format(label['component']['_id'])       # component identificator by supplier
+                    barcode += "\u001DS{}".format(label['id'])  ## Sacek
+                    #barcode += "\u001D1P{}".format(label['component']['_id'])       # component identificator by supplier
                     # barcode += "\u001D30P{}".format(label['component']['name'])    # Component identificator by supplier - 1st level
                     barcode += "\u001D5D{}".format(datetime.datetime.now().strftime("%y%m%d"))
                     barcode += "\u001E\u0004"   # end of barcode
@@ -104,6 +105,10 @@ class print_label(BaseHandler):
                     pdf.multi_cell(70-28, 2.8, label['component']['description'][:80], align='L')
 
                     # pozice ve skaldu
+                    print("PACKET>", label['packet'])
+
+                    pdf.set_xy(x0+4, y0+8.8)
+                    pdf.cell(70-8, 5, "{} ks".format(label['packet']['packet_count']), align="R")
 
                     pdf.set_text_color(100)
                     pdf.set_xy(x0+4, y0+8.8)
@@ -136,36 +141,29 @@ class print_label(BaseHandler):
                 if label['type'] == 'position':
                     #packet = label['packet']
                     position = label['position_label']
-                    
+
                     ## Vzhled pozic
-                    pdf.set_fill_color(100,220,100)
+                    pdf.set_fill_color(220,255,220)
                     pdf.rect(x0+1, y0+1, w=70-1, h=297/7-2, style = 'F')
+
+                    pdf.set_fill_color(100,220,100)
+                    pdf.rect(x0+5, y0+4.5, w=70-10, h=4.5, style = 'F')
+
 
                     pdf.set_text_color(100)
                     pdf.set_font('pt_sans', '', 6)
-                    pdf.set_xy(x0+3, y0+1)
+                    pdf.set_xy(x0+4, y0+1)
                     pdf.cell(70-8, 4.5, "Pozice", align = 'L')
 
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
-                    pdf.set_xy(x0+4, y0+4.5)
-                    pdf.cell(70-8, 4.5, position['position']['name'], align = 'L', border=1)
+                    pdf.set_xy(x0+5, y0+4.5)
+                    pdf.cell(70-10, 4.5, position['position']['name'][:25], align = 'L', border=1)
 
 
-                    pdf.set_xy(x0+4, y0+13)
-                    pdf.set_font('pt_sans', '', 10)
+                    pdf.set_xy(x0+4, y0+16)
+                    pdf.set_font('pt_sans', '', 12)
                     pdf.write(5, position['position']['text'])
-
-                    # # bile pozadi pod carovym kodem
-                    # pdf.set_fill_color(255,255,255)
-                    # pdf.rect(x0, y0+9, w=70, h=13.5, style = 'F')
-
-                    # #carovy kod
-                    # id = str(packet['_id'])
-                    # barcode = str(int(id, 16))
-                    # code128.image(barcode).save("static/tmp/barcode/%s.png"%(id))
-                    print(label.keys())
-                    #id = str(label['_id'])
 
                     barcode = "[)>\u001E06"     # format 06 header
                     barcode += "\u001D1L{}".format(id)  ##   Pozice
@@ -186,14 +184,21 @@ class print_label(BaseHandler):
                     # Cesta
 
 
-                    pdf.set_xy(x0+4, y0+8.8)
-                    pdf.set_font('pt_sans-bold', '', 9)
+                    pdf.set_xy(x0+4, y0+10)
+                    pdf.set_font('pt_sans', '', 10)
                     pdf.write(5, position['position']['warehouse']['code'].upper())
-                    pdf.set_font('pt_sans', '', 8)
-                    pdf.write(5, '/'+'/'.join(position['position']['path_string'])+"/")
-                    pdf.set_font('pt_sans-bold', '', 9)
-                    pdf.write(5, position['position']['name'])
-                    #pdf.multi_cell(70-28, 2.8, label['component']['description'], align='L')
+                    pdf.set_font('pt_sans', '', 12)
+                    path = '/'.join(position['position']['path_string'])
+                    if len(path) > 0:
+                        path = "/" + path
+                    pdf.write(5, path)
+                    # pdf.set_font('pt_sans-bold', '', 12)
+                    # pdf.write(5, position['position']['name'])
+
+                    # pdf.set_xy(x0+4, y0+10)
+                    # pdf.set_font('pt_sans-bold', '', 10)
+                    # path = position['position']['warehouse']['code'].upper() + "/" + path
+                    # pdf.multi_cell(70-28, 2.8, path, align='L')
 
                     # pozice ve skaldu
 
@@ -202,15 +207,15 @@ class print_label(BaseHandler):
 
                     print(">>>")
                     print(label)
-                    
 
 
-                else: 
+
+                else:
                     pass
 
                 pdf.set_font('pt_sans', '', 7)
                 pdf.set_xy(x0, y0+37)
-                pdf.cell(70, 0, "UST.cz | {} | {}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M"), id), align="C")
+                pdf.cell(70, 0, "UST.cz|{}|{}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M"), id), align="C")
 
 
             task = "tisk"
@@ -326,6 +331,12 @@ class print_label(BaseHandler):
 
 
         ]))
+
+
+        for i, label in enumerate(labels):
+
+            if label['type'] == 'packet':
+                labels[i]['packet'] = get_packet(self.mdb, label['id'])
 
         #print(labels)
         self.gen_pdf(labels)

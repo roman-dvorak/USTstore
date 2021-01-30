@@ -14,10 +14,11 @@ def get_plugin_handlers():
         (r'/{}/print'.format(base_name), printer.print_label),
         (r'/{}/generate_label'.format(base_name), printer.generate_label),
         (r'/{}/remove_label'.format(base_name), remove_label),
+        (r'/{}/hide_group'.format(base_name), hide_group),
         (r'/{}/add_packet_to_group'.format(base_name), add_packet_to_group),
         (r'/{}/get_grouped_labels'.format(base_name), get_grouped_labels),
         (r'/{}/set_label_group'.format(base_name), set_label_group),
-        (r'/{}/print_labels_in_position'.format(base_name), print_labels_in_position),
+        (r'/{}/print_position_labels'.format(base_name), print_position_labels),
         ]
     return handlers
 
@@ -54,6 +55,7 @@ class create_group(BaseHandler):
         self.mdb.label_group.insert({
             'name': name,
             'author': self.actual_user['_id'],
+            'show': 1,
             'date': date,
             'printed': None
         })
@@ -67,12 +69,29 @@ class remove_label(BaseHandler):
         self.mdb.label_list.delete_one({'_id': label_id})
         self.write('done')
 
+class hide_group(BaseHandler):
+    def post(self):
+        group = self.get_argument('group')
+        if group is not "none":
+            group_id = bson.ObjectId(group)
+
+            self.mdb.label_groups.update_one({"_id": group_id},
+                {"$set": {"show": 0}})
+
+        self.write('done')
+
 
 class get_grouped_labels(BaseHandler):
     def get(self):
         method = self.get_argument('method', 'render')
 
         packet_query = [
+            {
+                "$match": {"$or": [
+                    {"show": {"$exists": 0}},
+                    {"show": {"$gte": 1}}
+                ]}
+            },
             {
                "$lookup": {
                    "from": 'label_list',
@@ -97,16 +116,6 @@ class get_grouped_labels(BaseHandler):
                     "as": "labels.item"
                }
             },
-            # {
-            #    "$lookup": {
-            #         "from": 'store_positions',
-            #         "let": { "position_id": "$labels.id" },
-            #         "pipeline": [
-            #             {"$match": { "$expr": { "$in": ["$$position_id", "$_id"]}}},
-            #         ],
-            #         "as": "labels.item"
-            #    }
-            # },
             {
                 "$group": {
                     "_id": '$_id',
@@ -169,15 +178,19 @@ def get_plugin_info():
 
 
 
-class print_labels_in_position(BaseHandler):
+class print_position_labels(BaseHandler):
     def post(self):
 
-        posid = bson.ObjectId(self.get_argument('posid'))
+        posid = self.get_arguments('pid[]')
+        type = self.get_argument('type')
         print("Chci stitky do", posid)
 
+        posid = [bson.ObjectId(x) for x in posid]
         group_id = bson.ObjectId()
 
-        pos_data = list(self.mdb.store_positions.find({'_id': posid}))[0]
+        print(posid)
+
+        pos_data = list(self.mdb.store_positions.find({'_id': posid[0]}))[0]
         print(pos_data)
 
         # Vytvoreni skupiny
@@ -186,30 +199,34 @@ class print_labels_in_position(BaseHandler):
             'name': 'Print group: ' + pos_data['name']
         })
 
-        # Zikat sacky v pozici
-        packets = list(self.mdb.stock.aggregate([
-            {"$unwind": '$packets'},
-            {"$match": {"packets.position": posid }}
-        ]))
+        for pos in posid:
+            if type in ['all', 'position']:
+                # Vlozit vsechny sacky do tiskoveho seznamu
+                self.mdb.label_list.insert({
+                        'type': 'position',
+                        'id': pos,
+                        'count': 1,
+                        'group': group_id,
+                        'author': self.actual_user['_id'],
+                        'date': datetime.datetime.now()
+                })
 
-        # Vlozit vsechny sacky do tiskoveho seznamu
-        self.mdb.label_list.insert({
-                'type': 'position',
-                'id': posid,
-                'count': 1,
-                'group': group_id,
-                'author': self.actual_user['_id'],
-                'date': datetime.datetime.now()
-            })
 
-        for packet in packets:
-            self.mdb.label_list.insert({
-                'type': 'packet',
-                'id': packet['packets']['_id'],
-                'count': 1,
-                'group': group_id,
-                'author': self.actual_user['_id'],
-                'date': datetime.datetime.now()
-            })
+            if type in ['all', 'packets', 'packet']:
+                # Zikat sacky v pozici
+                packets = list(self.mdb.stock.aggregate([
+                    {"$unwind": '$packets'},
+                    {"$match": {"packets.position": pos }}
+                ]))
+
+                for packet in packets:
+                    self.mdb.label_list.insert({
+                        'type': 'packet',
+                        'id': packet['packets']['_id'],
+                        'count': 1,
+                        'group': group_id,
+                        'author': self.actual_user['_id'],
+                        'date': datetime.datetime.now()
+                    })
 
         self.write("ok")
