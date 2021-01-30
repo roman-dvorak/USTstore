@@ -124,7 +124,7 @@ function handleDragStart(e) {
           data: { 'group': group_id},
           success: function (data, status, xhr) {
             console.log(data);
-            // $(label_row).detach();
+            $(group_row).detach();
           },
           error: function (jqXhr, textStatus, errorMessage) { }
         });
