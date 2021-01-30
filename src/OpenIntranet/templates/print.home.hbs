@@ -27,20 +27,26 @@
 </div>
 
   <div id="group_list">
+      <button class="btn btn-primary" type="button" disabled>
+        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+        Loading...
+      </button>
   </div>
 </div>
 <script>
 $.ajax('/labels/get_grouped_labels', {
   type: 'GET',
   //data: { 'packet': id },
-  success: function (data, status, xhr) {
-    console.log(data);
+  success: function (data, status, xhr) {  
+    $("#group_list").empty();
     $("#group_list").html(data);
-
   },
   error: function (jqXhr, textStatus, errorMessage) { }
 });
 
+$('.do-collapse').on('click', function(e){
+    console.log("click", e);
+})
 
 $('.action-print').on("click", function(){
   var checked = $(".label_groups_chbx:checked").map( function() { return $(this).val() }).get();

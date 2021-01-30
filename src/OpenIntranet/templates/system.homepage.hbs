@@ -22,13 +22,15 @@
 <div class="col-lg-3 col-sm-6">
     <div class="card" style="overflow: hidden">
       <div class="card-body" style="overflow: hidden;">
-        <div class="card-title">
+        <div class="card-title text-decoration-none">
           <h5>Nastavení pozic</h5>
-          <a href="#" class="badge bg-secondary" onclick="new_position()">New</a>
-          <a href="#" class="badge bg-info" onclick="do_print()">Print</a> <a href="#" class="badge bg-primary" onclick="$('#positions-tree').jstree('open_all')">Rozbalit vše</a>
-          <a href="#" class="badge bg-primary" onclick="$('#positions-tree').jstree('close_all')">Sbalit vše</a>
-          <a href="#" class="badge bg-primary" onclick="$('#positions-tree').jstree('select_all')">Vybrat vše</a>
-          <a href="#" class="badge bg-primary" onclick="$('#positions-tree').jstree('deselect_all')">Odznačit vše</a></div>
+          <button href="#" class="btn badge bg-secondary text-decoration-none" onclick="new_position()">New</button>
+          <button href="#" class="btn badge bg-secondary" onclick="do_print('packets')"><i class="bi bi-printer"></i> štítky sáčků</button>
+          <button href="#" class="btn badge bg-secondary" onclick="do_print('position')"><i class="bi bi-printer"></i> štítky pozic</button>
+          <button href="#" class="btn badge bg-primary" onclick="$('#positions-tree').jstree('open_all')"><i class="bi bi-arrows-expand"></i></button>
+          <button href="#" class="btn badge bg-primary" onclick="$('#positions-tree').jstree('close_all')"><i class="bi bi-arrows-collapse"></i></button>
+          <button href="#" class="btn badge bg-primary" onclick="$('#positions-tree').jstree('select_all')">Vybrat vše</button>
+          <button href="#" class="btn badge bg-primary" onclick="$('#positions-tree').jstree('deselect_all')">Odznačit vše</button></div>
       </div>
       <div id="positions-tree"></div>
     </div>
@@ -172,10 +174,15 @@ var positions_tree = $('#positions-tree').jstree({
       'label': 'Edit',
       'action': function (node) { return edit_position(node, $(node)); }
     },
-    'print':{
-      'title': 'Tisknout štítky',
-      'label': 'Tisknout štítky',
-      'action': function (node) { return print_labels_in_position(node, $(node)); }
+    'print_packet':{
+      'title': 'Tisknout štítky sáčků',
+      'label': 'Tisknout štítky sáčků',
+      'action': function (node) { return print_position_labels(node, $(node), 'packet'); }
+    },
+    'print_position':{
+      'title': 'Tisknout štítek pozice',
+      'label': 'Tisknout štítek pozice',
+      'action': function (node) { return print_position_labels(node, $(node), 'position'); }
     }
   }
 }
@@ -215,22 +222,25 @@ function edit_position(data, node){
   load_position_modal(data.reference[0].parentNode)
 }
 
-function print_labels_in_position(data, node){
-  console.log(data, node);
-  var posid = $(data.reference[0].parentNode).attr('id');
+function print_position_labels(data, node, type='all'){
+    console.log(data, node);
+    var posid = $(data.reference[0].parentNode).attr('id');
     $.ajax({
-      type: "POST",
-      url: "/labels/print_labels_in_position",
-      data: {'posid': posid},
-      //success: success,
-      //dataType: dataType
+        type: "POST",
+        url: "/labels/print_position_labels",
+        data: {'pid[]': posid, 'type': type},
     });
 }
 
-function do_print(){
+function do_print(type = all){
   var id_list = window.btoa($('#positions-tree').jstree('get_selected'));
   var id_list = $('#positions-tree').jstree('get_selected');
-  window.open('/printer/label?items='+id_list+'&type=positions&end=True', '_blank');
+
+    $.ajax({
+        type: "POST",
+        url: "/labels/print_position_labels",
+        data: {'pid': id_list, 'type': type},
+    });
 }
 
 function do_edit_position(){

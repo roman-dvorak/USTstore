@@ -2,13 +2,15 @@
 
 {%for group in groups %}
 <div class="card label_group" ondrop="drop(event)" ondragover="handleDragOver(event)" group_id="{{group['_id']}}">
-  <div class="card-body" data-toggle="collapse" data-target="#{{group['_id']}}_list" aria-expanded="true" aria-controls="{{group['_id']}}_list">
+  <div class="card-body">
     <div class="d-flex w-100 justify-content-between">
       <h3><input type="checkbox" class="label_groups_chbx" value="{{group['_id']}}"> {{group['name']}} {% if '_id' in group.get('labels', [{}])[0] %}<span class="badge rounded-pill bg-primary group-count">{{len(group.get('labels', []))}}</span>{%end%} </h3>
-      <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Netištěno</div></small>
+      <small class="text-muted"><div>{%if group['_id'] != None %} Autor Autor; {{group['_id'].generation_time}} {% end %} </div></small>
+      {%if group['_id'] != None %}<span type="button" class="btn btn-danger" onClick="delete_group(this)"><i class="bi bi-trash"></i></span>{%end%}
+
     </div>
   </div>
-  <div class="container" id="{{group['_id']}}_list">
+  <div class="container" id="{{group['_id']}}list">
     <div class="list-group pb-3 label_list">
       {%for label in group.get('labels', []) %} {% if '_id' in label %}
 
@@ -18,17 +20,17 @@
           <div><h5> <i class="bi bi-box-seam"></i> <a class="" href="/store/component/{{label['item'][0]['_id']}}/">{{label['item'][0]['name']}}</a> <small class="text-muted">{{label['id']}}</small></h5>
 
           </div>
-          <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Typ: {{label['type']}}</div></small>
+          <small class="text-muted"><div>Autor {{label['author']}}; {{label['_id'].generation_time}}</div><div>Typ: {{label['type']}}</div></small>
         </div>
         <div class="d-flex w-100 justify-content-between">
           <div>{{label['item'][0]['description'][:1000]}}</div>
           <div>
-            <span type="button" class="btn btn-sm btn-outline-danger p-0" onClick="delete_label(this)"><span class="material-icons">clear</span></span>
+            <span type="button" class="btn btn-outline-danger" onClick="delete_label(this)"><i class="bi bi-trash"></i></span>
           </div>
         </div>
 
         </div>
-        
+
 
         {% elif label['type'] == 'position' %}
         <div class="list-group-item list-group-item-action flex-column align-items-start" draggable="true" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)"  style='cursor: move;' label_id="{{label['_id']}}" >
@@ -37,17 +39,17 @@
           <div><h5> <i class="bi bi-geo"></i> pozice <small class="text-muted">{{label['id']}}</small></h5>
 
           </div>
-          <small class="text-muted"><div>Autor Autor; 1020-10-11 00:00:00</div><div>Typ: {{label['type']}}</div></small>
+          <small class="text-muted"><div>Autor {{label['author']}}; {{label['_id'].generation_time}}</div><div>Typ: {{label['type']}}</div></small>
         </div>
         <div class="d-flex w-100 justify-content-between">
           <div>{{label}}</div>
           <div>
-            <span type="button" class="btn btn-sm btn-outline-danger p-0" onClick="delete_label(this)"><span class="material-icons">clear</span></span>
+            <span type="button" class="btn btn-outline-danger" onClick="delete_label(this)"><i class="bi bi-trash"></i></span>
           </div>
         </div>
 
         </div>
-        
+
 
 
         {%else%}
@@ -94,23 +96,39 @@ function handleDragStart(e) {
     console.log("Přesouvam", label_id, "do", group_id);
   }
 
-  function delete_label(e){
-    console.log(e);
-    var label_row = $(e).parents("[label_id]").last();
-    var label_id = $(e).parents("[label_id]").last().attr('label_id');
-    console.log(label_id);
+    function delete_label(e){
+      console.log(e);
+      var label_row = $(e).parents("[label_id]").last();
+      var label_id = label_row.attr('label_id');
+      console.log(label_id);
 
-    $.ajax('/labels/remove_label', {
-      method: 'POST',
-      data: { 'label': label_id},
-      success: function (data, status, xhr) {
-        console.log(data);
-        $(label_row).detach();
-      },
-      error: function (jqXhr, textStatus, errorMessage) { }
-    });
+      $.ajax('/labels/remove_label', {
+        method: 'POST',
+        data: { 'label': label_id},
+        success: function (data, status, xhr) {
+          console.log(data);
+          $(label_row).detach();
+        },
+        error: function (jqXhr, textStatus, errorMessage) { }
+      });
+    }
 
-  }
+
+      function delete_group(e){
+        var group_row = $(e).parents("[group_id]").last();
+        group_id = group_row.attr("group_id");
+        console.log(group_id);
+
+        $.ajax('/labels/hide_group', {
+          method: 'POST',
+          data: { 'group': group_id},
+          success: function (data, status, xhr) {
+            console.log(data);
+            // $(label_row).detach();
+          },
+          error: function (jqXhr, textStatus, errorMessage) { }
+        });
+      }
 
   function drop(e) {
     console.log("drop", e);
