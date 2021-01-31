@@ -72,7 +72,7 @@ class print_label(BaseHandler):
                 label_height = 42
 
                 x0 = a4_w/2 + (-1.5+cell) * label_width
-                y0 = a4_h/2 + (-3.5+row) * label_height
+                y0 = a4_h/2 + (-3.5+row) * label_height + 2
                 
                 id = str(label['id'])
 
