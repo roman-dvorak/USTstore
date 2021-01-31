@@ -35,7 +35,10 @@ class print_label(BaseHandler):
 
     def gen_pdf(self, data):
 
-            pdf = FPDF('P', 'mm', format='A4')
+            a4_w = 210
+            a4_h = 297
+
+            pdf = FPDF('P', 'mm', (a4_w, a4_h))
             pdf.set_auto_page_break(False)
 
             pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
@@ -51,19 +54,26 @@ class print_label(BaseHandler):
                 print(label)
                 pdf.set_text_color(0)
 
-                ir = i + skip
-                ip = ir%(3*7)
-                row  = ip//3
-                cell  = ip%3
+                ir = i + skip   # cislo bunky
+                ip = ir%(3*7)   # cislo bunky na strance
+                row  = ip//3    # cislo radku
+                cell  = ip%3    # cislo sloupce
+                actual_page = ir//(3*7) # cislo stranky
                 print(i, ir, ip, row, cell)
-                if page != (ir//(3*7)):
-                    print("NOVA STRANKA", ir//(3*7))
+                if page != actual_page:
+                    print("NOVA STRANKA", actual_page)
                     pdf.add_page()
-                    page = ir//(3*7)
+                    page = actual_page
 
-                x0 = 70*cell
-                y0 = (297/7)*row
+                #x0 = 70*cell
+                #y0 = (297/7)*row
 
+                label_width = 69.7
+                label_height = 42
+
+                x0 = a4_w/2 + (-1.5+cell) * label_width
+                y0 = a4_h/2 + (-3.5+row) * label_height
+                
                 id = str(label['id'])
 
 
@@ -74,7 +84,7 @@ class print_label(BaseHandler):
                     pdf.set_text_color(150)
                     pdf.set_font('pt_sans', '', 6)
                     pdf.set_xy(x0+4, y0+1)
-                    pdf.cell(70-8, 4.5, "Packet", align = 'L')
+                    pdf.cell(label_width-8, 4.5, "Packet", align = 'L')
 
 
                     # nazev soucastky
@@ -82,7 +92,7 @@ class print_label(BaseHandler):
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
                     pdf.set_xy(x0+5, y0+4.5)
-                    pdf.cell(70-10, 4.5, label['component']['name'][:25], align = 'L', border=1)
+                    pdf.cell(label_width-10, 4.5, label['component']['name'][:25], align = 'L', border=1)
 
                     print(label.keys())
                     id = str(label['_id'])
@@ -96,19 +106,19 @@ class print_label(BaseHandler):
                     encoder = DataMatrixEncoder(barcode)
                     encoder.save("static/tmp/barcode/%s.png"%(id))
 
-                    pdf.set_xy(x0+70-20-4, y0+8+7)
+                    pdf.set_xy(x0+label_width-20-4, y0+8+7)
                     pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
 
                     # Popis stitku
                     pdf.set_font('pt_sans', '', 8)
                     pdf.set_xy(x0+4, y0+17)
-                    pdf.multi_cell(70-28, 2.8, label['component']['description'][:80], align='L')
+                    pdf.multi_cell(label_width-28, 2.8, label['component']['description'][:80], align='L')
 
                     # pozice ve skaldu
                     print("PACKET>", label['packet'])
 
                     pdf.set_xy(x0+4, y0+8.8)
-                    pdf.cell(70-8, 5, "{} ks".format(label['packet']['packet_count']), align="R")
+                    pdf.cell(label_width-8, 5, "{} ks".format(label['packet']['packet_count']), align="R")
 
                     pdf.set_text_color(100)
                     pdf.set_xy(x0+4, y0+8.8)
@@ -144,21 +154,21 @@ class print_label(BaseHandler):
 
                     ## Vzhled pozic
                     pdf.set_fill_color(220,255,220)
-                    pdf.rect(x0+1, y0+1, w=70-1, h=297/7-2, style = 'F')
+                    pdf.rect(x0+1, y0+1, w=label_width-2, h=label_height-2, style = 'F')
 
                     pdf.set_fill_color(100,220,100)
-                    pdf.rect(x0+5, y0+4.5, w=70-10, h=4.5, style = 'F')
+                    pdf.rect(x0+5, y0+4.5, w=label_width-10, h=4.5, style = 'F')
 
 
                     pdf.set_text_color(100)
                     pdf.set_font('pt_sans', '', 6)
                     pdf.set_xy(x0+4, y0+1)
-                    pdf.cell(70-8, 4.5, "Pozice", align = 'L')
+                    pdf.cell(label_width-8, 4.5, "Pozice", align = 'L')
 
                     pdf.set_text_color(0)
                     pdf.set_font('pt_sans-bold', '', 12)
                     pdf.set_xy(x0+5, y0+4.5)
-                    pdf.cell(70-10, 4.5, position['position']['name'][:25], align = 'L', border=1)
+                    pdf.cell(label_width-10, 4.5, position['position']['name'][:25], align = 'L', border=1)
 
 
                     pdf.set_xy(x0+4, y0+16)
@@ -173,7 +183,7 @@ class print_label(BaseHandler):
                     encoder = DataMatrixEncoder(barcode)
                     encoder.save("static/tmp/barcode/%s.png"%(id))
 
-                    pdf.set_xy(x0+70-20-4, y0+8+7)
+                    pdf.set_xy(x0+label_width-20-4, y0+8+7)
                     pdf.image('static/tmp/barcode/%s.png'%(id), w = 20, h=20)
                     pdf.set_font('pt_sans', '', 6)
                     pdf.set_text_color(100)
@@ -215,7 +225,7 @@ class print_label(BaseHandler):
 
                 pdf.set_font('pt_sans', '', 7)
                 pdf.set_xy(x0, y0+37)
-                pdf.cell(70, 0, "UST.cz|{}|{}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M"), id), align="C")
+                pdf.cell(label_width, 0, "UST.cz|{}|{}".format(datetime.datetime.now().strftime("%d. %m. %Y, %H:%M"), id), align="C")
 
 
             task = "tisk"
