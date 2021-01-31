@@ -259,6 +259,7 @@ class api_get_packets_by_position(BaseHandler):
         data = self.mdb.stock.aggregate([
             {'$match': {'packets.position': position}},
             {'$unwind': "$packets"},
+            {'$match': {'packets.position': position}},
             {'$project' : { 'name' : 1 , 'description' : 1, 'packets':1} },
             {'$lookup':{
                 'from': 'stock_operation',
