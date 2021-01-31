@@ -124,7 +124,7 @@ class print_label(BaseHandler):
                     pdf.set_xy(x0+4, y0+8.8)
                     if "warehouse" in label:
                         pos = "/"
-                        for p in label['path']:
+                        for p in reversed(label['path']):
                             pos += p['name'] + "/"
 
                         pdf.set_font('pt_sans-bold', '', 10)
@@ -173,7 +173,8 @@ class print_label(BaseHandler):
 
                     pdf.set_xy(x0+4, y0+16)
                     pdf.set_font('pt_sans', '', 12)
-                    pdf.write(5, position['position']['text'])
+                    #pdf.write(5, position['position']['text'])
+                    pdf.multi_cell(label_width-28, 5, position['position']['text'][:80], align='L')
 
                     barcode = "[)>\u001E06"     # format 06 header
                     barcode += "\u001D1L{}".format(id)  ##   Pozice
@@ -198,7 +199,7 @@ class print_label(BaseHandler):
                     pdf.set_font('pt_sans', '', 10)
                     pdf.write(5, position['position']['warehouse']['code'].upper())
                     pdf.set_font('pt_sans', '', 12)
-                    path = '/'.join(position['position']['path_string'])
+                    path = '/'.join((position['position']['path_string']))
                     if len(path) > 0:
                         path = "/" + path
                     pdf.write(5, path)
