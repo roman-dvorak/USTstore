@@ -456,8 +456,8 @@ class component_do_move(BaseHandler):
         tmp_count = count
 
         for operation in packet['operations']:
-            # print("oper", operation)
-            if operation['type'] in ['buy', 'import']:
+            print("oper", operation)
+            if operation['type'] in ['buy', 'import', 'invoice']:
                 if tmp_count > operation['count']:
                     operation_price += operation['count']*operation['unit_price']
                     tmp_count -= operation['count']
@@ -472,7 +472,7 @@ class component_do_move(BaseHandler):
         operation_price /= count
 
         if ready:
-            print(ready)
+            print("ready", ready)
         print(packet)
 
         if ready:
@@ -617,8 +617,8 @@ class component_do_duplicate(BaseHandler):
 
         component['_id'] = ObjectId()
         component['name'] += ' [copy]'
-        component.pop('aid')
-        component.pop('position')
+        component.pop('aid', None)
+        component.pop('position', None)
         component['history'] = []
         component['packets'] = []
         component['overview'] = {}
