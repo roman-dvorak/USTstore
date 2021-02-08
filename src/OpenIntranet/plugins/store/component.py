@@ -261,6 +261,7 @@ def get_plugin_handlers():
         plugin_name = 'store'
 
         return [
+             (r'/{}/component/new/'.format(plugin_name), new_component),
              (r'/{}/component/(.*)/set_name/'.format(plugin_name), component_set_name),
              (r'/{}/component/(.*)/set_description/'.format(plugin_name), component_set_description),
              (r'/{}/component/(.*)/set_categories/'.format(plugin_name), component_set_categories),
@@ -284,6 +285,22 @@ class component_home_page(BaseHandler):
         component = get_component(self.mdb, cid, bson.ObjectId(self.get_cookie('warehouse')))
 
         self.render('store/store.component.card.hbs', id=component['basic'][0]['_id'], component = component['basic'][0], current_warehouse = component['current_warehouse'][0], other_warehouse = component['other_warehouse'][0], prices = component['prices'][0], packets = component['packets'], parameters = component['parameters'], dumps=dumps, warehouse = self.get_warehouse())
+
+
+class new_component(BaseHandler):
+    def get(self):
+        cid = bson.ObjectId()
+        component = {}
+
+        component['_id'] = cid
+        component['name'] = '[New component] {}'.format(cid) 
+        component['tags'] = []
+        component['packets'] = []
+        
+        self.mdb.stock.insert(component)
+        #self.write({'status': 'ok', 'new_component': str(component['_id'])})
+
+        self.redirect('/store/component/{}/'.format(cid))
 
 
 class component_set_name(BaseHandler):
