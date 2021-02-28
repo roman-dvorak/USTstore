@@ -68,52 +68,42 @@
 			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>.
 		</div>
 	</div>
+</div>
+<div class="container-fluid">
+	<table style="width: 100%" class="table table-sm table-striped table-hover">
+	<thead>
+		<tr>
+	<th>Název</th>
+	<th align="right">Počet</th>
+	<th align="right">Cena</th>
+	<th align="right">Cena za ks</th>
+	<th align="center">Inventura</th>
+		</tr>
+	</thead>
+	<tbody>
+	{%for packet in packets %}
+	    {% set component = packet['component'] %}
+		{% set has_inventory = 0 %}
+		{% set has_error = 0 %}
+		{% for operation in packet['operations']%}{%if operation.get("inventory_id", "") == inventory['_id'] %}{%set has_inventory += 1 %}{%end%}{%end%}
+		{% if packet['packet_count'] > 0 and packet['packet_price']<= 0%} {%set has_error += 1 %}{%end%}
 
+		<tr class="{%if has_inventory and not has_error %}table-success{% elif has_error %}table-danger{%end%}">
+			<td>
+            	<a class="bi bi-info-square" href="/store/component/{{component['_id']}}/?packet={{packet['_id']}}" id="id_stock_link" target="_blank"></a>
+            	<a class="bi bi-paperclip" href="#" onclick="copyToClipboard('{{packet['_id']}}')"></a>
+            	<span data-bs-toggle="tooltip" data-bs-placement="top" title="{{component['description']}}">{{component['name']}}</span>   <i class="bi bi-box-seam"></i> {{packet['_id']}} ({{len(packet['operations'])}})
+            </td>
+			<td align="right">{{"{:.2f}".format(packet['packet_count'])}}</td>
+			<td align="right">{{"{:.2f}".format(packet['packet_price'])}}</td>
+			<td align="right">{%if packet['packet_count'] %}{{"{:.2f}".format(packet['packet_price']/packet['packet_count'])}}{%else%}---{%end%} Czk/unit</td>
+			<td align="center">{%if has_inventory > 1 %}<i class="bi bi-check-all"></i> {% elif has_inventory > 0%} <i class="bi bi-check"></i> {%else%}  <i class="bi bi-x"></i> {%end%}</td>
+			<!-- <small>{{packet}}</small><br> -->
 
-		{%for position in data %}
-		<div class="card">
-		<h3 class="card-header"> {{data[position]['name']}}</h3>
-		<div class="card-body">
-			{{data[position]['info']}}
-		</div>
-		<div class="card-text">
-
-				<table style="width: 100%" class="table-sm table-striped">
-				<thead>
-					<tr>
-				<th>Nazev</th>
-				<th>Pocet celkem</th>
-				<th>Pocet skladem</th>
-				<th>Nakupni cena za ks</th>
-				<th></th>
-					</tr>
-				</thead>
-				<tbody>
-				{%for article in data[position]['list'] %}
-					{%if article['in_stock']%}
-						<tr class="view-row {%if article['has_inventory']%}bg-success{%end%}">
-							{% set count_stock = get_warehouse_count(article, warehouse["_id"]) %}
-							<td>
-                            	<a class="material-icons" type="button" href="/store#{{article['_id']}}" id="id_stock_link" target="_blank">open_in_new</a>
-                            	<a class="material-icons" type="button" onclick="copyToClipboard('{{article['_id']}}')">share</a>
-                            	{{article['name']}}
-                            </td>
-							<td>{{article['overview']['count']['onstock']}}</td>
-							<td> {{count_stock}}</td>
-							<td>{{article['warehouse_unit_price']}} Czk/unit</td>
-							<td>{{article['has_inventory']}}</td>
-							<!-- <small>{{article}}</small><br> -->
-							<td>
-							</td>
-						</tr>
-					{%end%}
-
-				{% end %}</tbody></table>
-			</div>
-			</div>
-
-		{%end%}
-
+		</tr>
+		
+	{% end %}</tbody></table>
+		
 
 	</div>
 
@@ -170,6 +160,16 @@
 
 
 	}
+
+
+
+
+// enable tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+
 
 
 </script>

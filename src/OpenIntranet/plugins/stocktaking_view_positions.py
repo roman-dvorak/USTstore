@@ -56,7 +56,7 @@ class view_positions(BaseHandler):
     # Ziskej pozice tohoto skladu
         positions = self.warehouse_get_positions(warehouse['_id'])
         positions_id = set([ pos['_id'] for pos in positions ])
-        print(positions_id)
+        #print(positions_id)
     #
         data = {None:{'name': "Bez pozice", "list": []}}
 
@@ -65,35 +65,75 @@ class view_positions(BaseHandler):
 
         #print(data)
 
-        articles = self.mdb.stock.aggregate([])
+        query = [
+            { "$group": {
+                '_id': '$pid',
+                'operations': { "$push": "$$ROOT" }
+                }
+            },
+            { "$addFields": {
+                    "packet_count":  {"$sum": "$operations.count"},
+                    "packet_reserv":  {"$sum": "$operations.reserv"},
+                    "packet_ordered":  {"$sum": "$operations.ordered"},
+                    "packet_price": {
+                    "$function":
+                        {
+                            "body": '''function(prices, counts) {
+                             let total_counts = Array.sum(counts);
+                             var tmp_count = total_counts;
+                             var total_price = 0;
 
-        for article in articles:
-            #print('article:', article['name'])
-            article['warehouse_unit_price'] = update_article_price(self.mdb.stock, article['_id'])
-            article['has_inventory'] = has_article_inventory(article, current_inventory['_id']).get(warehouse['_id'], False)
-            position = False
-            article['in_stock'] = False
-            for article_position in article.get('position', []):
-                if article_position['posid'] in positions_id:
-                    #print("article_position", article_position)
-                    if article_position['primary'] or not only_primary:
-                        data[article_position['posid']]['list'].append(article)
-                        position = True
+                             var c = counts.reverse();
+                             var p = prices.reverse();
 
-            if position == False:
-                data[None]['list'].append(article)
+                             for(i in c){
+                                 if(c[i] > 0){
+                                     if(c[i] < tmp_count){
+                                         total_price += (c[i]*p[i]);
+                                         tmp_count -= c[i]
+                                      }
+                                      else{
+                                         total_price += (tmp_count*p[i]);
+                                         tmp_count = 0;
+                                      }
+                                }
 
-            #print(data)
-            #position in positions()
-            for history in article.get('history', []):
-                if history.get('stock', 'None') == warehouse['_id']:
-                    article['in_stock'] = True
-                    continue
+                             }
+                             return total_price;
+                            }''',
+                            "args": ["$operations.unit_price", "$operations.count"], "lang": "js"
+                        }
+                    }
+                }
+            },
+            #{"$addFields": {"comp": "$pid"}},
+            {
+            "$lookup":
+                {
+                    "from": "stock",
+                    "let": {"pid": "$_id"},
+                    "pipeline": [
+                        { "$match": { "$expr": { "$in": ["$$pid", "$packets._id"]}}},
+                        { "$unwind": "$packets" },
+                        { "$match": { "$expr": { "$eq": ["$packets._id", "$$pid"]}}},
+                    ],
+                    "as": "component"
+                }
+            },
+            { "$set": { "component": {"$first": "$component"}}},
 
-        for position_id in data:
-            data[position_id]['info'] = {}
-            data[position_id]['info']['count'] = len(data[position_id]['list'])
-
-
-        self.render("stocktaking.view.positions.hbs", data=data, positions = positions, warehouse = warehouse, get_warehouse_count = get_warehouse_count, inventory =current_inventory)
+            #{ "$project": { "packet_count": 1, "packet_reserv": 1, "packet_price": 1, "packet_ordered": 1, "_id": 0} },
+            # { "$group": {
+            #     '_id': 'null',
+            #     'count': {"$sum": '$packet_count'},
+            #     'price': {"$sum": '$packet_price'},
+            #     'reserv': {"$sum": '$packet_reserv'},
+            #     'ordered': {"$sum": '$packet_ordered'},
+            #     }
+            # }
+        ]
+        packets = list(self.mdb.stock_operation.aggregate(query))
+        # print(packets)
+        
+        self.render("stocktaking.view.positions.hbs", packets = packets, positions = data, warehouse = warehouse, get_warehouse_count = get_warehouse_count, inventory =current_inventory)
         #self.write("TEST")
