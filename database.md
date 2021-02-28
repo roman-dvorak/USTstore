@@ -53,6 +53,7 @@ db.createView("category_complete", "category",
       "as": 'path'
    }
 },
+{"$set": {"path": { "$reverseArray": "$path" }}},
 {
     "$addFields": {
      "path_string": "$path.name"
