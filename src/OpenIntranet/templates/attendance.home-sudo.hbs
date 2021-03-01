@@ -57,6 +57,13 @@
                 Správa výplat
             </h2>
             <div id="reports-collapse" class="collapsible">
+                <div class="title-bar">
+                    <div class="btn-group right-buttons" role="group">
+                        <button type="button" class="btn btn-light" onclick="previousYear()">Předchozí rok</button>
+                        <button type="button" class="btn btn-light" onclick="nextYear()">Následující rok</button>
+                    </div>
+                    <h4>Rok <span id="year-table-year-span"></span></h4>
+                </div>
                 <div id="reports-table"></div>
                 <!--                <button type="button" class="btn btn-primary" onclick="generateAccountantReport()">-->
                 <!--                    Vygenerovat report pro účetní-->
@@ -132,7 +139,7 @@
         updateYearDateSpan();
         updateMonthTable(true);
         updateYearTable(true);
-        updateReportsTable();
+        updateReportsTable(true);
 
         document.addEventListener("visibilitychange", () => {
             console.log("visibilitychange");
@@ -140,6 +147,7 @@
                 console.log("visible");
                 updateMonthTable();
                 updateYearTable();
+                updateReportsTable();
             }
         }, false);
     });
@@ -436,14 +444,16 @@
         yearDate.add(1, "years");
         updateYearDateSpan();
         console.log(yearDate.format());
-        updateYearTable();
+        updateYearTable(true);
+        updateReportsTable(true);
     }
 
     function previousYear() {
         yearDate.subtract(1, "years");
         updateYearDateSpan();
         console.log(yearDate.format());
-        updateYearTable();
+        updateYearTable(true);
+        updateReportsTable(true);
     }
 
     function updateMonthTable(updateHidden = false) {
@@ -460,8 +470,11 @@
         }
     }
 
-    function updateReportsTable() {
-        reportsTable.setData(`/attendance/api/reports_table/date/2020-01-01`);
+    function updateReportsTable(updateHidden = false) {
+        if (updateHidden || $(reportsTable.element).is(":visible")) {
+            reportsTable.setData(`/attendance/api/reports_table/date/${yearDate.format("YYYY-MM-DD")}`);
+            console.log("Updating reportsTable");
+        }
     }
 
     function showAttendance() {
