@@ -473,8 +473,8 @@ class component_do_move(BaseHandler):
         tmp_count = count
 
         for operation in packet['operations']:
-            print("oper", operation)
-            if operation['type'] in ['buy', 'import', 'invoice']:
+            print("operace", operation)
+            if operation['type'] in ['buy', 'import', 'invoice'] or (operation['type'] == 'inventory' and float(operation['unit_price']) > 0):
                 if tmp_count > operation['count']:
                     operation_price += operation['count']*operation['unit_price']
                     tmp_count -= operation['count']
@@ -483,8 +483,12 @@ class component_do_move(BaseHandler):
                     operation_price += tmp_count*operation['unit_price']
                     tmp_count = 0
                     print("END", tmp_count, operation['count'], operation['count']*operation['unit_price'], (operation['count']*operation['unit_price'])/operation['count'])
+            print("Zbyvajici pocet", tmp_count, "Cena v operaci", operation_price)
             if tmp_count == 0:
                 break
+
+        print("celkova cena", operation_price)
+        print("pocet ks", count)
 
         operation_price /= count
 

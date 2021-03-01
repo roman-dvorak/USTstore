@@ -17,6 +17,7 @@ db.createView("store_positions_complete", "store_positions", [
       "as": 'path'
    }
 },
+{"$set": {"path": { "$reverseArray": "$path" }}},
 {
     "$addFields": {
         "path_string": "$path.name"
@@ -52,6 +53,7 @@ db.createView("category_complete", "category",
       "as": 'path'
    }
 },
+{"$set": {"path": { "$reverseArray": "$path" }}},
 {
     "$addFields": {
      "path_string": "$path.name"

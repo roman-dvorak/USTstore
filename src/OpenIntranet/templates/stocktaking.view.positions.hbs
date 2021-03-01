@@ -65,15 +65,19 @@
 			Přehled skladu
 		</h3>
 		<div class="card-body">
-			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>.
+			Pro inventuru <b>{{inventory['name']}}</b> <small>({{inventory['_id']}})</small> pro sklad <b>{{warehouse['code']}} - {{warehouse['name']}} </b> <small>({{warehouse['_id']}})</small>.<br>
+
+			Zobrazit položky pouze z aktuálního skladu: <input type="checkbox" aria-label="Checkbox for following text input" id="show_only_current" onchange="visibility_of_stocks(this)">
 		</div>
 	</div>
 </div>
 <div class="container-fluid">
-	<table style="width: 100%" class="table table-sm table-striped table-hover">
+	<table style="width: 100%" class="table table-sm table-striped table-hover" id="position_table">
 	<thead>
 		<tr>
+	<th>#</th>
 	<th>Název</th>
+	<th>Cesta</th>
 	<th align="right">Počet</th>
 	<th align="right">Cena</th>
 	<th align="right">Cena za ks</th>
@@ -81,19 +85,22 @@
 		</tr>
 	</thead>
 	<tbody>
-	{%for packet in packets %}
+	{%for pi, packet in enumerate(packets) %}
 	    {% set component = packet['component'] %}
+	    {% set position = packet.get('position_info', None) %}
 		{% set has_inventory = 0 %}
 		{% set has_error = 0 %}
 		{% for operation in packet['operations']%}{%if operation.get("inventory_id", "") == inventory['_id'] %}{%set has_inventory += 1 %}{%end%}{%end%}
 		{% if packet['packet_count'] > 0 and packet['packet_price']<= 0%} {%set has_error += 1 %}{%end%}
 
-		<tr class="{%if has_inventory and not has_error %}table-success{% elif has_error %}table-danger{%end%}">
+		<tr class="{%if has_inventory and not has_error %}table-success{% elif has_error %}table-danger{%end%}" stock="{% if position %}{{position['warehouse']['_id']}}{%end%}">
+			<td>{{pi}}</td>
 			<td>
             	<a class="bi bi-info-square" href="/store/component/{{component['_id']}}/?packet={{packet['_id']}}" id="id_stock_link" target="_blank"></a>
             	<a class="bi bi-paperclip" href="#" onclick="copyToClipboard('{{packet['_id']}}')"></a>
             	<span data-bs-toggle="tooltip" data-bs-placement="top" title="{{component['description']}}">{{component['name']}}</span>   <i class="bi bi-box-seam"></i> {{packet['_id']}} ({{len(packet['operations'])}})
             </td>
+            <td> {% if position %} {{position['warehouse']['code']}}/{{"/".join(position['path_string']+[""])}}{{position['name']}}{%else%}--bez pozice--{%end%} </td>
 			<td align="right">{{"{:.2f}".format(packet['packet_count'])}}</td>
 			<td align="right">{{"{:.2f}".format(packet['packet_price'])}}</td>
 			<td align="right">{%if packet['packet_count'] %}{{"{:.2f}".format(packet['packet_price']/packet['packet_count'])}}{%else%}---{%end%} Czk/unit</td>
@@ -161,7 +168,11 @@
 
 	}
 
+// var table = new Tabulator("#position_table", {
+//     movableColumns:true,
 
+//     layout:"fitColumns",
+// });
 
 
 // enable tooltips
@@ -170,6 +181,19 @@ var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
   return new bootstrap.Tooltip(tooltipTriggerEl)
 })
 
+
+function visibility_of_stocks(e){
+	console.log($(e).is(":checked"));
+	var rows = $( "tr[stock={{warehouse['_id']}}]" );
+	var all_rows = $( "tr[stock]" );
+	console.log(rows);
+	if ($(e).is(":checked")) {
+		all_rows.hide();
+		rows.show();
+	}else{
+		all_rows.show();
+	}
+}
 
 
 </script>
