@@ -35,7 +35,7 @@ client = pymongo.MongoClient('localhost', 27017)
 #db = client.USTdev
 db = client.USTintranet
 
-for i in range(5, 71):
+for i in range(1, 71):
     print(i)
     data = {
             "name" : "PCB{:03d}".format(i),
