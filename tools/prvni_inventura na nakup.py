@@ -12,7 +12,7 @@ from hashlib import blake2b, blake2s
 import time
 
 client = pymongo.MongoClient('localhost', 27017)
-db = client.USTdev
+db = client.USTintranet
 
 components = list(db.stock_operation.find())
 n = 0

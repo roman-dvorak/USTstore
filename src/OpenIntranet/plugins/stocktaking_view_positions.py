@@ -133,7 +133,7 @@ class view_positions(BaseHandler):
             },
             { "$set": { "position_info": {"$first": "$position_info"}}},
 
-            { "$sort": {"position_info.warehouse.code": 1, "position_info.path_string": 1, "position_info.name": 1}},
+            { "$sort": {"position_info.warehouse.code": 1, "position_info.path_string": 1, "position_info.name": 1, "component.name":1}},
 
             #{ "$project": { "packet_count": 1, "packet_reserv": 1, "packet_price": 1, "packet_ordered": 1, "_id": 0} },
             # { "$group": {
