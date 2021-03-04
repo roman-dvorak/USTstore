@@ -473,14 +473,104 @@ def setava_01(self, stock_taking):
             {'$addFields': {'count': {'$sum': '$history.bilance'}}}
         ])
 
+
+
+    query = [
+        { "$group": {
+            '_id': '$pid',
+            'operations': { "$push": "$$ROOT" }
+            }
+        },
+        { "$addFields": {
+                "packet_count":  {"$sum": "$operations.count"},
+                "packet_reserv":  {"$sum": "$operations.reserv"},
+                "packet_ordered":  {"$sum": "$operations.ordered"},
+                "packet_price": {
+                    "$function":
+                    {
+                        "body": '''function(prices, counts) {
+                         let total_counts = Array.sum(counts);
+                         var tmp_count = total_counts;
+                         var total_price = 0;
+
+                         var c = counts.reverse();
+                         var p = prices.reverse();
+
+                         for(i in c){
+                             if(c[i] > 0){
+                                 if(c[i] < tmp_count){
+                                     total_price += (c[i]*p[i]);
+                                     tmp_count -= c[i]
+                                  }
+                                  else{
+                                     total_price += (tmp_count*p[i]);
+                                     tmp_count = 0;
+                                  }
+                            }
+
+                         }
+                         return total_price;
+                        }''',
+                        "args": ["$operations.unit_price", "$operations.count"], "lang": "js"
+                    }
+                }
+            }
+        },
+        #{"$addFields": {"comp": "$pid"}},
+        {
+        "$lookup":
+            {
+                "from": "stock",
+                "let": {"pid": "$_id"},
+                "pipeline": [
+                    { "$match": { "$expr": { "$in": ["$$pid", "$packets._id"]}}},
+                    { "$unwind": "$packets" },
+                    { "$match": { "$expr": { "$eq": ["$packets._id", "$$pid"]}}},
+                ],
+                "as": "component"
+            }
+        },
+        { "$set": { "component": {"$first": "$component"}}},
+
+        {
+        "$lookup":
+            {
+                "from": "store_positions_complete",
+                "localField": "component.packets.position",
+                "foreignField": "_id",
+                "as": "position_info",
+            }
+        },
+        { "$set": { "position_info": {"$first": "$position_info"}}},
+
+        { "$group": {
+            '_id': '$component._id',
+            'packets': { "$push": "$$ROOT" },
+            #'component': { "$push": "$component" }
+            }
+        },
+
+        #{ "$sort": {"position_info.warehouse.code": 1, "position_info.path_string": 1, "position_info.name": 1, "component.name":1}},
+
+        #{ "$project": { "packet_count": 1, "packet_reserv": 1, "packet_price": 1, "packet_ordered": 1, "_id": 0} },
+        # { "$group": {
+        #     '_id': 'null',
+        #     'count': {"$sum": '$packet_count'},
+        #     'price': {"$sum": '$packet_price'},
+        #     'reserv': {"$sum": '$packet_reserv'},
+        #     'ordered': {"$sum": '$packet_ordered'},
+        #     }
+        # }
+    ]
+    data = list(self.mdb.stock_operation.aggregate(query))
+
     gen_time = datetime.datetime(2018, 10, 1)
     lastOid = ObjectId.from_datetime(gen_time)
 
-    print(data)
-
 
     for i, component in enumerate(data):
-        print(component['_id'], component['name'])
+        print(" ")
+        print(component['_id'], component)
         try:
             ## Pokud je konec stránky
             if pdf.get_y() > pdf.h-20:
@@ -513,43 +603,54 @@ def setava_01(self, stock_taking):
                 page_sum = 0
 
             pdf.set_font('pt_sans', '', 10)
-
-            count = component['count']
+  
+            count = 0
             price = 0
+            packets = ""
+            for j, packet in enumerate(component['packets']):
+                pcount = packet['packet_count']
+                pprice = round(packet['packet_price'], 2)
+
+                count += pcount
+                price += pprice
+                packets += " {},".format(pprice)
             price_ks = 0
             first_price = 0
 
             inventura = False
-            for x in reversed(component.get('history', [])):
-                if x.get('operation', None) == 'inventory':
-                    #TODO: tady porovnávat, jesti to patri do stejne kampane. Ne na zaklade casu ale ID
-                    if x['_id'].generation_time > lastOid.generation_time:
-                        inventura = True
-                        count = x['absolute']
-                        pdf.set_x(120)
-                        pdf.cell(1, 5, "i")
-                        break;
+            # for x in reversed(component.get('history', [])):
+            #     if x.get('operation', None) == 'inventory':
+            #         #TODO: tady porovnávat, jesti to patri do stejne kampane. Ne na zaklade casu ale ID
+            #         if x['_id'].generation_time > lastOid.generation_time:
+            #             inventura = True
+            #             count = x['absolute']
+            #             pdf.set_x(120)
+            #             pdf.cell(1, 5, "i")
+            #             break;
+
+            pdf.set_x(10)
+            pdf.cell(100, 5, "{:5.0f}  {}".format(i, packet['component']['name']))
 
             if count > 0:
-                rest = count
+                # rest = count
 
-                for x in reversed(component.get('history', [])):
+                # for x in reversed(component.get('history', [])):
 
-                    if x.get('price', 0) > 0:
-                        if first_price == 0:
-                            first_price = x['price']
-                        if x['bilance'] > 0:
-                            if x['bilance'] <= rest:
-                                price += x['price']*x['bilance']
-                                rest -= x['bilance']
-                            else:
-                                price += x['price']*rest
-                                rest = 0
+                #     if x.get('price', 0) > 0:
+                #         if first_price == 0:
+                #             first_price = x['price']
+                #         if x['bilance'] > 0:
+                #             if x['bilance'] <= rest:
+                #                 price += x['price']*x['bilance']
+                #                 rest -= x['bilance']
+                #             else:
+                #                 price += x['price']*rest
+                #                 rest = 0
 
-                print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
-                if(count-rest): price += rest*first_price
+                # print("Zbývá", rest, "ks, secteno", count-rest, "za cenu", price)
+                # if(count-rest): price += rest*first_price
                 money_sum += price
-                page_sum +=price
+                page_sum += price
 
                 if price == 0.0 and x.get('count', 0) > 0:
                     Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
@@ -558,8 +659,6 @@ def setava_01(self, stock_taking):
                 pdf.set_x(105)
                 pdf.cell(10, 5, "{} j".format(count), align='R')
 
-                pdf.set_x(10)
-                pdf.cell(100, 5, "{:5.0f}  {}".format(i, component['name']))
 
                 pdf.set_font('pt_sans-bold', '', 10)
                 pdf.set_x(180)
@@ -570,8 +669,8 @@ def setava_01(self, stock_taking):
             Err.append('Err' + repr(e) + repr(component['_id']))
             print(e)
 
-        if count > 0:
-            pdf.set_y(pdf.get_y()+4)
+        #if count > 0:
+        pdf.set_y(pdf.get_y()+4)
 
     pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
     pdf.set_font('pt_sans', '', 8)
