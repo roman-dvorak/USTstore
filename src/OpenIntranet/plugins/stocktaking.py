@@ -628,8 +628,6 @@ def setava_01(self, stock_taking):
             #             pdf.cell(1, 5, "i")
             #             break;
 
-            pdf.set_x(10)
-            pdf.cell(100, 5, "{:5.0f}  {}".format(i, packet['component']['name']))
 
             if count > 0:
                 # rest = count
@@ -654,6 +652,9 @@ def setava_01(self, stock_taking):
 
                 if price == 0.0 and x.get('count', 0) > 0:
                     Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
+                
+                pdf.set_x(10)
+                pdf.cell(100, 5, "{:5.0f}  {}".format(i, packet['component']['name']))
 
                 pdf.set_font('pt_sans', '', 10)
                 pdf.set_x(105)
@@ -669,8 +670,8 @@ def setava_01(self, stock_taking):
             Err.append('Err' + repr(e) + repr(component['_id']))
             print(e)
 
-        #if count > 0:
-        pdf.set_y(pdf.get_y()+4)
+        if count > 0:
+            pdf.set_y(pdf.get_y()+4)
 
     pdf.line(10, pdf.get_y(), pdf.w-10, pdf.get_y())
     pdf.set_font('pt_sans', '', 8)
