@@ -23,7 +23,7 @@
           <small class="text-muted"><div>Autor {{label['author']}}; {{label['_id'].generation_time}}</div><div>Typ: {{label['type']}}</div></small>
         </div>
         <div class="d-flex w-100 justify-content-between">
-          <div>{{label['item'][0]['description'][:1000]}}</div>
+          <div>{{label['item'][0].get('description', "--bez popisu--")[:1000]}}</div>
           <div>
             <span type="button" class="btn btn-outline-danger" onClick="delete_label(this)"><i class="bi bi-trash"></i></span>
           </div>
