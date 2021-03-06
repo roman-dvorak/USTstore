@@ -112,7 +112,7 @@ class print_label(BaseHandler):
                     # Popis stitku
                     pdf.set_font('pt_sans', '', 8)
                     pdf.set_xy(x0+4, y0+17)
-                    pdf.multi_cell(label_width-28, 2.8, label['component']['description'][:80], align='L')
+                    pdf.multi_cell(label_width-28, 2.8, label['component'].get('description', '')[:80], align='L')
 
                     # pozice ve skaldu
                     print("PACKET>", label['packet'])
