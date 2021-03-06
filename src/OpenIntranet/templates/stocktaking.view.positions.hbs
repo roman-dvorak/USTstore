@@ -99,7 +99,7 @@
 			<td>
             	<a class="bi bi-info-square" href="/store/component/{{component['_id']}}/?packet={{packet['_id']}}" id="id_stock_link" target="_blank"></a>
             	<a class="bi bi-paperclip" href="#" onclick="copyToClipboard('{{packet['_id']}}')"></a>
-            	<span data-bs-toggle="tooltip" data-bs-placement="top" title="{{component['description']}}">{{component['name']}}</span>   <i class="bi bi-box-seam"></i> {{packet['_id']}} ({{len(packet['operations'])}})
+            	<span data-bs-toggle="tooltip" data-bs-placement="top" title="{{component.get('description', "")}}}">{{component['name']}}</span>   <i class="bi bi-box-seam"></i> {{packet['_id']}} ({{len(packet['operations'])}})
             </td>
             <td> {% if position %} {{position['warehouse']['code']}}/{{"/".join(position['path_string']+[""])}}{{position['name']}}{%else%}--bez pozice--{%end%} </td>
 			<td align="right">{{"{:.2f}".format(packet['packet_count'])}}</td>
