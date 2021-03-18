@@ -35,11 +35,8 @@ F{% extends "base.hbs" %}
 
 <div class="container-fluid">
 	<a href="/production" class="btn btn-sm btn-success"> Zpět</a>
-	{#Načíst bom:
-	<input type="file" id="file_bom" name="file_bom" />
-	Načíst Placement soubor:
-	<input type="file" id="file_placement" name="file_bom" />#}
-	UST BOM:
+	<br>
+	XML netlist:
 	<input type="file" name="bom" id="ust_bom_file"/>
 	<input type="submit" value="upload" id="ust_bom_btn" onclick="startUpload()" />
 
@@ -48,23 +45,23 @@ F{% extends "base.hbs" %}
 			<div class="card">
 				<div class="card-header"><h3>Production</h3></div>
 				<div class="card-body">
-					<div class="row form-group">
+					<div class="">
 						<div class="col-2"> Název: </div>
 						<input class="form-control col-10" type="text" id='production_name'><br>
 					</div>
-					<div class="row form-group">
+					<div class="">
 						<div class="col-2"> Autor: </div>
 						<input class="form-control col-10" type="text" id='production_autor' readonly><br>
 					</div>
-					<div class="row form-group">
+					<div class="">
 						<div class="col-2"> Vytvořeno: </div>
 						<input class="form-control col-10" type="text" id='production_created' readonly><br>
 					</div>
-					<div class="row form-group">
+					<div class="">
 						<div class="col-2"> Popis: </div>
 						<input class="form-control col-10" type="text" id='production_description'><br>
 					</div>
-					<div class="row form-group">
+					<div class="">
 						<div class="col-2"> Type: </div>
 						<input class="form-control col-10" type="text" id='production_type' readonly><br>
 					</div>
@@ -72,7 +69,7 @@ F{% extends "base.hbs" %}
 					Dále zde bude: Tagy, priorita, celková cena
 					<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
 
-					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary">Print</a>
+					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary" target="_blank">Print</a>
 					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()">
 					<input type="number" id="production_multiplication" value="1" class="btn btn-sm btn-primary" onchange="table.setData('./?operation=get_components_grouped', {operation:'get_components_grouped'}, 'POST');">
 				</div>
@@ -274,7 +271,7 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
 	        	]
 	    	},
-            {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store#", target:"_blank"}, width: 50},
+            {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store/component/", target:"_blank"}, width: 50},
 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
@@ -503,6 +500,9 @@ function startUpload() {
     xhr.onerror = function() {
         alert("Error! Upload failed. Can not connect to server.");
     };
+    xmr.onsuccess = function() {
+    	alert("super");
+    };
 
     xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
     xhr.setRequestHeader("Content-Type", fileInput.files[0].type);
@@ -614,7 +614,7 @@ function load_components() {
 			x.innerHTML = c_package;
 			x = row.insertCell(-1);
 			if (c_ustid){
-				x.innerHTML = '<a href = "/store#'+c_ustid+'" target="_blank">'+c_ustid+'</a>';
+				x.innerHTML = '<a href = "/store/component/'+c_ustid+'/" target="_blank">'+c_ustid+'</a>';
 			}
 			x = row.insertCell(-1);
 			x.innerHTML = com['price_predicted'] || null;
