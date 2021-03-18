@@ -509,28 +509,47 @@ class edit(BaseHandler):
             self.write(output)
 
 class ust_bom_upload(BaseHandler):
-    def post(self, name):
-        data = json.loads(self.request.body.decode('utf-8'))
-        #self.mdb.production.update(
-        #    {
-        #        '_id': bson.ObjectId(name)
-        #    },{
-        #        '$set':{'components': data}
-        #    })
 
-        for component in data:
-            print(component)
+    def make_comp_dict(self, element):
+        component = {
+                'Tstamp': element.findall('tstamps')[0].text,
+                "Datasheet": "",
+                "Footprint": element.findall('value')[0].text,
+                "Ref": element.get('ref'),
+                "Value": element.findall('value')[0].text,
+                "UST_ID": '',
+                "stock_count": None 
+            }
+
+        update = {x.get('name'):x.get('value') for x in element.findall('property')}
+
+        try:
+            component['UST_ID'] = bson.ObjectId(component['UST_ID'])
+        except Exception as e:
+            pass
+
+        component.update( update )
+
+        return component
+
+
+    def post(self, name):
+        data = (self.request.body.decode('utf-8'))
+
+        from xml.etree import ElementTree
+        root = ElementTree.fromstring(data)
+
+        components = root.findall('components')[0]
+
+        for component_xml in components.iter('comp'):
+            
+            component = self.make_comp_dict(component_xml)
+            print("Component>> ", component)
+            
             exist = self.mdb.production.find({'_id': bson.ObjectId(name), 'components.Tstamp': component['Tstamp']})
-            print(exist.count())
             v_update = {}
             v_push = {}
 
-            for x in component:
-                v_update["components.$.{}".format(x)] = component[x]
-                v_push["{}".format(x)] = component[x]
-
-            print(v_update)
-            print(v_push)
 
             if exist.count() > 0:
                 update = self.mdb.production.update(
@@ -538,7 +557,7 @@ class ust_bom_upload(BaseHandler):
                             '_id': bson.ObjectId(name),
                             "components.Tstamp": component['Tstamp']
                         },{
-                           "$set": v_update
+                           "$set": component
                         }, upsert = True)
             else:
                 print("NOVA POLOZKA")
@@ -546,9 +565,11 @@ class ust_bom_upload(BaseHandler):
                         {
                             '_id': bson.ObjectId(name)
                         },{
-                            "$push": {'components': v_push
+                            "$push": {'components': component
                             }
                         })
+
+        self.write("ok")
 
 class print_bom(BaseHandler):
     def get_component(self, components, name, field='Ref'):

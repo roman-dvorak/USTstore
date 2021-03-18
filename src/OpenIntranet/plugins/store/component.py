@@ -274,7 +274,8 @@ def get_plugin_handlers():
              (r'/{}/component/(.*)/do_service/'.format(plugin_name), component_do_service),
              (r'/{}/component/(.*)/do_parameters/'.format(plugin_name), component_do_parameters),
              (r'/{}/component/(.*)/do_duplicate/'.format(plugin_name), component_do_duplicate),
-             (r'/{}/component/(.*)/'.format(plugin_name), component_home_page)
+             (r'/{}/component/(.*)/'.format(plugin_name), component_home_page),
+             (r'/{}/component/(.*)'.format(plugin_name), component_home_page)
         ]
 
 
