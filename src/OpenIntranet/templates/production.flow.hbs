@@ -492,6 +492,7 @@ function startUpload() {
 
     xhr.onload = function() {
         if (xhr.status == 200) {
+			console.log("Úspěch - nahráno");
 			load_components();
         } else {
             alert("Error! Upload failed");
@@ -499,9 +500,6 @@ function startUpload() {
     };
     xhr.onerror = function() {
         alert("Error! Upload failed. Can not connect to server.");
-    };
-    xmr.onsuccess = function() {
-    	alert("super");
     };
 
     xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
