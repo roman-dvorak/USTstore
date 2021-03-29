@@ -511,8 +511,9 @@ class edit(BaseHandler):
 class ust_bom_upload(BaseHandler):
 
     def make_comp_dict(self, element):
+        print(element)
         component = {
-                'Tstamp': element.findall('tstamps')[0].text,
+                'Tstamp': element.findall('tstamp')[0].text,
                 "Datasheet": "",
                 "Footprint": element.findall('value')[0].text,
                 "Ref": element.get('ref'),
@@ -542,32 +543,35 @@ class ust_bom_upload(BaseHandler):
         components = root.findall('components')[0]
 
         for component_xml in components.iter('comp'):
-            
-            component = self.make_comp_dict(component_xml)
-            print("Component>> ", component)
-            
-            exist = self.mdb.production.find({'_id': bson.ObjectId(name), 'components.Tstamp': component['Tstamp']})
-            v_update = {}
-            v_push = {}
+            try:
+                component = self.make_comp_dict(component_xml)
+                print("Component>> ", component)
+                
+                exist = self.mdb.production.find({'_id': bson.ObjectId(name), 'components.Tstamp': component['Tstamp']})
+                v_update = {}
+                v_push = {}
 
 
-            if exist.count() > 0:
-                update = self.mdb.production.update(
-                        {
-                            '_id': bson.ObjectId(name),
-                            "components.Tstamp": component['Tstamp']
-                        },{
-                           "$set": component
-                        }, upsert = True)
-            else:
-                print("NOVA POLOZKA")
-                update = self.mdb.production.update(
-                        {
-                            '_id': bson.ObjectId(name)
-                        },{
-                            "$push": {'components': component
-                            }
-                        })
+                if exist.count() > 0:
+                    update = self.mdb.production.update(
+                            {
+                                '_id': bson.ObjectId(name),
+                                "components.Tstamp": component['Tstamp']
+                            },{
+                               "$set": component
+                            }, upsert = True)
+                else:
+                    print("NOVA POLOZKA")
+                    update = self.mdb.production.update(
+                            {
+                                '_id': bson.ObjectId(name)
+                            },{
+                                "$push": {'components': component
+                                }
+                            })
+
+            except Exception as e:
+                print("Problem s nactenim polozky:", e)
 
         self.write("ok")
 
