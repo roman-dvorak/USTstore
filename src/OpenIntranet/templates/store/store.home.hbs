@@ -79,6 +79,10 @@
 
     <div class="card-title">
       <h5>Kategorie</h5>
+      <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="search_by_category" checked>
+          <label class="form-check-label" for="search_by_category">Vyhledávat dle kategorií</label>
+      </div>
       <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('open_all')">Rozbalit vše</a>
       <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('close_all')">Sbalit vše</a>
       <a href="#" class="badge bg-primary" onclick="$('#category-tree').jstree('select_all')">Vybrat vše</a>
@@ -381,11 +385,12 @@ function update_list(){
 	  //contentType : 'application/json',
 	  data: {
 	  		'categories': active_categories(),
+            'search_by_category': Number($("#search_by_category").prop('checked')),
 	  		'search': $("#filter-search").val(),
 	  		'polarity': $('#category_polarity').is( ":checked" ),
 	  		'tag_polarity': $('#tag_polarity').is( ":checked" ),
 	  		'tag_search': $("#tag-search").val(),
-        'in_stock': $("#filter-instock").val(),
+            'in_stock': $("#filter-instock").val(),
 	  		'page': list_page
 	  },
 	  success: function( data, textStatus, jQxhr ){
@@ -419,7 +424,7 @@ function update_view(){
         var tmpl = document.getElementById('products-template_'+$('#display_select').val()).content.cloneNode(true);
         tmpl.querySelector('.product_list_element').classList.add('row_of_'+element['_id'].$oid);
         tmpl.querySelector('.product_list-name').innerHTML = " <b>"+element['name'] + "</b> ";
-        tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'].join(', ') +") <small>"+ element['_id'].$oid+"</small>";
+        tmpl.querySelector('.product_list-baseinfo').innerHTML =  "("+element['barcode'] +") <small>"+ element['_id'].$oid+"</small>";
         tmpl.querySelector('.product_list-select').value = element['_id'].$oid;
         tmpl.querySelector('.product_list-description').innerText = element['description'];
         tmpl.querySelector('.product_list_copyid').setAttribute('copy', element['_id'].$oid);
@@ -542,7 +547,7 @@ function load_product(id, open = false){
 			$.ajax({
 				type: "POST",
 				url: "/store/api/product/",
-				data: {'type':'filter', 'key':'_id' ,'value': id, 'selected': active_categories(), 'polarity': $('#category_polarity').is( ":checked" )},
+				data: {'type':'filter', 'key':'_id' ,'value': id, 'selected': active_categories(), 'polarity': $('#category_polarity').is( ":checked" ) },
 				success: function( data, textStatus, jQxhr ){
           console.log('load_product>>', data);
 					var element = data[0]
