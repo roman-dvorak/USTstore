@@ -130,16 +130,18 @@ class api_products_json(BaseHandler):
 
         polarity = '$nin' if (self.request.arguments.get('polarity', [b'true'])[0] == b'true') else '$in'
         tag_polarity = not self.request.arguments.get('tag_polarity', b'true')[0] == b'true'
+        search_by_category = bool(int(self.get_argument('search_by_category', 0)))
         selected = (self.request.arguments.get('categories[]', []))
         for i, cat in enumerate(selected):
             print(cat.decode('UTF-8'))
             selected[i] = bson.ObjectId(cat.decode('UTF-8'))
+        print("Vyhledavat dle kategorii..", search_by_category)
         print("SEZNAM kategorie", selected)
         in_stock = self.get_argument('in_stock', 'All')
         page = self.get_argument('page', 0)
         page_len = self.get_argument('page_len', 100)
-        search = self.get_argument('search')#.decode('ascii')
-        tag_search = self.get_argument('tag_search', '')#.decode('ascii')
+        search = self.get_argument('search')  #.decode('ascii')
+        tag_search = self.get_argument('tag_search', '')  #.decode('ascii')
         print("SEARCH", search)
         print("search polarity", polarity, selected)
         print("tag polarity", tag_polarity, in_stock)
@@ -172,9 +174,12 @@ class api_products_json(BaseHandler):
                                     {'_id': { '$regex': search, '$options': 'ix'}},
                                     {'name': { '$regex': search, '$options': 'i'}},
                                     {'description': { '$regex': search, '$options': 'i'}} ]}
-                },{
+                }]
+            if search_by_category:
+                agq += [{
                     "$match": {'category': {polarity: selected}}
-                },{
+                }]
+            agq += [{
                     '$addFields': {'count': { '$sum': '$history.bilance'}}
                 }]
 
@@ -227,7 +232,7 @@ class api_products_json(BaseHandler):
 
         dbcursor = self.mdb.stock.aggregate(agq)
         dout['data'] = list(dbcursor)
-        print(dout['data'])
+        #print(dout['data'])
         dout['count'] = (count)
 
         dout = bson.json_util.dumps(dout)
@@ -370,15 +375,6 @@ class api_categories_list(BaseHandler):
                 }]
 
             dout = list(self.mdb.category.aggregate(query))
-            # new = []
-            # for i, out in enumerate(dout):
-            #     pos = {}
-            #     pos['_id'] = str(out['_id'])
-            #     pos['id'] = str(out['_id'])
-            #     pos['text'] = "{} <small>({})</small>".format(out['name'], out['description'])
-            #     pos['li_attr'] = {"name": out['name'], 'text': out['description']}
-            #     pos['parent'] = str(out.get('parent', '#'))
-            #     new.append(pos)
             output = bson.json_util.dumps(dout)
 
         else:
@@ -919,10 +915,10 @@ class hand_bi_home(BaseHandler):
 
         if self.is_authorized(['sudo-stock', 'sudo', 'stock', 'stock-admin']):
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-        
+
         else:
             self.render("store/store.home.hbs", title="UST intranet", parent=self, category = cat, cart = self.cart)
-        
+
 class operation(BaseHandler):
     role_module = ['store-sudo', 'store-manager']
     def post(self, data=None):
