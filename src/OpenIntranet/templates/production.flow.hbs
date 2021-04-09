@@ -70,7 +70,7 @@ F{% extends "base.hbs" %}
 					<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
 
 					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary" target="_blank">Print</a>
-					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()">
+					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()" disabled>
 					<input type="number" id="production_multiplication" value="1" class="btn btn-sm btn-primary" onchange="table.setData('./?operation=get_components_grouped', {operation:'get_components_grouped'}, 'POST');">
 				</div>
 			</div>
@@ -260,17 +260,17 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
 	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
 	        {title:"Pro výrobu", field: "count_multiply", formatter: multiplication, sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-	        {title:"Sklad",
-	        	columns:[
-	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
-	        	]
-	    	},
-            {title:"Cena",
-	        	columns:[
-	        		{title: "pol", field:"price_item", editable: false, width: 80},
-    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
-	        	]
-	    	},
+//	        {title:"Sklad",
+//	        	columns:[
+//	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
+//	        	]
+//	    	},
+//            {title:"Cena",
+//	        	columns:[
+//	        		{title: "pol", field:"price_item", editable: false, width: 80},
+//    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
+//	        	]
+//	    	},
             {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store/component/", target:"_blank"}, width: 50},
 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
