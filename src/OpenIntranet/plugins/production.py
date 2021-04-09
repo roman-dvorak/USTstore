@@ -513,7 +513,7 @@ class ust_bom_upload(BaseHandler):
     def make_comp_dict(self, element):
         print(element)
         component = {
-                'Tstamp': element.findall('tstamp')[0].text,
+                'Tstamp': element.findall('tstamps')[0].text,
                 "Datasheet": "",
                 "Footprint": element.findall('value')[0].text,
                 "Ref": element.get('ref'),
@@ -544,6 +544,7 @@ class ust_bom_upload(BaseHandler):
 
         for component_xml in components.iter('comp'):
             try:
+                print("Nacitani soucastky") 
                 component = self.make_comp_dict(component_xml)
                 print("Component>> ", component)
                 
