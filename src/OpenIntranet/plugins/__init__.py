@@ -116,6 +116,13 @@ def database_init():
 def get_company_info(database):
     return database.intranet.find_one({"_id": "company_info"}) or {}
 
+def get_default_warehouse(database):
+    default = database.intranet.find_one({"_id": "default_warehouse"})
+    # TODO: umoznit uzivatelum mit vlastni vychozi sklad
+    # if "uzivatel" in default:
+    #    return default['uzivatel']
+    #
+    return default['*']
 
 def get_dpp_params(database):
     return database.intranet.find_one({"_id": "dpp_params"}) or {}
@@ -216,15 +223,18 @@ class BaseHandler(tornado.web.RequestHandler):
 
         if login:# and user_db.get('user', False) == login:
             user_db = self.mdb.users.find_one({'user': login})
-
             self.actual_user = user_db
 
+            #Ziskat vychozi sklad
+            if not self.get_cookie('warehouse', None):
+                self.set_cookie('warehouse', str(get_default_warehouse(self.mdb)))
+
+            # Zjistit opravneni uzivatele
             self.role = set(user_db['role'])
             if self.role_module and not self.is_authorized(self.role_module):
                 raise tornado.web.HTTPError(403)
 
             cart = self.get_cookie('cart', None)
-            # print("Nakupni kosik", bson.ObjectId(cart))
             if cart:
                 self.cart = list(self.mdb.carts.find({'_id': bson.ObjectId(cart)}))[0]
             else:

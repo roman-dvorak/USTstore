@@ -37,7 +37,8 @@ def get_plugin_info():
                 "url": "/production",
                 "icon": "work"
             }
-        ]
+        ],
+        "role": ['sudo', "sudo-production", "production-manager", "production-viewer"]
     }
 
 
@@ -519,7 +520,7 @@ class ust_bom_upload(BaseHandler):
                 "Ref": element.get('ref'),
                 "Value": element.findall('value')[0].text,
                 "UST_ID": '',
-                "stock_count": None 
+                "stock_count": None
             }
 
         update = {x.get('name'):x.get('value') for x in element.findall('property')}
@@ -544,10 +545,10 @@ class ust_bom_upload(BaseHandler):
 
         for component_xml in components.iter('comp'):
             try:
-                print("Nacitani soucastky") 
+                print("Nacitani soucastky")
                 component = self.make_comp_dict(component_xml)
                 print("Component>> ", component)
-                
+
                 exist = self.mdb.production.find({'_id': bson.ObjectId(name), 'components.Tstamp': component['Tstamp']})
                 v_update = {}
                 v_push = {}

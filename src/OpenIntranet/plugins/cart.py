@@ -37,7 +37,8 @@ def get_plugin_info():
                 "url": "/cart",
                 "icon": "shopping_cart",
             }
-        ]
+        ],
+        "role": ['sudo']
     }
 
 

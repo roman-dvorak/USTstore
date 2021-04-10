@@ -27,7 +27,7 @@ def get_plugin_handlers():
 def get_plugin_info():
     return{
         "name": "development",
-        "entrypoints": []
+        "entrypoints": [],
     }
 
 

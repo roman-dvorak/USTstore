@@ -18,5 +18,6 @@ def get_plugin_info():
                 "url": "/store",
                 "icon": "store",
             }
-        ]
+        ],
+        "role": ["sudo", "sudo-store", "store-manager", "store-user"]
     }
