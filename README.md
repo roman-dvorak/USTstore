@@ -80,3 +80,7 @@ Usnadňuje možnost fakturace za služby provedené organizací.
 ### Platby
 
 Zjednodušuje správu plateb za pohledávky třetích stran.
+
+
+## Installation
+Installation is described in the [wiki/Installation](https://github.com/UniversalScientificTechnologies/OpenIntranet/wiki/Installation) page.
