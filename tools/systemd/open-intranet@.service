@@ -1,0 +1,9 @@
+[Unit]
+Description="OpenIntranet"
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/data/ust/OpenIntranetDev/
+ExecStart=/usr/bin/python3 web.py
+

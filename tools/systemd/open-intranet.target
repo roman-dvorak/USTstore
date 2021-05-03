@@ -1,0 +1,6 @@
+[Unit]
+Description="OpenIntranet instance"
+#Requires=
+
+[Install]
+WantedBy=multi-user.target
