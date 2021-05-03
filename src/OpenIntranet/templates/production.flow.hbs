@@ -10,6 +10,9 @@ F{% extends "base.hbs" %}
 <link href="/static/tabulator/dist/css/bootstrap/tabulator_bootstrap4.css" rel="stylesheet">
 <script type="text/javascript" src="/static/tabulator/dist/js/tabulator.js"></script>
 
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono" rel="stylesheet"> 
+
 
 <style type="text/css">
 	.th-input{
@@ -31,7 +34,31 @@ F{% extends "base.hbs" %}
 	table {table-layout: fixed;}
 
 
+	.bom_table_key {
+  		font-weight: bold;
+  		padding-right: 1em;
+	}
+
 </style>
+<script type="text/javascript">
+	
+
+var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+  return new bootstrap.Popover(popoverTriggerEl)
+})
+
+  $(document).ready(function () { //enables popover
+        $('[data-toggle="popover"]').popover();
+    });
+
+</script>
+
+
+
+<button type="button" class="btn btn-lg btn-danger" data-bs-toggle="popover" title="Popover title" data-bs-content="And here's some amazing content. It's very engaging. Right?">Click to toggle popover</button>
+
+
 
 <div class="container-fluid">
 	<a href="/production" class="btn btn-sm btn-success"> Zpět</a>
@@ -76,13 +103,37 @@ F{% extends "base.hbs" %}
 			</div>
 		</div>
 
+
+
+
 		<div class="col-12">
 			<div class="card">
-				<div class="card-header"><h3>Části</h3></div>
-				<div><div id="component-table" class="table-sm table-striped"></div></div>
-				<input type="button" class="component-table-add-row btn btn-primary" value="Add row">
+				<div class="bom_loading_show" style="display: none">
+					<h2>NACITAM BOM ....</h2>
+				</div>
+				<div class="bom_loading_hide" style="display: none;">
+					<table class="table table-sw table-striped">
+						<thead>
+							<tr>
+								<th class="col-1">#</th>
+								<th class="col-2">Ref</th>
+								<th class="col-1"></th>
+								<th class="col-5">Product</th>
+								<th class="col-3">Warehouse</th>
+							</tr>
+						</thead>
+						<tbody class="bom_table_body">
+						
+						</tbody>
+					</table>
+				</div>
+				<!-- <input type="button" class="component-table-add-row btn btn-primary" value="Add row"> -->
 			</div>
 		</div>
+
+
+
+
 		<div class="col-12"><div class="card">
 			<div class="form-group row">
 				<input class="" type="text" name="">
@@ -106,6 +157,53 @@ F{% extends "base.hbs" %}
 		</div>
 	</div>
 </div>
+
+
+
+<!-- NOVÉ POCITANI SOUCASTEK -->
+<script type="text/javascript">
+	
+	function update_bom(){
+		$(".bom_loading_show").show();
+		$(".bom_loading_hide").hide();
+		$(".bom_table_body").empty();
+
+
+		$.ajax({
+	        type: "GET",
+	        url: "../get_bom_table/",
+	        data: {
+	        	name: $('#production_name').val(),
+	        },
+	   		//async: false,
+	        success: function( data, textStatus, jQxhr ){
+				$(".bom_loading_show").hide();
+				$(".bom_loading_hide").show();
+
+				$(".bom_table_body").html(data);
+	    		
+	    	},
+	        error: function( jqXhr, textStatus, errorThrown ){
+	            console.log( errorThrown );
+	            Lobibox.notify('error', {
+	                msg: 'CHYBA!!!!: ' + errorThrown,
+	                icon: false,
+	            });
+	        }
+	    });
+	} // Konec update_bom()
+
+update_bom();
+
+
+
+</script>
+<!-- KONEC _ NOVE POCITANI SOUCASTEK -->
+
+
+
+
+
 
 <script type="text/javascript">
 
@@ -254,120 +352,120 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     	return value*$("#production_multiplication").val();
 	};
 
-	var table = new Tabulator("#component-table",{
-	    layout:"fitColumns",
-	    columns:[
-	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
-	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-	        {title:"Pro výrobu", field: "count_multiply", formatter: multiplication, sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-//	        {title:"Sklad",
-//	        	columns:[
-//	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
-//	        	]
-//	    	},
-//            {title:"Cena",
-//	        	columns:[
-//	        		{title: "pol", field:"price_item", editable: false, width: 80},
-//    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
-//	        	]
-//	    	},
-            {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store/component/", target:"_blank"}, width: 50},
-	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
-	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
-	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
-	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
-	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
-	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
-	        //{title:"Cena",
-	        //    columns:[
-		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
-		//	        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
-		//	        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
-		//		]
-		//	},
-	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
-	        {title:"Dodavatele", field:"supplier", editable:false, formatter: supplier_url},
-	    ],
-    	addRowPos:"bottom",
-	    cellEdited:function(cell){
-            if(cell._cell.value !== null){
-    	    	console.log("EDITED");
-            	//console.log(cell);
-        		//console.log(cell._cell.row.cells[7].value);
-        		update_component_parameter(cell._cell.row.cells[7].value, cell._cell.column.field, cell._cell.value);
-            }
-    	},
-        ajaxResponse:function(url, params, response){
-            console.log("AJAX RESPONSE");
-            console.log(url);
-            console.log(params);
-            console.log(response);
-            //url - the URL of the request
-            //params - the parameters passed with the request
-            //response - the JSON object returned in the body of the response.
+// 	var table = new Tabulator("#component-table",{
+// 	    layout:"fitColumns",
+// 	    columns:[
+// 	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
+// 	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
+// 	        {title:"Pro výrobu", field: "count_multiply", formatter: multiplication, sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
+// //	        {title:"Sklad",
+// //	        	columns:[
+// //	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
+// //	        	]
+// //	    	},
+// //            {title:"Cena",
+// //	        	columns:[
+// //	        		{title: "pol", field:"price_item", editable: false, width: 80},
+// //    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
+// //	        	]
+// //	    	},
+//             {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store/component/", target:"_blank"}, width: 50},
+// 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
+// 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
+// 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
+// 	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
+// 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
+// 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
+// 	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
+// 	        //{title:"Cena",
+// 	        //    columns:[
+// 		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
+// 		//	        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
+// 		//	        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
+// 		//		]
+// 		//	},
+// 	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
+// 	        {title:"Dodavatele", field:"supplier", editable:false, formatter: supplier_url},
+// 	    ],
+//     	addRowPos:"bottom",
+// 	    cellEdited:function(cell){
+//             if(cell._cell.value !== null){
+//     	    	console.log("EDITED");
+//             	//console.log(cell);
+//         		//console.log(cell._cell.row.cells[7].value);
+//         		update_component_parameter(cell._cell.row.cells[7].value, cell._cell.column.field, cell._cell.value);
+//             }
+//     	},
+//         ajaxResponse:function(url, params, response){
+//             console.log("AJAX RESPONSE");
+//             console.log(url);
+//             console.log(params);
+//             console.log(response);
+//             //url - the URL of the request
+//             //params - the parameters passed with the request
+//             //response - the JSON object returned in the body of the response.
 
-            response = $.map(response, function( val, i ) {
-              // Do something
-              console.log(val, i);
+//             response = $.map(response, function( val, i ) {
+//               // Do something
+//               console.log(val, i);
 
-              var usttext = undefined;
-              var price = null;
- 			  var supplier = [];
+//               var usttext = undefined;
+//               var price = null;
+//  			  var supplier = [];
 
 
-                if (val['stock'].length > 0){
+//                 if (val['stock'].length > 0){
 
-                  console.log("PRED SUPPLIER");
-                  supplier = val['stock'][0].supplier;
+//                   console.log("PRED SUPPLIER");
+//                   supplier = val['stock'][0].supplier;
 
-                  usttext = val['stock'][0]['name'];
-                  console.log("StockName", val['stock'][0]['name']);
+//                   usttext = val['stock'][0]['name'];
+//                   console.log("StockName", val['stock'][0]['name']);
 
-				  var history = val['stock'][0]['history'];
+// 				  var history = val['stock'][0]['history'];
 
-                    console.log("Historie:", history);
-                    for(j in history){
-                        if(history[j]['operation'] == 'buy' || history[j]['operation'] == 'inventory'){
-                            console.log("Cena za nakup je",  history[j]['price']);
-                            price = history[j]['price'];
-                            break;
-                        }
-                      }
-                  //}
-                }
+//                     console.log("Historie:", history);
+//                     for(j in history){
+//                         if(history[j]['operation'] == 'buy' || history[j]['operation'] == 'inventory'){
+//                             console.log("Cena za nakup je",  history[j]['price']);
+//                             price = history[j]['price'];
+//                             break;
+//                         }
+//                       }
+//                   //}
+//                 }
 
-                var uid = val["_id"]['UST_ID'];
+//                 var uid = val["_id"]['UST_ID'];
 
-                if(typeof uid == 'object'){
-                    uid = val['_id']['UST_ID']['$oid'];
-                }
+//                 if(typeof uid == 'object'){
+//                     uid = val['_id']['UST_ID']['$oid'];
+//                 }
 
-                return{
-                    row: i,
-                    Ref: val['Ref'],
-                    Value: val['_id']['Value'],
-                    MFPN: val['_id']['MFPN'],
-                    Distributor: val['_id']['Distributor'],
-                    Datasheet: val['_id']['Datasheet'],
-                    stock_count: val['_id']['stock_count'],
-                    count: val['Ref'].length,
-                    count_multiply: val['Ref'].length*1,
+//                 return{
+//                     row: i,
+//                     Ref: val['Ref'],
+//                     Value: val['_id']['Value'],
+//                     MFPN: val['_id']['MFPN'],
+//                     Distributor: val['_id']['Distributor'],
+//                     Datasheet: val['_id']['Datasheet'],
+//                     stock_count: val['_id']['stock_count'],
+//                     count: val['Ref'].length,
+//                     count_multiply: val['Ref'].length*1,
 
-                    price_item: price,
-                    price_row:  val['Ref'].length*price,
-                    link: uid,
-                    Footprint: val['_id']['Footprint'],
-                    note: val['_id']['note'],
-                    UST_ID: usttext,
-                    supplier: supplier
-                }
-            });
+//                     price_item: price,
+//                     price_row:  val['Ref'].length*price,
+//                     link: uid,
+//                     Footprint: val['_id']['Footprint'],
+//                     note: val['_id']['note'],
+//                     UST_ID: usttext,
+//                     supplier: supplier
+//                 }
+//             });
 
-            return response; //return the tableData property of a response json object
-        },
-	});
-	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
+//             return response; //return the tableData property of a response json object
+//         },
+// 	});
+// 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
 
 
 // Konec tabulky pro seznam polozek

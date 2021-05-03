@@ -1,11 +1,50 @@
 {% extends "base.hbs" %}
 {% block title %} | Adresář{%end%}
 {% block body %}
-
 <script src="/static/jsrender/jsrender.min.js"></script>
 
-<div class="container h-100">
+<script>
+$(document).on('mouseover','.openintranet_hover_component',function(){
+    // $(this).css({'border':'1px solid #000'});
+    console.log($(this));
+});
 
+
+
+$(".openintranet_hover").popover({
+    trigger : 'click',
+    placement : 'top',
+    html: 'true',
+    content : '<textarea class="popover-textarea"></textarea>',
+    template: '<div class="popover"><div class="arrow"></div>'+
+              '<h3 class="popover-title"></h3><div class="popover-content">'+
+              '</div><div class="popover-footer"><button type="button" class="btn btn-primary popover-submit">'+
+              '<i class="icon-ok icon-white"></i></button>&nbsp;'+
+              '<button type="button" class="btn btn-default popover-cancel">'+
+              '<i class="icon-remove"></i></button></div></div>'
+})
+.on('shown', function() {
+    //hide any visible comment-popover
+    $("[rel=comments]").not(this).popover('hide');
+    var $this = $(this);
+    //attach link text
+    $('.popover-textarea').val($this.text()).focus();
+    //close on cancel
+    $('.popover-cancel').click(function() {
+        $this.popover('hide');
+    });
+    //update link text on submit
+    $('.popover-submit').click(function() {
+        $this.text($('.popover-textarea').val());
+        $this.popover('hide');
+    });
+});
+
+
+</script>
+
+
+<div class="container h-100">
 <h1> Tistk štítků </h1>
 
 <div class="card">
@@ -26,6 +65,7 @@
   </div>
 </div>
 
+
   <div id="group_list">
       <button class="btn btn-primary" type="button" disabled>
         <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
@@ -37,7 +77,7 @@
 $.ajax('/labels/get_grouped_labels', {
   type: 'GET',
   //data: { 'packet': id },
-  success: function (data, status, xhr) {  
+  success: function (data, status, xhr) {
     $("#group_list").empty();
     $("#group_list").html(data);
   },
