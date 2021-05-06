@@ -12,19 +12,32 @@
 		{%for i_ref, ref in enumerate(row['Ref']) %}{%if i_ref > 0%}, {%end%}  <span class="ref bom_table_ref">{{ref}}</span>{% end %}
 	</td>
 	<td>
-		<img src=""></img>
+		<div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key"> </label></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Value:</label><span class="bom_table_value">{{row['_id']['Value']}}<span></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Footprint:</label><span class="bom_table_value">{{row['_id']['Footprint']}}</span></div>
+			
+		</div>
+
 	</td>
 	<td>
 		<div>
 			{% if valid %}
-			<div class="table-row" style="display: table-row;"><label class="bom_table_key" style="display: table-cell;">USTid:</label><span style="display: table-cell;"> {{row['cUST_ID']}} </span></div>
-			<div class="table-row" style="display: table-row;"><label class="bom_table_key" style="display: table-cell;">Součástka:</label><span style="display: table-cell;"> {{row['stock'][0]['name']}} </span></div>
-			<div class="table-row" style="display: table-row;"><label class="bom_table_key" style="display: table-cell;">Popis:</label><span style="display: table-cell;"> {{row['stock'][0]['description']}} </span></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Součástka:</label><a class="bom_table_value" target="__blank__" href="/store/component/{{row['cUST_ID']}}/"> {{row['stock'][0]['name']}} </a></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">USTid:</label><span class="bom_table_value text-muted"> {{row['cUST_ID']}} </span></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Popis:</label><span class="bom_table_value"> {{row['stock'][0]['description']}} </span></div>
 			{% else %}
 				UST ID není přiřazeno
 			{% end %}
 		</div>
 	</td>
+
+
+	<td>
+		<div class="text-muted">{{len(row['Ref'])}} ks</div>
+		<div><b> <span class="count_multiplication" unit_value="{{len(row['Ref'])}}">{{len(row['Ref'])}}</span> ks</b></div>
+	</td>
+
 	<td>
 		
 		<div>
@@ -33,13 +46,13 @@
 				 {% set count = 0 %}
 				 {%for packet in packets['packets'] %}
 				 	{% set this_warehouse = bool(packet['packets']['position'][0]['warehouse'] == current_warehouse) %}
-				 	{% if this_warehouse %} <div> <span class="text-muted"><i class="bi bi-box-seam"></i> {{str(packet['packets']['_id'])[-4:]}}</span> &middot; <b>{{packet['packet_count']}}</b><small>/{{packet['packet_count']}}</small> ks &middot; <span class="text-muted" data-toggle="tooltip" data-placement="top" title="{{ packet['packets']['position'][0]['text']}}">(<i class="bi bi-inboxes"></i> {{ packet['packets']['position'][0]['name']}})</span></div> {%end%}
+				 	{% if this_warehouse %} <div> <span class="text-muted hover-packet" packet_id="{{packet['packets']['_id']}}"><i class="bi bi-box-seam"></i> {{str(packet['packets']['_id'])[-4:]}}</span> &middot; <b>{{packet['packet_count']}}</b><small>/{{packet['packet_count']}}</small> ks &middot; <span class="text-muted" data-toggle="tooltip" data-placement="top" title="{{ packet['packets']['position'][0]['text']}}">(<i class="bi bi-inboxes"></i> {{ packet['packets']['position'][0]['name']}})</span></div> {%end%}
 				 	{%set count += packet['packet_count'] %}
 				 {%end%}
 				 <hr style="margin: 2px;">
-				 <div><span data-toggle="tooltip" data-placement="top" title="V tomto skladě"><i class="bi bi-shop"></i> {{count}} ks</span> <span data-toggle="tooltip" data-placement="top" title="Ostatní sklady" class="text-muted"><i class="bi bi-building"></i> {{packets['component_count'] - count}} ks</span></div>
+				 <div><span data-toggle="tooltip" data-placement="top" title="V tomto skladě" unit_required="{{len(row['Ref'])}}" unit_available="{{count}}" class="count_validation"><i class="bi bi-shop"></i> {{count}} ks</span> <span data-toggle="tooltip" data-placement="top" title="Ostatní sklady" class="text-muted"><i class="bi bi-building"></i> {{packets['component_count'] - count}} ks</span></div>
 				 <hr style="margin: 2px;">
-				 <div> <i class="bi bi-cash-stack"> </i>{{ round(packets['component_price']/packets['component_count']*len(row['Ref']), 2) }} Czk  &middot; <span class="text-muted"><i class="bi bi-cash"> </i>{{ round(packets['component_price']/packets['component_count'], 2) }} Czk/ks</span></div>
+				 <div> {%if packets['component_count']%} <i class="bi bi-cash-stack"> </i>{{ round(packets['component_price']/packets['component_count']*len(row['Ref']), 2) }} Czk  &middot; <span class="text-muted"><i class="bi bi-cash"> </i>{{ round(packets['component_price']/packets['component_count'], 2) }} Czk/ks </span>{%else%} <span class="text-muted">Není možné určit cenu.</span> {%end%}</div>
 
 			{%end%}
 			{% except%}

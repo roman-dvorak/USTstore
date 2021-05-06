@@ -33,75 +33,126 @@ F{% extends "base.hbs" %}
 	.table-sm td {padding: 2pt; font-size: small;}
 	table {table-layout: fixed;}
 
+	.bg-danger{
+		background-color: #f48484 !important;
+	}
+
+	.bg-warning{
+		background-color: #fdf8b2 !important;
+	}
+
+
+	.popover { 
+	  max-width : 400px;
+	  z-index   : 1060;
+	}
+
 
 	.bom_table_key {
+		display: table-cell;
   		font-weight: bold;
   		padding-right: 1em;
 	}
 
+	.bom_table_value {
+		display: table-cell;
+		word-break: break-all;
+	}
+
+
+	.popup_label {
+		font-weight: bold;
+		padding-right: 1em;
+		white-space: nowrap;
+	}
+
+	.table-row {
+		display: table-row;
+	}
+
+	.table-cell {
+		display: table-cell;
+	}
+
+	.table-cell-key {
+		display: table-cell;
+		font-weight: bold;
+		padding-right: 1em;
+	}
+
 </style>
-<script type="text/javascript">
-	
 
-var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-  return new bootstrap.Popover(popoverTriggerEl)
-})
-
-  $(document).ready(function () { //enables popover
-        $('[data-toggle="popover"]').popover();
-    });
-
-</script>
-
-
-
-<button type="button" class="btn btn-lg btn-danger" data-bs-toggle="popover" title="Popover title" data-bs-content="And here's some amazing content. It's very engaging. Right?">Click to toggle popover</button>
-
-
+<nav style="margin: 0.5rem;" style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="./../../..">Home</a></li>
+    <li class="breadcrumb-item"><a href="./../..">Production</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Editace položky</li>
+  </ol>
+</nav>
 
 <div class="container-fluid">
-	<a href="/production" class="btn btn-sm btn-success"> Zpět</a>
-	<br>
-	XML netlist:
-	<input type="file" name="bom" id="ust_bom_file"/>
-	<input type="submit" value="upload" id="ust_bom_btn" onclick="startUpload()" />
 
-	<div class="row">
-		<div class="col-8">
+
+	<div class="row d-flex align-items-stretch">
+		<div class="col-4">
 			<div class="card">
-				<div class="card-header"><h3>Production</h3></div>
-				<div class="card-body">
-					<div class="">
-						<div class="col-2"> Název: </div>
-						<input class="form-control col-10" type="text" id='production_name'><br>
+				<div class="card-body" style="display: table;">
+					<div class="table-row">
+						<label class="table-cell-key"> Název: </label>
+						<input class="table-cell form-control form-control-sm" style="margin-top: 2pt; margin-bottom: 2pt;" type="text" id='production_name'><br>
 					</div>
-					<div class="">
-						<div class="col-2"> Autor: </div>
-						<input class="form-control col-10" type="text" id='production_autor' readonly><br>
+					<div class="table-row">
+						<label class="table-cell-key"> Autor: </label>
+						<input class="table-cell form-control form-control-sm" style="margin-top: 2pt; margin-bottom: 2pt;" type="text" id='production_autor' readonly><br>
 					</div>
-					<div class="">
-						<div class="col-2"> Vytvořeno: </div>
-						<input class="form-control col-10" type="text" id='production_created' readonly><br>
+					<div class="table-row">
+						<label class="table-cell-key"> Vytvořeno: </label>
+						<input class="table-cell form-control form-control-sm" style="margin-top: 2pt; margin-bottom: 2pt;" type="text" id='production_created' readonly><br>
 					</div>
-					<div class="">
-						<div class="col-2"> Popis: </div>
-						<input class="form-control col-10" type="text" id='production_description'><br>
+					<div class="table-row">
+						<label class="table-cell-key"> Popis: </label>
+						<input class="table-cell form-control form-control-sm" style="margin-top: 2pt; margin-bottom: 2pt;" type="text" id='production_description'><br>
 					</div>
-					<div class="">
-						<div class="col-2"> Type: </div>
-						<input class="form-control col-10" type="text" id='production_type' readonly><br>
+					<div class="table-row">
+						<label class="table-cell-key"> Type: </label>
+						<input class="table-cell form-control form-control-sm" style="margin-top: 2pt; margin-bottom: 2pt;" type="text" id='production_type' readonly><br>
 					</div>
 
-					Dále zde bude: Tagy, priorita, celková cena
-					<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
-
-					<a href="/production/{{id}}/print/" class="btn btn-sm btn-primary" target="_blank">Print</a>
+					<div class="table-row">
+						<span class="table-cell-key"></span>
+						<input class="form-control" type="button" id="production_info_send" value="Uložit parametry" onclick="update_parameters()">
+					</div>
+					<!-- <a href="/production/{{id}}/print/" class="btn btn-sm btn-primary" target="_blank">Print</a>
 					<input type="button" id="production_update_prices" value="Zaktualizovat skladove zasoby" class="btn btn-sm btn-primary" onclick="update_prices()" disabled>
-					<input type="number" id="production_multiplication" value="1" class="btn btn-sm btn-primary" onchange="table.setData('./?operation=get_components_grouped', {operation:'get_components_grouped'}, 'POST');">
+					<input type="number" id="production_multiplication" value="1" class="btn btn-sm btn-primary" onchange="table.setData('./?operation=get_components_grouped', {operation:'get_components_grouped'}, 'POST');"> -->
 				</div>
 			</div>
 		</div>
+
+
+		<div class="col-4 card" style="padding: 0pt;">
+		  <ul class="list-group list-group-flush">
+		    <a class="list-group-item text-muted" href="#" ><i class="bi bi-cloud-upload"></i> Nahrát data</a>
+		    <a class="list-group-item" href="./../print" ><i class="bi bi-printer"></i> Tisknout osazovák</a>
+		    <a class="list-group-item text-muted" href="#" ><i class="bi bi-display"></i> Zobrazit gerber</a>
+		    <a class="list-group-item" href="#"><i class="bi bi-question-square"></i> Nastavit počet kusů <input type="number" id="production_multiplication" value="1" min="1" step="1" style="border: solid gray 1px;width: 5em;text-align: center;padding: 0pt;margin-left: 2em;" onchange="count_validation($(this).val())"></a>
+		    <a class="list-group-item text-muted" href="#" ><i class="bi bi-cpu-fill"></i> Spustit výrobu</a>
+		    <a class="list-group-item text-muted" href="#" ><i class="bi bi-card-checklist"></i> Zobrazit výrobu</a>
+		  </ul>
+		</div>
+
+
+
+		<div class="col-4">
+			<div class="card">
+				<div class="card-body">
+
+
+					Cenotvorba - cena matiriálu, cena práce, počet komponent, ....
+				</div>
+			</div>
+		</div>
+
 
 
 
@@ -115,11 +166,12 @@ var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
 					<table class="table table-sw table-striped">
 						<thead>
 							<tr>
-								<th class="col-1">#</th>
-								<th class="col-2">Ref</th>
-								<th class="col-1"></th>
-								<th class="col-5">Product</th>
-								<th class="col-3">Warehouse</th>
+								<th class="col-2">#</th>
+								<th class="col-5">Ref</th>
+								<th class="col-10">BOM</th>
+								<th class="col-10">Product</th>
+								<th class="col-2">Count</th>
+								<th class="col-6">Warehouse</th>
 							</tr>
 						</thead>
 						<tbody class="bom_table_body">
@@ -131,31 +183,16 @@ var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
 			</div>
 		</div>
 
-
-
-
-		<div class="col-12"><div class="card">
-			<div class="form-group row">
-				<input class="" type="text" name="">
-				<input class="" type="button" name="" value="Odstranit součástku">
-			</div></div>
-		</div>
 		<div class="col-12">
 			<div class="card">
-				<div class="card-header">
-					<h3>Výroba</h3>
-				</div>
-				<div>
-					<button style="btn btn-sm" onclick="new_manufacturing_row()">+</button>
-				</div>
-				<div><div id="manufacturing-table" class="table-sm table-striped"></div></div>
-				<div class="card-body" >
+					XML netlist:
+					<input type="file" name="bom" id="ust_bom_file"/>
+					<input type="submit" value="upload" id="ust_bom_btn" onclick="startUpload()" />
 
-
-				</div>
+				
 			</div>
+
 		</div>
-	</div>
 </div>
 
 
@@ -181,6 +218,7 @@ var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
 				$(".bom_loading_hide").show();
 
 				$(".bom_table_body").html(data);
+				count_validation()
 	    		
 	    	},
 	        error: function( jqXhr, textStatus, errorThrown ){
@@ -193,12 +231,118 @@ var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
 	    });
 	} // Konec update_bom()
 
+	function update_multiplication(multiplication = 1){
+		$(".count_multiplication").each(function(){
+		    $(this).text(Number($(this).attr("unit_value"))*multiplication);
+		  });
+	}
+
+
+	function count_validation(multiplication = 1){
+		update_multiplication(multiplication);
+		$(".count_validation").each(function(){
+			var table_row = $(this).closest('td');
+			table_row.removeClass("bg-danger");
+			table_row.removeClass("bg-warning");
+
+			if(Number($(this).attr("unit_required"))*multiplication > Number($(this).attr("unit_available"))) {
+				table_row.addClass("bg-danger");
+			} else if (Number($(this).attr("unit_required"))*(multiplication+1) > Number($(this).attr("unit_available"))) {
+				table_row.addClass("bg-warning");
+			}
+			
+		});
+	}
+
 update_bom();
 
 
 
 </script>
 <!-- KONEC _ NOVE POCITANI SOUCASTEK -->
+
+
+
+
+
+<style type="text/css">
+	
+	.popover-class{
+
+		background: red;
+	}
+
+	:root {
+	  --popover-max-width: 500px;
+	}
+
+</style>
+
+<script type="text/javascript">
+	
+
+var popover = null;
+
+
+$(document).on("mouseenter", ".hover-packet", function(e) {
+	console.log(e.target);
+	
+	try {
+		popover.dispose();
+	}catch(e){};
+
+	popover = new bootstrap.Popover(e.target, {
+		placement: 'auto',
+		sanitize: false,
+		html: true,
+		content: "Loading ...",
+		customClass: "popover-class",
+		container: 'body'
+	});
+	popover.show();
+
+	$.ajax({
+        type: "GET",
+        url: "/store/popover/packet/"+e.target.getAttribute("packet_id")+"/",
+        data: {
+        	name: $('#production_name').val(),
+        },
+   		//async: false,
+        success: function( data, textStatus, jQxhr ){
+			
+			popover.config.content = data;
+			popover.show();
+    		
+    	},
+        error: function( jqXhr, textStatus, errorThrown ){
+
+			popover.config.content = "Nelze nacist";
+			popover.show();
+
+            console.log( errorThrown );
+            Lobibox.notify('error', {
+                msg: 'CHYBA!!!!: ' + errorThrown,
+                icon: false,
+            });
+        }
+    });
+
+});
+
+$(document).on("mouseleave", ".hover-packet", function(e) {
+	//popover.dispose();
+	//popover = null;
+	//alert("mouseleave")
+    $(this).css("background-image","url('ie/imgs/btn/btn.png')");
+    $(this).find("a").css("background-image","url('ie/imgs/btn/btn-left.png')");
+});
+
+
+
+
+</script>
+
+
 
 
 
@@ -470,112 +614,6 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
 
 // Konec tabulky pro seznam polozek
 
-// Tabulka pro seznam vyrobenych soucastek
-	var manufacturing_table = new Tabulator("#manufacturing-table",{
-	    layout:"fitColumns",
-	    columns:[
-    		{
-    			formatter:"rownum",
-    			align:"center",
-    			width:40
-    		},{
-	        	title:"SN",
-	        	field:'sn',
-	        	width:120
-	        },{
-	        	title:"Stav",
-	        	field:"state",
-	        	editor:"select",
-	        	editorParams:{
-	        				0:"0 - Plánováno",
-	        				1:"1 - Před výrobou, Rezervováno",
-	        				2:"2 - Výroba",
-	        				3:"3 - Vyrobeno",
-	        				4:"4 - Před testováním",
-	        				5:"5 - Testování",
-	        				6:"6 - Test OK",
-	        				7:"7 - Test FAIL",
-	        				8:"8 - Oprava",
-	        				9:"9 - Zrušeno",
-	        				10:"10- Dokončeno",
-	        			}
-	       	},{
-	       		title:"Vytvořeno",
-	       		field:"created_date",
-	       		formatter:"datetime"
-	       	},{
-	       		title:"Dokončeno",
-	       		field:"name",
-	       		editor:"input"
-	       	},{
-	       		title:"Vyrobil",
-	       		field:"author",
-	       		editor:"input"
-	       	},{
-	       		title:"Testoval",
-	       		field:"name",
-	       		editor:"input"
-	       	},{
-	       		title:"Popis",
-	       		field:"description",
-	       		editor:"input"
-	       	},
-
-	    ],
-    	addRowPos:"top",
-	    cellEdited:function(cell){
-
-    	}
-	});
-	manufacturing_table.setData('./?operation=get_manufacture_overview', {operation:"get_manufacture_overview"}, 'POST');
-
-// Tato funkce vytvori novou polozku v seznamu vyrobenych/vyrabenych polozek
-function new_manufacturing_row(){
-	console.log("Vytvoreni noveho radku");
-	var xhttp = new XMLHttpRequest();
-	xhttp.open("POST", "./?operation=add_manufacture_row", false);
-	// xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	xhttp.send();
-	manufacturing_table.setData('./?operation=get_manufacture_overview', {operation:"get_manufacture_overview"}, 'POST');
-}
-
-
-
-
-function edit_component(id){
-	console.log("CLICK");
-	console.log(id);
-	console.log(components);
-	var selected_id = null;
-	var selected = {}
-
-    for (i in components){
-    	var c = components[i];
-
-    	//console.log(i, id, c);
-    	if (c.Ref == id[0]){
-    		selected_id = i;
-    		console.log(i);
-    		selected = components[i];
-    		break;
-    	}
-    }
-
-    console.log(selected)
-
-	$('#row_znacka').val(id);
-	$('#row_polozka').val(selected.Value);
-	$('#row_pouzdro').val(selected.Package);
-	$('#row_description').val(selected.Note);
-
-	$('#row_price_predicted').val(selected.price);
-	$('#row_price_stock').val(selected.price_store);
-	//$('#row_price_final').val(selected.price_final);
-
-	$('#row_nahrada').empty().trigger('change');
-	$('#row_nahrada').append(new Option(selected['UST_ID'], selected['UST_ID'], true, true)).trigger('change');
-}
-
 
 
 function startUpload() {
@@ -610,25 +648,6 @@ function startUpload() {
 
 
 
-
-function row_update_values(){
-	//tstamp, ref, name, value, package, ust_id, description, price_predicted, price_store, price_final
-	update_component(null,
-		$('#row_znacka').val(), 	// ref
-		null,						// name
-		$('#row_polozka').val(), 	// value
-		$('#row_pouzdro').val(), 	// package
-		$('#row_nahrada').val(), 	// ust_id
-		$('#row_description').val(), // popis
-		$('#row_price_predicted').val(), // price_predicted
-		$('#row_price_stock').val(), // ust_id
-		$('#row_price_final').val(), // price_final
-		);
-	load_components();
-}
-
-
-
 function load_components() {
 	//var components = [];
 
@@ -658,76 +677,76 @@ function load_components() {
     });
     console.log(components);
 
-	var selected = [];
-	$('#parts_table_body').empty();
-	for (i in components){
-		if (selected.indexOf(i) == -1){
-			var com = components[i];
-			selected.push(i);
-			var c_ref = [com['Ref']];
-			var c_package = com['Package']  || null;
-			var c_note = com['Note'] || null;
-			var c_value = com['Value']  || null;
-			var c_ustid = com['UST_ID'] || null;
+	// var selected = [];
+	// $('#parts_table_body').empty();
+	// for (i in components){
+	// 	if (selected.indexOf(i) == -1){
+	// 		var com = components[i];
+	// 		selected.push(i);
+	// 		var c_ref = [com['Ref']];
+	// 		var c_package = com['Package']  || null;
+	// 		var c_note = com['Note'] || null;
+	// 		var c_value = com['Value']  || null;
+	// 		var c_ustid = com['UST_ID'] || null;
 
-			// Tato cast provede 'grouping' polozek se stejnymi parametry
-			for (j in components){
-				if (selected.indexOf(j) == -1){
-					var com2 = components[j];
-					if (c_package == com2['Package'] && c_value == com2['Value'] && c_ustid == (com2['UST_ID'] || null) && c_note == (com2['Note'] || null)) {
-						c_ref.push(com2['Ref']);
-						selected.push(j);
-					}
-				}
-			}
-
-
-			var row = document.createElement("tr");
-			var x = row.insertCell(-1);
-			x.innerHTML = "<span class='position' clk_data='"+c_ref+"'>"+i+"</span>";
+	// 		// Tato cast provede 'grouping' polozek se stejnymi parametry
+	// 		for (j in components){
+	// 			if (selected.indexOf(j) == -1){
+	// 				var com2 = components[j];
+	// 				if (c_package == com2['Package'] && c_value == com2['Value'] && c_ustid == (com2['UST_ID'] || null) && c_note == (com2['Note'] || null)) {
+	// 					c_ref.push(com2['Ref']);
+	// 					selected.push(j);
+	// 				}
+	// 			}
+	// 		}
 
 
-			x = row.insertCell(-1);
-			for (j in c_ref){
-				if (j > 0){x.innerHTML += ', '}
-				x.innerHTML += "<span class='position' clk_data='" +c_ref[j]+ "'>"+c_ref[j]+"</span>";
-			}
-
-			x = row.insertCell(-1);
-			x.innerHTML = c_value;
+	// 		var row = document.createElement("tr");
+	// 		var x = row.insertCell(-1);
+	// 		x.innerHTML = "<span class='position' clk_data='"+c_ref+"'>"+i+"</span>";
 
 
-			//x = row.insertCell(-1);
-			//x.innerHTML = str(len(c_ref));
+	// 		x = row.insertCell(-1);
+	// 		for (j in c_ref){
+	// 			if (j > 0){x.innerHTML += ', '}
+	// 			x.innerHTML += "<span class='position' clk_data='" +c_ref[j]+ "'>"+c_ref[j]+"</span>";
+	// 		}
 
-			x = row.insertCell(-1);
-			x.innerHTML = com['MFNP'] || null;
-			x = row.insertCell(-1);
-			x.innerHTML = com['Distributor'] || null;
-			x = row.insertCell(-1);
-			x.innerHTML = com['Link'] || null;
-			x = row.insertCell(-1);
-			x.innerHTML = c_package;
-			x = row.insertCell(-1);
-			if (c_ustid){
-				x.innerHTML = '<a href = "/store/component/'+c_ustid+'/" target="_blank">'+c_ustid+'</a>';
-			}
-			x = row.insertCell(-1);
-			x.innerHTML = com['price_predicted'] || null;
-
-			x = row.insertCell(-1);
-			x.innerHTML = com['price_store'] || null;
-
-			x = row.insertCell(-1);
-			x.innerHTML = com['price_final'] || null;
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = c_value;
 
 
-			x = row.insertCell(-1);
-			x.innerHTML = c_note || null;
+	// 		//x = row.insertCell(-1);
+	// 		//x.innerHTML = str(len(c_ref));
 
-			$('#parts_table_body').append(row);
-		}
-	}
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['MFNP'] || null;
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['Distributor'] || null;
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['Link'] || null;
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = c_package;
+	// 		x = row.insertCell(-1);
+	// 		if (c_ustid){
+	// 			x.innerHTML = '<a href = "/store/component/'+c_ustid+'/" target="_blank">'+c_ustid+'</a>';
+	// 		}
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['price_predicted'] || null;
+
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['price_store'] || null;
+
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = com['price_final'] || null;
+
+
+	// 		x = row.insertCell(-1);
+	// 		x.innerHTML = c_note || null;
+
+	// 		$('#parts_table_body').append(row);
+	// 	}
+	// }
 
     console.log("OBECNA DATA:", production);
 
@@ -744,18 +763,18 @@ function load_components() {
     // 	draw.rect(10, 20).move(c.PosX*10, c.PosY*10).rotate(c.Rot).attr({ fill: '#f06', clk_data: c.Ref }).addClass('position');
     // }
 
-	$('.position').click(function(){
-        edit_component(this.getAttribute('clk_data').split(','));
-    });
-	$('.position').hover(function(){
-		var clk = this.getAttribute('clk_data');
-		console.log(clk);
-        $('.position').css('background-color', 'initial');
-        $('.position').attr('fill', '#f06');
-        $('[clk_data="'+clk+'"]').css('background-color', 'red');
-        $('[clk_data="'+clk+'"]').attr('fill', '#00f');
-    });
-}
+	// $('.position').click(function(){
+ //        edit_component(this.getAttribute('clk_data').split(','));
+ //    });
+// 	$('.position').hover(function(){
+// 		var clk = this.getAttribute('clk_data');
+// 		console.log(clk);
+//         $('.position').css('background-color', 'initial');
+//         $('.position').attr('fill', '#f06');
+//         $('[clk_data="'+clk+'"]').css('background-color', 'red');
+//         $('[clk_data="'+clk+'"]').attr('fill', '#00f');
+//     });
+ }
 
 
 load_components();

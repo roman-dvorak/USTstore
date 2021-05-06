@@ -128,6 +128,7 @@ class home(BaseHandler):
     Nacte vsechny polozky z DB pro vytvoreni prehledove tobulky.
 '''
 class get_production_list(BaseHandlerJson):
+
     def post(self):
         data = list(self.mdb.production.find())
         for d in data:
@@ -138,6 +139,8 @@ class get_production_list(BaseHandlerJson):
             d['placement'] = None
         print(data)
         out = bson.json_util.dumps(data)
+
+        self.set_header("Production-Price", "Je")
         self.write(out)
 
 
@@ -149,7 +152,7 @@ class get_production_list(BaseHandlerJson):
 class get_bom_table(BaseHandler):
     def get(self, name):
 
-        group_by_ustid = True
+        group_by_ustid = False
         group_by_components = False
     
         query = [
@@ -169,11 +172,12 @@ class get_bom_table(BaseHandler):
                 '_id': {'UST_ID': '$components.UST_ID',
                         'Value': '$components.Value',
                         'Footprint': '$components.Footprint',
-                        'Distributor': '$components.Distributor',
-                        'Datasheet': '$components.Datasheet',
-                        'MFPN': '$components.MFPN',
-                        'stock_count': '$components.stock_count',
-                        'note': '$components.note',},
+                        # 'Distributor': '$components.Distributor',
+                        # 'Datasheet': '$components.Datasheet',
+                        # 'MFPN': '$components.MFPN',
+                        # 'stock_count': '$components.stock_count',
+                        # 'note': '$components.note',
+                        },
                 'Ref': {'$push': '$components.Ref'},
                 'count': {'$sum': 1},
             }}]
