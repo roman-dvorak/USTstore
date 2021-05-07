@@ -18,6 +18,8 @@ def get_packet(db, packet):
                 { "$match": {"_id": packet}},
                 { "$lookup": { "from": 'store_positions', "localField":'position', "foreignField": '_id', "as": 'position'}},
                 { "$lookup": { "from": 'stock_operation', "localField":'_id', "foreignField": 'pid', "as": 'operations'}},
+                { "$lookup": { "from": 'store_positions_complete', "localField":'position._id', "foreignField": '_id', "as": 'position'}},
+                { "$lookup": { "from": 'stock', "let": { "packet_id": "$_id" }, "pipeline": [ {"$match": { "$expr": { "$in": ["$$packet_id", "$packets._id"]}}}, ], "as": "component" }  },
                 { "$addFields": {
                         "packet_count":  {"$sum": "$operations.count"},
                         "packet_reserv":  {"$sum": "$operations.reserv"},
@@ -56,3 +58,5 @@ def get_packet(db, packet):
                 ]
     print(packet_query)
     return list(db.stock.aggregate(packet_query))[0]
+
+

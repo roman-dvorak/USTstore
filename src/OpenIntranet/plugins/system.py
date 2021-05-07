@@ -25,13 +25,14 @@ def get_plugin_info():
                 "url": "/system",
                 "icon": "settings",
             }
-        ]
+        ],
+        #"role": ['sudo', 'sudo-system', 'system-user']
     }
 
 
 class SystemHandler(BaseHandler):
     def get(self):
-        self.render('system.homepage.hbs', warehouses=self.get_warehouseses())
+        self.render('system.homepage.hbs', warehouses=self.get_warehouseses(), is_authorized=self.is_authorized)
 
     def post(self):
         operation = self.get_argument('operation')

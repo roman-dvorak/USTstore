@@ -48,8 +48,10 @@ tornado.options.define("email_smtp_port", default=25)
 
 class home(BaseHandler):
     def get(self, arg=None):
+        '''
+            Domovska stranka.
+        '''
         err = []
-
         entrypoints = []
 
         for plugin_info in self.settings["plugins"].values():
@@ -85,6 +87,10 @@ class home(BaseHandler):
         return True
 
     def should_show_plugin(self, plugin_info):
+        '''
+            Zde probiha kontrola, jestli se tento plugin muze ukazat uzivateli.
+            Navratova hodnota 1 znamena, ze je to bezpecne.
+        '''
         if "role" in plugin_info and not self.is_authorized(plugin_info["role"]):
             return False
 
@@ -94,7 +100,7 @@ class home(BaseHandler):
 class WebApp(tornado.web.Application):
 
     def __init__(self):
-        print("Načítám tyto pluginy...")
+        print("Mám k dispozici tyto pluginy: ")
 
         plugins, handlers, ignored = self.find_plugins("plugins")
 
@@ -113,7 +119,7 @@ class WebApp(tornado.web.Application):
                 print(f"\t{file}")
             print()
 
-        print("plugins:")
+        print("plugins: ")
         for plugin in plugins:
             print(f"\t{plugin}")
         print()
@@ -144,6 +150,13 @@ class WebApp(tornado.web.Application):
         super().__init__(handlers, **settings)
 
     def find_plugins(self, plugins_dir_name, *, tracebacks=True, ignored_names=("__pycache__",)):
+        '''
+            Nacitani pluginů. Tato funkce projde vsechny dostupne pluginy a
+            nacte je podle potreby. Zaroven ziska jejich routovaci tabulky.
+
+            Seznam nacitanych pluginu je v konfiguraci.
+
+        '''
         plugin_infos = {}
         handlers = []
         ignored_files = []
@@ -166,51 +179,6 @@ class WebApp(tornado.web.Application):
             except Exception as e:
                 print("chyba", plugin_file)
                 print(e)
-        # print(handlers)
-
-
-
-
-        #for file_name in os.listdir(plugins_dir_name):
-        # for file_name in glob2.glob(os.path.join(plugins_dir_name, "**/*.py")):
-        #     if file_name in ignored_names:
-        #         continue
-
-        #     module_name = self.get_module_name(file_name, plugins_dir_name)
-        #     plugin_import_path = '.'.join(module_name.split('/'))
-        #     plugin_import_path = plugin_import_path.replace('.__init__', '')
-
-        #     try:
-        #         print("Module", plugin_import_path, module_name)
-        #         # module = importlib.import_module(f"{plugin_import_path}")
-
-        #         # plugin_handlers = module.get_plugin_handlers()
-        #         # plugin_info = module.get_plugin_info()
-        #         # plugin_name = plugin_info.get("name", module_name)
-
-        #         # if plugin_name in plugin_infos:
-        #         #     raise RuntimeError(f"Plugin {plugin_name} (v souboru {file_name}) je duplicitní.")
-
-
-        #         spec = importlib.util.spec_from_file_location("module.name", file_name)
-        #         module = importlib.util.module_from_spec(spec)
-
-        #         plugin_handlers = module.get_plugin_handlers()
-        #         plugin_info = module.get_plugin_info()
-        #         plugin_name = plugin_info.get("name", module_name)
-
-        #         handlers += plugin_handlers
-        #         plugin_infos[plugin_name] = plugin_info
-
-        #     except ModuleNotFoundError:
-        #         print("Not Found")
-        #         ignored_files.append(file_name)
-
-        #     except Exception as e:
-        #         if tracebacks:
-        #             self.print_traceback(e)
-
-        #         ignored_files.append(file_name)
 
         return plugin_infos, handlers, ignored_files
 

@@ -19,6 +19,7 @@
   </div>
   </div>
 
+{% if is_authorized(['store_sudo', 'store_manager']) %}
 <div class="col-lg-3 col-sm-6">
     <div class="card" style="overflow: hidden">
       <div class="card-body" style="overflow: hidden;">
@@ -51,6 +52,7 @@
       <div id="categories-tree"></div>
     </div>
 </div>
+{%end %}
 </div>
 
 
@@ -138,8 +140,36 @@
 </div>
 
 <script>
+
+// Nastavit aktualni sklad
+function push_actual_store() {
+    var store = $("#select_actual_store").val();
+    console.log(store);
+
+    $.ajax({
+      type: "POST",
+      url: "/system/",
+      data: {
+        'operation': 'set_warehouse',
+        'warehouse': store
+      },
+      success: function( data, textStatus, jQxhr ){
+        console.log(data);
+        Lobibox.notify('success', {msg: 'Sklad nastaven'});
+        location.reload();
+
+      },
+      error: function( jqXhr, textStatus, errorThrown ){
+        console.log( errorThrown );
+        Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
+      }
+    });
+}
+
+
 //<!-- Prehled skladovych pozit -->
 
+{% if is_authorized(['store_sudo', 'store_manager']) %}
 
 var positions_tree = $('#positions-tree').jstree({
 'core' : {
@@ -207,7 +237,6 @@ function load_position_modal(position){
   $('#position_description').val(position.getAttribute("text"));
 
   $('#position_edit_modal').modal('show')
-
 }
 
 function new_position(){
@@ -267,41 +296,7 @@ function do_edit_position(){
     });
 }
 
-// Nastavit aktualni sklad
-function push_actual_store() {
-    var store = $("#select_actual_store").val();
-    console.log(store);
-
-    $.ajax({
-      type: "POST",
-      url: "/system/",
-      data: {
-        'operation': 'set_warehouse',
-        'warehouse': store
-      },
-      success: function( data, textStatus, jQxhr ){
-        console.log(data);
-        Lobibox.notify('success', {msg: 'Sklad nastaven'});
-        location.reload();
-
-      },
-      error: function( jqXhr, textStatus, errorThrown ){
-        console.log( errorThrown );
-        Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
-
-      }
-    });
-
-}
-
-</script>
-
-
-
-
-<script>
 //<!-- Prehled skladovych pozit -->
-
 
 var categories_tree = $('#categories-tree').jstree({
 'core' : {
@@ -348,29 +343,9 @@ categories_tree.bind("move_node.jstree", function(e, data) {
       type: "POST",
       url: "/store/api/set_categories/move/",
       data: {'id': data.node.id, 'parent': data.parent},
-      //success: success,
-      //dataType: dataType
     });
 
 })
-
-// Presunuti polozky z jedne do dalsi
-
-// $(document).bind("dnd_stop.vakata", function(e, data) {
-//     console.log("Move dnd", e, data);
-//     console.log(data.event.target.parentNode);
-//     var drag_id = data.element.parentNode.id;
-//     var target_id = data.event.target.parentNode.getAttribute('id');
-//     console.log("Presouvam", drag_id, target_id);
-
-//     $.ajax({
-//       type: "POST",
-//       url: "/store/api/set_positions/move/",
-//       data: {'id': drag_id, 'parent': target_id},
-//       //success: success,
-//       //dataType: dataType
-//     });
-// })
 
 function load_category_modal(position){
   console.log("POZICE", position);
@@ -395,9 +370,6 @@ function edit_category(data, node){
   load_category_modal(data.reference[0].parentNode)
 }
 
-// function do_print(){
-//   var id_list = $('#positions-tree').jstree('get_selected');
-// }
 
 function do_edit_category(){
 
@@ -420,33 +392,8 @@ function do_edit_category(){
       }
     });
 }
+{%end%}
 
-// Nastavit aktualni sklad
-// function push_actual_store() {
-//     var store = $("#select_actual_store").val();
-//     console.log(store);
-
-//     $.ajax({
-//       type: "POST",
-//       url: "/system/",
-//       data: {
-//         'operation': 'set_warehouse',
-//         'warehouse': store
-//       },
-//       success: function( data, textStatus, jQxhr ){
-//         console.log(data);
-//         Lobibox.notify('success', {msg: 'Sklad nastaven'});
-//         location.reload();
-
-//       },
-//       error: function( jqXhr, textStatus, errorThrown ){
-//         console.log( errorThrown );
-//         Lobibox.notify('error', {msg: 'Sklad nelze nastavit'});
-
-//       }
-//     });
-
-// }
 
 </script>
 

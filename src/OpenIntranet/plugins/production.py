@@ -22,13 +22,13 @@ def get_plugin_handlers():
              (r'/{}/(.*)/upload/bom/ust/'.format(plugin_name), ust_bom_upload),
              (r'/{}/(.*)/print/'.format(plugin_name), print_bom),
              (r'/{}/(.*)/edit/'.format(plugin_name), edit),
+             (r'/{}/(.*)/get_bom_table/'.format(plugin_name), get_bom_table),
              (r'/{}/api/getProductionList'.format(plugin_name), get_production_list),
              (r'/{}'.format(plugin_name), home),
              (r'/{}/'.format(plugin_name), home),
         ]
 
 def get_plugin_info():
-    #class base_info(object):
     return {
         "name": "production",
         "entrypoints": [
@@ -37,7 +37,8 @@ def get_plugin_info():
                 "url": "/production",
                 "icon": "work"
             }
-        ]
+        ],
+        "role": ['sudo', "sudo-production", "production-manager", "production-viewer"]
     }
 
 
@@ -127,6 +128,7 @@ class home(BaseHandler):
     Nacte vsechny polozky z DB pro vytvoreni prehledove tobulky.
 '''
 class get_production_list(BaseHandlerJson):
+
     def post(self):
         data = list(self.mdb.production.find())
         for d in data:
@@ -137,8 +139,87 @@ class get_production_list(BaseHandlerJson):
             d['placement'] = None
         print(data)
         out = bson.json_util.dumps(data)
+
+        self.set_header("Production-Price", "Je")
         self.write(out)
 
+
+
+'''
+    Tabulka s BOMem pro zobrazeni v production
+'''
+
+class get_bom_table(BaseHandler):
+    def get(self, name):
+
+        group_by_ustid = False
+        group_by_components = False
+    
+        query = [
+            {'$match': {'_id': bson.ObjectId(name)}},
+            {'$unwind': '$components'},
+            {'$project': {'components': 1}},
+            {'$sort': {'components.Ref': 1}}]
+
+        if group_by_ustid:
+            query += [{'$group':{
+                '_id': {'UST_ID': '$components.UST_ID'},
+                'Ref': {'$push': '$components.Ref'},
+                'count': {'$sum': 1},
+            }}]
+        else:
+            query += [{'$group':{
+                '_id': {'UST_ID': '$components.UST_ID',
+                        'Value': '$components.Value',
+                        'Footprint': '$components.Footprint',
+                        # 'Distributor': '$components.Distributor',
+                        # 'Datasheet': '$components.Datasheet',
+                        # 'MFPN': '$components.MFPN',
+                        # 'stock_count': '$components.stock_count',
+                        # 'note': '$components.note',
+                        },
+                'Ref': {'$push': '$components.Ref'},
+                'count': {'$sum': 1},
+            }}]
+
+        query += [{"$addFields":{"cUST_ID": {"$convert":{
+                     "input": '$_id.UST_ID',
+                     "to": 'objectId',
+                     "onError": "Err",
+                     "onNull": "null"
+            }}}}]
+        
+        query += [{"$lookup":{
+                "from": 'stock',
+                "localField": 'cUST_ID',
+                "foreignField": '_id',
+                "as": 'stock'
+            }}]
+
+        query += [{"$lookup":{
+                "from": 'packets_count_complete',
+                "localField": 'cUST_ID',
+                "foreignField": '_id',
+                "as": 'packets'
+            }}]
+
+        query += [
+                {"$sort": {'Ref':1}}
+            ]
+            
+        
+        print(query)
+        dout = list(self.mdb.production.aggregate(query))
+        #out = bson.json_util.dumps(dout)
+
+        self.render('production.bom_table.hbs', data = dout, bson=bson, current_warehouse = bson.ObjectId(self.get_cookie('warehouse')))
+
+
+'''
+   
+   EDitační stránka pro production
+   
+'''
 class edit(BaseHandler):
     def get(self, name):
         print("Vyhledavam polozku", name)
@@ -519,7 +600,7 @@ class ust_bom_upload(BaseHandler):
                 "Ref": element.get('ref'),
                 "Value": element.findall('value')[0].text,
                 "UST_ID": '',
-                "stock_count": None 
+                "stock_count": None
             }
 
         update = {x.get('name'):x.get('value') for x in element.findall('property')}
@@ -544,10 +625,10 @@ class ust_bom_upload(BaseHandler):
 
         for component_xml in components.iter('comp'):
             try:
-                print("Nacitani soucastky") 
+                print("Nacitani soucastky")
                 component = self.make_comp_dict(component_xml)
                 print("Component>> ", component)
-                
+
                 exist = self.mdb.production.find({'_id': bson.ObjectId(name), 'components.Tstamp': component['Tstamp']})
                 v_update = {}
                 v_push = {}

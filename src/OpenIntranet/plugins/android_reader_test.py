@@ -33,7 +33,8 @@ def get_plugin_info():
                 "url": "/payment",
                 "icon": "android",
             }
-        ]
+        ],
+        "role": ["sudo"]
     }
 
 

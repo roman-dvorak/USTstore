@@ -50,12 +50,14 @@ def get_plugin_info():
                 "url": "/stocktaking",
                 "icon": "insert_chart",
             }
-        ]
+        ],
+        "role": ["sudo", "sudo-stocktaking", 'inventory']
     }
 
 
 class home(BaseHandler):
     def get(self):
+        self.authorized(["sudo", "sudo_stocktaking", "inventory"])
         wrehouse = bson.ObjectId(self.get_cookie('warehouse', False))
         positions = self.warehouse_get_positions(wrehouse)
         current = self.mdb.intranet.find_one({'_id': 'stock_taking'})['current']
@@ -241,7 +243,7 @@ class load_item(BaseHandler):
         out['position'] = self.component_get_positions(id = packet_id)
         out['stocktakings'] = getInventoryRecord(self.mdb, packet_id)
         out['is_stocktaked'] = isInventoryDone(self.mdb, packet_id)
-        
+
 
         out = bson.json_util.dumps(out)
         self.write(out)
@@ -603,7 +605,7 @@ def setava_01(self, stock_taking):
                 page_sum = 0
 
             pdf.set_font('pt_sans', '', 10)
-  
+
             count = 0
             price = 0
             packets = ""
@@ -652,7 +654,7 @@ def setava_01(self, stock_taking):
 
                 if price == 0.0 and x.get('count', 0) > 0:
                     Err.append('Polozka >%s< nulová cena, nenulový počet' %(component['_id']))
-                
+
                 pdf.set_x(10)
                 pdf.cell(100, 5, "{:5.0f}  {}".format(i, packet['component']['name']))
 

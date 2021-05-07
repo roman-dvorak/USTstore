@@ -1,0 +1,21 @@
+
+<div style="display: table;">
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-cpu"></i> Součástka:</label><span style="display: table-cell;"> <div> <a target="__blank__" href="/store/component/{{out['component'][0]['_id']}}/"><i class="bi bi-link"></i> <b>{{out['component'][0]['name']}}</b></a></div><div class="text-muted">{{out['component'][0]['_id']}}</div> </span></div>
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-box-seam"></i> Sáček:</label><span style="display: table-cell;"> <div class="text-muted">{{out['_id']}}</div> </span></div>
+
+
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-plus"></i> Počet:</label><span style="display: table-cell;"> <b>{{out['packet_count']}}</b> ks</span></div>
+
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-inboxes"></i> Pozice:</label><span style="display: table-cell;"> {{out['position'][0]['warehouse']['code']}} &#155; {{'/'.join(out['position'][0]['path_string'])}}/<b>{{out['position'][0]['name']}}</b> <span class="text-muted">({{out['position'][0]['text']}})</span></span></div>
+
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-basket"></i> Rezervováno:</label><span style="display: table-cell;"> 0 ks </span></div>
+
+<div style="display: table-row;"><label style="display: table-cell;" class="popup_label"><i class="bi bi-truck"></i> Dodavatel:</label><span style="display: table-cell;"> <div></div><div></div> </span></div>
+
+
+</div>
+
+</div>
+
+
+<small class="text-muted"> Poslední operace byla provedena <b>{{out['operations'][-1]['date']}}</b> uživatelem <b>{{out['operations'][-1]['user']}}</b>. Data jsou online.</small>
