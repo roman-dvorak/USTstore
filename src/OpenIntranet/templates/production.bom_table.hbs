@@ -25,7 +25,7 @@
 			{% if valid %}
 			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Součástka:</label><a class="bom_table_value" target="__blank__" href="/store/component/{{row['cUST_ID']}}/"> {{row['stock'][0]['name']}} </a></div>
 			<div class="table-row" style="display: table-row;"><label class="bom_table_key">USTid:</label><span class="bom_table_value text-muted"> {{row['cUST_ID']}} </span></div>
-			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Popis:</label><span class="bom_table_value"> {{row['stock'][0]['description']}} </span></div>
+			<div class="table-row" style="display: table-row;"><label class="bom_table_key">Popis:</label><span class="bom_table_value"> {{row['stock'][0].get('description', "<span class="text-muted">Není k dispozici..</span>") }} </span></div>
 			{% else %}
 				UST ID není přiřazeno
 			{% end %}
