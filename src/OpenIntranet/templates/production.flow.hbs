@@ -242,15 +242,16 @@ F{% extends "base.hbs" %}
 		update_multiplication(multiplication);
 		$(".count_validation").each(function(){
 			var table_row = $(this).closest('td');
+			console.log($(this));	
 			table_row.removeClass("bg-danger");
 			table_row.removeClass("bg-warning");
+			table_row.removeClass("bg-secondary");
 
 			if(Number($(this).attr("unit_required"))*multiplication > Number($(this).attr("unit_available"))) {
 				table_row.addClass("bg-danger");
 			} else if (Number($(this).attr("unit_required"))*(multiplication+1) > Number($(this).attr("unit_available"))) {
 				table_row.addClass("bg-warning");
 			}
-			
 		});
 	}
 
