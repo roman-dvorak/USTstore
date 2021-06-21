@@ -4,6 +4,7 @@
 import tornado.escape
 import tornado.web
 import tornado.websocket
+import tornado.httputil
 from . import Intranet
 from . import BaseHandler, BaseHandlerJson
 #from pyoctopart.octopart import Octopart
@@ -13,6 +14,40 @@ import bson
 import datetime
 import pandas as pd
 from fpdf import FPDF
+from enum import Enum
+
+
+class ComponentStatus(Enum):
+    Err = -1 # Nějaká chyba.. 
+    Actual = 0  # polozka je nahrana z BOMu
+    Obsolete = 1 # Byl nahran novy BOM, ale polozka se v nem nevyskytuje
+    ModifiedManually = 2 # Polozka byla rucne upravena
+    Failed = 3 # Tohle nastane napriklad v pripade, ze se zmeni UST_ID a hodnota zustane stejna
+
+
+ComponentStatusTable = {
+    ComponentStatus.Err.value: {
+        "label": "Chyba určení stavu položky",
+        "color": "Gray"
+    },
+    ComponentStatus.Actual.value: {
+        "label": "Položka je načtena z posledního BOMu",
+        "color": "green",
+    },
+    ComponentStatus.Obsolete.value: {
+        "label": "Položka může být zastaralá. Nebyla aktualizována při posledním nahrávání BOMu.",
+        "color": "orange",
+    },
+    ComponentStatus.ModifiedManually.value: {
+        "label": "Položka byla manuálně upravena",
+        "color": "blue",
+    },
+    ComponentStatus.Failed.value: {
+        "label": "Nějaká divnost",
+        "color": "gray",
+    }
+
+}
 
 
 def get_plugin_handlers():
@@ -172,6 +207,7 @@ class get_bom_table(BaseHandler):
                 '_id': {'UST_ID': '$components.UST_ID',
                         'Value': '$components.Value',
                         'Footprint': '$components.Footprint',
+                        'status': '$components.status',
                         # 'Distributor': '$components.Distributor',
                         # 'Datasheet': '$components.Datasheet',
                         # 'MFPN': '$components.MFPN',
@@ -212,7 +248,8 @@ class get_bom_table(BaseHandler):
         dout = list(self.mdb.production.aggregate(query))
         #out = bson.json_util.dumps(dout)
 
-        self.render('production.bom_table.hbs', data = dout, bson=bson, current_warehouse = bson.ObjectId(self.get_cookie('warehouse')))
+
+        self.render('production.bom_table.hbs', data = dout, bson=bson, current_warehouse = bson.ObjectId(self.get_cookie('warehouse')), ComponentStatusTable = ComponentStatusTable)
 
 
 '''
@@ -600,7 +637,8 @@ class ust_bom_upload(BaseHandler):
                 "Ref": element.get('ref'),
                 "Value": element.findall('value')[0].text,
                 "UST_ID": '',
-                "stock_count": None
+                "stock_count": None,
+                "status": ComponentStatus.Actual.value
             }
 
         update = {x.get('name'):x.get('value') for x in element.findall('property')}
@@ -616,12 +654,26 @@ class ust_bom_upload(BaseHandler):
 
 
     def post(self, name):
-        data = (self.request.body.decode('utf-8'))
+
+        file_dic = {}
+        arg_dic = {}
+
+        tornado.httputil.parse_body_arguments(self.request.headers["Content-Type"], self.request.body, arg_dic, file_dic)
+        remove_obsolete = int(arg_dic['remove_obsolete'][0])
+        # print(file_dic, arg_dic)
+
+        data = file_dic['file'][0]['body']
+        #print("file", data)
 
         from xml.etree import ElementTree
         root = ElementTree.fromstring(data)
-
         components = root.findall('components')[0]
+
+        # Nastav, ze je polozka zastarala (obsolete)
+        self.mdb.production.update(
+                {"_id": bson.ObjectId(name)},
+                {"$set": {"components.$[].status": ComponentStatus.Obsolete.value}}, multi=True
+            )
 
         for component_xml in components.iter('comp'):
             try:
@@ -635,25 +687,33 @@ class ust_bom_upload(BaseHandler):
 
 
                 if exist.count() > 0:
+                    print("Update polozky")
                     update = self.mdb.production.update(
                             {
                                 '_id': bson.ObjectId(name),
                                 "components.Tstamp": component['Tstamp']
                             },{
-                               "$set": component
-                            }, upsert = True)
+                                "$set": {"components.$": component},
+                            })
                 else:
                     print("NOVA POLOZKA")
+                    component['status'] = ComponentStatus.Actual.value
                     update = self.mdb.production.update(
                             {
                                 '_id': bson.ObjectId(name)
                             },{
-                                "$push": {'components': component
-                                }
+                                "$push": {"components": component},
                             })
 
             except Exception as e:
                 print("Problem s nactenim polozky:", e)
+
+        if remove_obsolete:
+            self.mdb.production.update(
+              { "_id": bson.ObjectId(name) },
+              {
+                "$pull": { "components": { "status": ComponentStatus.Obsolete.value }},
+              });
 
         self.write("ok")
 
