@@ -132,7 +132,7 @@ F{% extends "base.hbs" %}
 
 		<div class="col-4 card" style="padding: 0pt;">
 		  <ul class="list-group list-group-flush">
-		    <a class="list-group-item" href="#" onclick="$('#modal_load_bom').modal('show')"><i class="bi bi-cloud-upload"></i> Nahrát data (BOM)</a>
+		    <a class="list-group-item" href="#" onclick="openUploadModal()"><i class="bi bi-cloud-upload"></i> Nahrát data (BOM)</a>
 		    <a class="list-group-item" href="./../print/" ><i class="bi bi-printer"></i> Tisknout osazovák</a>
 		    <a class="list-group-item text-muted" href="#" ><i class="bi bi-display"></i> Zobrazit gerber</a>
 		    <a class="list-group-item" href="#"><i class="bi bi-question-square"></i> Nastavit počet kusů <input type="number" id="production_multiplication" value="1" min="1" step="1" style="border: solid gray 1px;width: 5em;text-align: center;padding: 0pt;margin-left: 2em;" onchange="count_validation($(this).val())"></a>
@@ -203,7 +203,7 @@ F{% extends "base.hbs" %}
         <h5 class="modal-title">Importování BOMu (.xml netlist)</h5>
       </div>
       <div class="modal-body">
-      	<div id="bom_import_step_1">
+      	<div id="bom_import_step_select" class="bom_import_step">
   				<label for="formFile" class="form-label">Vyberte soubor:</label>
 
       		<div class="input-group mb-3">
@@ -216,12 +216,21 @@ F{% extends "base.hbs" %}
 			</div>
 		</div>
       	
-      	<div id="bom_import_step_2" style="display: none">
-      		Loading
+      	<div id="bom_import_step_loading" class="bom_import_step">
+      		<div class="spinner-border" role="status">
+			  <span class="visually-hidden">Loading...</span>
+			</div>
       	</div>
       	
-      	<div id="bom_import_step_3" style="display: none">
-      		Loading
+      	<div id="bom_import_step_success" class="bom_import_step">
+      		<div class="alert alert-success" role="alert">
+			  Nahrání BOMu bylo úsěšné. Stránka bude automaticky obnovena. 
+			</div>
+      	</div>
+      	<div id="bom_import_step_failed" class="bom_import_step">
+      		<div class="alert alert-danger" role="alert">
+			  Nahrání se nezdařilo... 
+			</div>
       	</div>
       </div>
 <!--       <div class="modal-footer">
@@ -532,129 +541,18 @@ var ust_id_autocomplete = function(cell, onRendered, success, cancel){
     	return value*$("#production_multiplication").val();
 	};
 
-// 	var table = new Tabulator("#component-table",{
-// 	    layout:"fitColumns",
-// 	    columns:[
-// 	        {title:"#", field:"row", sorter:"number", width:25, editor:"input", editable:false},
-// 	        {title:"počet", field: "count", sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-// 	        {title:"Pro výrobu", field: "count_multiply", formatter: multiplication, sorter:"number", width: 80, editor:"input", editable:false, topCalc:"sum"},
-// //	        {title:"Sklad",
-// //	        	columns:[
-// //	        		{title: "Celkem", field:"stock_count", editable: false, width: 80, topCalc:"sum"},
-// //	        	]
-// //	    	},
-// //            {title:"Cena",
-// //	        	columns:[
-// //	        		{title: "pol", field:"price_item", editable: false, width: 80},
-// //    	        	{title: "cel", field:"price_row", editable: false, width: 80, topCalc:"sum"},
-// //	        	]
-// //	    	},
-//             {title:"Link", field:"link", formatter:"link", formatterParams: {labelField:"link", urlPrefix:"/store/component/", target:"_blank"}, width: 50},
-// 	        {title:"Značka", field:"Ref", editor:"input", editable:true, cellDblClick:editf, sorter:"string"},
-// 	        {title:"Položka", field:"Value", editor:"input", editable:true, cellDblClick:editf},
-// 	        {title:"MFPN", field:"MFPN", editor:"input", editable:true, cellDblClick:editf},
-// 	        //{title:"Distributor", field:"Distributor", editor:"input", editable:true, cellDblClick:editf},
-// 	        {title:"Odkaz", field:"Datasheet", editor:"input", formatter:"link", editable:true, cellDblClick:editf},
-// 	        {title:"Pouzdro", field:"Footprint", editor:"input", cellClick:function(e, cell){}, cellDblClick:editf},
-// 	        {title:"UST id", field:"UST_ID", editor: ust_id_autocomplete},
-// 	        //{title:"Cena",
-// 	        //    columns:[
-// 		//	        {title:"Sklad", field:"price_store", editable:false, topCalc:"avg", width: 95},
-// 		//	        {title:"Použitá", field:"price", editor:"input", topCalc:"avg", editable:true, cellDblClick:editf, width: 95},
-// 		//	        {title:"Cena", field:"price_group", topCalc: "sum", editable:false, width: 95},
-// 		//		]
-// 		//	},
-// 	        {title:"Poznámka", field:"note", editor:"textarea", editable:true, cellDblClick:function(e, cell){ cell.edit(true);} },
-// 	        {title:"Dodavatele", field:"supplier", editable:false, formatter: supplier_url},
-// 	    ],
-//     	addRowPos:"bottom",
-// 	    cellEdited:function(cell){
-//             if(cell._cell.value !== null){
-//     	    	console.log("EDITED");
-//             	//console.log(cell);
-//         		//console.log(cell._cell.row.cells[7].value);
-//         		update_component_parameter(cell._cell.row.cells[7].value, cell._cell.column.field, cell._cell.value);
-//             }
-//     	},
-//         ajaxResponse:function(url, params, response){
-//             console.log("AJAX RESPONSE");
-//             console.log(url);
-//             console.log(params);
-//             console.log(response);
-//             //url - the URL of the request
-//             //params - the parameters passed with the request
-//             //response - the JSON object returned in the body of the response.
-
-//             response = $.map(response, function( val, i ) {
-//               // Do something
-//               console.log(val, i);
-
-//               var usttext = undefined;
-//               var price = null;
-//  			  var supplier = [];
-
-
-//                 if (val['stock'].length > 0){
-
-//                   console.log("PRED SUPPLIER");
-//                   supplier = val['stock'][0].supplier;
-
-//                   usttext = val['stock'][0]['name'];
-//                   console.log("StockName", val['stock'][0]['name']);
-
-// 				  var history = val['stock'][0]['history'];
-
-//                     console.log("Historie:", history);
-//                     for(j in history){
-//                         if(history[j]['operation'] == 'buy' || history[j]['operation'] == 'inventory'){
-//                             console.log("Cena za nakup je",  history[j]['price']);
-//                             price = history[j]['price'];
-//                             break;
-//                         }
-//                       }
-//                   //}
-//                 }
-
-//                 var uid = val["_id"]['UST_ID'];
-
-//                 if(typeof uid == 'object'){
-//                     uid = val['_id']['UST_ID']['$oid'];
-//                 }
-
-//                 return{
-//                     row: i,
-//                     Ref: val['Ref'],
-//                     Value: val['_id']['Value'],
-//                     MFPN: val['_id']['MFPN'],
-//                     Distributor: val['_id']['Distributor'],
-//                     Datasheet: val['_id']['Datasheet'],
-//                     stock_count: val['_id']['stock_count'],
-//                     count: val['Ref'].length,
-//                     count_multiply: val['Ref'].length*1,
-
-//                     price_item: price,
-//                     price_row:  val['Ref'].length*price,
-//                     link: uid,
-//                     Footprint: val['_id']['Footprint'],
-//                     note: val['_id']['note'],
-//                     UST_ID: usttext,
-//                     supplier: supplier
-//                 }
-//             });
-
-//             return response; //return the tableData property of a response json object
-//         },
-// 	});
-// 	table.setData('./?operation=get_components_grouped', {operation:"get_components_grouped"}, 'POST');
-
 
 // Konec tabulky pro seznam polozek
 
 
+function openUploadModal(){
+	$('.bom_import_step').hide();
+	$('#bom_import_step_select').show();
+	$('#modal_load_bom').modal('show');
+}
 
 function startUpload() {
     var fileInput = document.getElementById("ust_bom_file");
-    //console.log(fileInput.files[0])
 
     var fd = new FormData();
 	fd.append('remove_obsolete', Number($("#ust_bom_remove_obsolete").is(':checked')) );
@@ -669,24 +567,26 @@ function startUpload() {
     var xhr = new XMLHttpRequest();
 	xhr.withCredentials = true;
 
+	xhr.onloadstart = function(){
+		$('.bom_import_step').hide();
+		$('#bom_import_step_loading').show();
+	};
+
     xhr.onload = function() {
-        if (xhr.status == 200) {
-			console.log("Úspěch - nahráno");
-			load_components();
-        } else {
-            alert("Error! Upload failed");
-        }
+		$('.bom_import_step').hide();
+		$('#bom_import_step_success').show();
+		console.log("Úspěch - nahráno");
+		setTimeout(function(){window.location.reload(1);}, 2000);
     };
+
     xhr.onerror = function() {
         alert("Error! Upload failed. Can not connect to server.");
+		$('.bom_import_step').hide();
+		$('#bom_import_step_failed').show();
     };
 
     xhr.open("POST", "/production/{{id}}/upload/bom/ust/", true);
-    //xhr.setRequestHeader("Content-Type", "multipart/form-data");
     xhr.send(fd);
-    // xhr.send(fileInput.files[0]+"&remove_obsolete="+$("#ust_bom_remove_obsolete").is(':checked'));
-
-    load_components();
 }
 
 
