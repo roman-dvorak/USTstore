@@ -633,7 +633,7 @@ class ust_bom_upload(BaseHandler):
         component = {
                 'Tstamp': element.findall('tstamps')[0].text,
                 "Datasheet": "",
-                "Footprint": element.findall('value')[0].text,
+                "Footprint": element.findall('footprint')[0].text,
                 "Ref": element.get('ref'),
                 "Value": element.findall('value')[0].text,
                 "UST_ID": '',
