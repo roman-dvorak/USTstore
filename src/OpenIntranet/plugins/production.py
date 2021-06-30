@@ -972,28 +972,28 @@ class print_bom(BaseHandler):
             pdf.set_xy(163, rowy)
             pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
 
-            pdf.set_xy(90, rowy + 3.5)
+            pdf.set_xy(90, rowy + 7)
             pdf.cell(0, 5, component['_id'].get('Footprint', '--')[:30])
 
-            pdf.set_xy(90, rowy + 7.5)
-            pdf.cell(0, 5, str(component['_id'].get('note', '--')))
+            #pdf.set_xy(90, rowy + 7.5)
+            #pdf.cell(0, 5, str(component['_id'].get('note', '--')))
+
+            pdf.set_xy(15, rowy+8)
+            pdf.cell(0, 5, component['_id'].get('Value', '--')[:30])
 
             pdf.set_font('pt_sans-bold', '', 7.5)
 
-            pdf.set_xy(90, rowy)
-            pdf.cell(0, 5, component['_id'].get('Value', '--')[:30])
-
             pdf.set_font('pt_sans-bold', '', 9)
 
-            pdf.set_xy(15, rowy+3.5)
+            pdf.set_xy(15, rowy)
             pdf.cell(0, 5, name)
 
             pdf.set_font('pt_sans-bold', '', 8)
 
-            pdf.set_xy(15, rowy-0.7)
+            pdf.set_xy(15, rowy + 4)
             pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
 
-            pdf.set_xy(10, rowy + 3.5)
+            pdf.set_xy(10, rowy + 4)
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
             pdf.set_font('pt_sans', '', 8)
