@@ -1,7 +1,6 @@
 {%for i, row in enumerate(data) %}
 {% set valid = bson.objectid.ObjectId.is_valid(row['cUST_ID']) %}
 
-<!-- {{i}}, {{row}} -->
 <tr>
 	<td>
 		<div>#{{i+1}}</div>
@@ -58,7 +57,7 @@
 					{%for packets in row['packets'] %}
 						 {% set count = 0 %}
 						 {% for packet in packets['packets'] %}
-						 	{% set this_warehouse = bool(packet['packets']['position'][0]['warehouse'] == current_warehouse) %}
+						 	{% set this_warehouse = bool(packet['packets']['position'][0]['warehouse']['_id'] == current_warehouse) %}
 						 	{% if this_warehouse %}
 						 		<div> <span class="text-muted hover-packet" packet_id="{{packet['packets']['_id']}}"><i class="bi bi-box-seam"></i> {{str(packet['packets']['_id'])[-4:]}}</span> &middot; <b>{{packet['packet_count']}}</b><small>/{{packet['packet_count']}}</small> ks &middot; <span class="text-muted" data-toggle="tooltip" data-placement="top" title="{{ packet['packets']['position'][0]['text']}}">(<i class="bi bi-inboxes"></i> {{ packet['packets']['position'][0]['name']}})</span></div>
 						 		{%set count += packet['packet_count'] %}
