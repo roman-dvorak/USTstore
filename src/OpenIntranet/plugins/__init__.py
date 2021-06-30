@@ -260,6 +260,9 @@ class BaseHandler(tornado.web.RequestHandler):
 
         return ns
 
+    def get_company_info(self):
+        return list(self.mdb.intranet.find({'_id': 'company_info'}))[0]
+
     def get_warehouseses(self):
         return list(self.mdb.warehouse.find().sort([('code', 1)]))
 
@@ -532,7 +535,7 @@ class BaseHandler(tornado.web.RequestHandler):
         '''
         q = [{"$match": {"_id": id}},
              {"$unwind": "$position"},
-             {"$lookup": {"from": "store_positions", "localField": 'position.posid', "foreignField": '_id',
+             {"$lookup": {"from": "store_positions_complete", "localField": 'position.posid', "foreignField": '_id',
                           "as": "position.info"}},
              {"$project": {"pos": 1, "position": 1}},
              {"$replaceRoot": {"newRoot": "$position"}

@@ -15,6 +15,67 @@ import datetime
 import pandas as pd
 from fpdf import FPDF
 from enum import Enum
+import math
+
+
+class round_fpdf(FPDF):
+    def rounded_cell(self, w, h=0, txt='', border=0, ln=0, align='', fill=False, link='', radius = 1, corners =  (1,2,3,4), cellspacing = 1):
+        style = 'S'
+        if fill and border:
+            style = 'FD'
+        elif fill:
+            style = 'F'
+        self.rounded_rect(self.get_x() + (cellspacing / 2.0), 
+            self.get_y() +  (cellspacing / 2.0),
+            w - cellspacing, h, radius, corners, style)
+        self.cell(w, h + cellspacing, txt, 0, ln, align, False, link)
+
+    def rounded_rect(self, x, y, w, h, r, corners = (1,2,3,4), style = ''):
+        k = self.k
+        hp = self.h
+        if style == 'F':
+            op = 'f'
+        elif style=='FD' or style == 'DF':
+            op='B'
+        else:
+            op='S'
+        my_arc = 4/3 * (math.sqrt(2) - 1)
+        self._out('%.2F %.2F m' % ((x+r)*k,(hp-y)*k ))
+        xc = x+w-r 
+        yc = y+r
+        self._out('%.2F %.2F l' % (xc*k,(hp-y)*k ))
+        if 2 not in corners:
+            self._out('%.2F %.2F l' % ((x+w)*k,(hp-y)*k ))
+        else:
+            self._arc(xc + r*my_arc, yc - r, xc + r, yc - r*my_arc, xc + r, yc)
+        xc = x+w-r
+        yc = y+h-r
+        self._out('%.2F %.2F l' % ((x+w)*k,(hp-yc)*k))
+        if 3 not in corners:
+            self._out('%.2F %.2F l' % ((x+w)*k,(hp-(y+h))*k))
+        else:
+            self._arc(xc + r, yc + r*my_arc, xc + r*my_arc, yc + r, xc, yc + r)
+        xc = x+r
+        yc = y+h-r
+        self._out('%.2F %.2F l' % (xc*k,(hp-(y+h))*k))
+        if 4 not in corners:
+            self._out('%.2F %.2F l' % ((x)*k,(hp-(y+h))*k))
+        else:
+            self._arc(xc - r*my_arc, yc + r, xc - r, yc + r*my_arc, xc - r, yc)
+        xc = x+r
+        yc = y+r
+        self._out('%.2F %.2F l' % ((x)*k,(hp-yc)*k ))
+        if 1 not in corners:
+            self._out('%.2F %.2F l' % ((x)*k,(hp-y)*k ))
+            self._out('%.2F %.2F l' % ((x+r)*k,(hp-y)*k ))
+        else:
+            self._arc(xc - r, yc - r*my_arc, xc - r*my_arc, yc - r, xc, yc - r)
+        self._out(op)
+
+    def _arc(self, x1, y1, x2, y2, x3, y3):
+        h = self.h
+        self._out('%.2F %.2F %.2F %.2F %.2F %.2F c ' % (x1*self.k, (h-y1)*self.k,x2*self.k, (h-y2)*self.k, x3*self.k, (h-y3)*self.k))
+
 
 
 class ComponentStatus(Enum):
@@ -751,10 +812,12 @@ class print_bom(BaseHandler):
                     '_id': {'UST_ID': '$components.UST_ID',
                             'Value': '$components.Value',
                             'Footprint': '$components.Footprint',
-                            'Distributor': '$components.Distributor',
-                            'Datasheet': '$components.Datasheet',
-                            'stock_count': '$components.stock_count',
-                            'note': '$components.note'},
+                            'status': '$components.status',
+                            #'Distributor': '$components.Distributor',
+                            #'Datasheet': '$components.Datasheet',
+                            #'stock_count': '$components.stock_count',
+                            #'note': '$components.note'
+                            },
                     'Ref': {'$push': '$components.Ref'},
                     'category': {'$push': '$components.category'},
                     'count': {'$sum': 1},
@@ -770,10 +833,32 @@ class print_bom(BaseHandler):
                     "localField": 'cUST_ID',
                     "foreignField": '_id',
                     "as": 'stock'
-                }}
+                }},
+                {"$lookup":{
+                    "from": 'packets_count_complete',
+                    "localField": 'cUST_ID',
+                    "foreignField": '_id',
+                    "as": 'packets'
+                }},
+                {"$lookup":{
+                    "from": 'packets_count_complete',
+                    "localField": 'cUST_ID',
+                    "foreignField": '_id',
+                    "as": 'packets'
+                }},
+                # {"$lookup":{            # tohle nefunguje jak by melo.. 
+                #     "from": 'category_complete',
+                #     "localField": 'components.stock.category',
+                #     "foreignField": '_id',
+                #     "as": 'components.stock.category_complete'
+                # }},
+                {"$sort": {'Ref':1}}
             ]))
 
-        pdf = FPDF('P', 'mm', format='A4')
+
+        pdf = round_fpdf('P', 'mm', format='A4')
+        pdf.set_line_width(0.1)
+        pdf.set_draw_color(0,0,0);
         pdf.set_auto_page_break(False)
         pdf.add_font('pt_sans', '', 'static/pt_sans/PT_Sans-Web-Regular.ttf', uni=True)
         pdf.add_font('pt_sans-bold', '', 'static/pt_sans/PT_Sans-Web-Bold.ttf', uni=True)
@@ -794,18 +879,19 @@ class print_bom(BaseHandler):
         pdf.cell(0, 5, str(datetime.datetime.now())[:16], border=0)
         if pdf.page_no() == 1:
             pdf.set_xy(170, 9)
-            pdf.cell(0, 5, str("Sklad: {}".format('nazev')), border=0)
+            pdf.cell(0, 5, "Sklad: {}".format(self.get_warehouse()['name']), border=0)
             pdf.set_xy(10, 13)
             pdf.cell(0, 5, str(name), border=0)
 
             pdf.set_xy(10, 3)
-            pdf.cell(0, 5, "Universal Scientific Technologies s.r.o.")
+            pdf.cell(0, 5, "OpenIntranet: {}".format(self.get_company_info()['name']))
 
 
         row = []
         used = []
 
         rowh = 9+8
+        rowy = 20
         first_row = 28
         pdf.set_xy(10, 28)
 
@@ -846,14 +932,17 @@ class print_bom(BaseHandler):
 
             try:
                 name = component.get('stock')[0]['name']
-                category = component.get('stock')[0]['category']
+                #category = component.get('stock')[0]
+                #print(".....CAT", component)
             except Exception as e:
+                print("chyba", e)
                 name = ''
                 category = []
 
             j += 1
-            if j > 28-14:
+            if rowy > 260:
                 j = 0
+                rowy = 10
                 first_row = 10
                 print("New page...")
                 pdf.add_page()
@@ -874,56 +963,75 @@ class print_bom(BaseHandler):
 
             pdf.set_font('pt_sans', '', 8)
 
-            pdf.set_xy(10, first_row+j*rowh)
+            pdf.set_xy(10, rowy)
             pdf.cell(0, 5, str(i)+'.', border=0)
 
-
-            # placement = ""
-            # for k, place in enumerate(item_places):
-            #     if k > 0:
-            #         placement += ", "
-            #     placement += place['info'][0]['name']
-
-            pdf.set_xy(15, first_row+j*rowh + 3.5)
+            pdf.set_xy(15, rowy + 3.5)
             pdf.cell(0, 5, place_str)
 
-
-            pdf.set_xy(15, first_row+j*rowh + 11)
-            pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
-
-            pdf.set_xy(163, first_row+j*rowh)
+            pdf.set_xy(163, rowy)
             pdf.cell(0, 5, str(component['_id'].get('UST_ID', '--')))
 
-            pdf.set_xy(90, first_row+j*rowh + 3.5)
+            pdf.set_xy(90, rowy + 3.5)
             pdf.cell(0, 5, component['_id'].get('Footprint', '--')[:30])
 
-            pdf.set_xy(90, first_row+j*rowh + 7.5)
+            pdf.set_xy(90, rowy + 7.5)
             pdf.cell(0, 5, str(component['_id'].get('note', '--')))
 
             pdf.set_font('pt_sans-bold', '', 7.5)
 
-            pdf.set_xy(90, first_row+j*rowh)
+            pdf.set_xy(90, rowy)
             pdf.cell(0, 5, component['_id'].get('Value', '--')[:30])
 
             pdf.set_font('pt_sans-bold', '', 9)
 
-            pdf.set_xy(15, first_row+j*rowh)
+            pdf.set_xy(15, rowy+3.5)
             pdf.cell(0, 5, name)
 
-            pdf.set_xy(10, first_row+j*rowh + 3.5)
+            pdf.set_font('pt_sans-bold', '', 8)
+
+            pdf.set_xy(15, rowy-0.7)
+            pdf.cell(0, 5, str(', '.join(component['Ref'])), border=0)
+
+            pdf.set_xy(10, rowy + 3.5)
             pdf.cell(0, 5, str(component['count'])+'x', border=0)
 
             pdf.set_font('pt_sans', '', 8)
 
 
-            pdf.set_xy(15, first_row+j*rowh + 7)
+            pdf.set_xy(15, rowy + 7)
             #pdf.cell(0, 5, str(', '.join(str(category))), border=0)
-            pdf.cell(0, 5, str(category), border=0)
+            #pdf.cell(0, 5, str(category), border=0)
 
 
+            packet_rount = 0
+            for packets in component.get('packets', []):
 
-            pdf.line(10,first_row+j*rowh + 16, 200, first_row+j*rowh + 16)
-            print("===================Value==========================================")
+                pdf.set_line_width(0.1)
+                pdf.set_draw_color(110,110,110)
+                pdf.set_text_color(110,110,110)
+
+                for packet_i, packet in enumerate(packets.get('packets', [])):
+                    packet_rount += 1
+
+                    print(" ")
+                    print("packet>", packet)
+                    pdf.set_xy(13, rowy+15+packet_i*4)
+                    pdf.cell(40, 5, str(packet['packets']['_id']))
+                    if len(packet['packets']['position'][0]['path_string']):
+                        pdf.cell(90, 5, str(packet['packets']['position'][0]['warehouse']['code']) + " / " + str(packet['packets']['position'][0]['path_string'][0]) + " / " + str(packet['packets']['position'][0]['name']) + " ("+str(packet['packets']['position'][0].get('text', ''))+")")
+                    else:
+                        pdf.cell(90, 5, str(packet['packets']['position'][0]['warehouse']['code']) + " / " + str(packet['packets']['position'][0]['name']) + " ("+str(packet['packets']['position'][0].get('text', ''))+")")
+                    pdf.cell(10, 5, str(packet['packet_count'])+ " ks")
+
+                pdf.rounded_rect(13, rowy+15, 185, 5+packet_i*4, 1)
+                pdf.set_line_width(0.01)
+                pdf.set_draw_color(0,0,0)
+                pdf.set_text_color(0,0,0)
+
+            rowy = rowy + (17 + 6*packet_rount)
+            pdf.line(10,rowy-1, 200, rowy-1)
+            print("===================Value==========================================", packet_rount)
 
         pdf.alias_nb_pages()
         pdf.output("static/production.pdf")

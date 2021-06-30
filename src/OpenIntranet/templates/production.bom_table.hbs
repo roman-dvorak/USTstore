@@ -44,7 +44,12 @@
 		
 		<div>
 			{%try%}
-				{% if not len(row['packets']) %}
+				{% if not valid %}
+					<div>
+						<i class="bi bi-x-square"></i> Součástka není přiřazena
+						<span unit_required="{{len(row['Ref'])}}" unit_available="0" class="count_validation"></span>
+					</div>
+				{% elif not len(row['packets']) %}
 					<div>
 						<i class="bi bi-exclamation-square"></i> Není ve skladu
 						<span unit_required="{{len(row['Ref'])}}" unit_available="0" class="count_validation"></span>
